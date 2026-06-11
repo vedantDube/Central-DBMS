@@ -1,0 +1,216 @@
+import { env } from "../config.js";
+import type { AmazonReportDefinition } from "../types.js";
+
+export const amazonReports: AmazonReportDefinition[] = [
+  {
+    key: "amazon-mtr",
+    label: "Amazon MTR Reports",
+    storagePath: "amazon/mtr",
+    reportTypeId: env.AMAZON_MTR_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-gst-mtr-b2b",
+    label: "GST MTR B2B Report",
+    storagePath: "amazon/tax/mtr-b2b",
+    preferredSource: "browser",
+    fileExtension: "csv",
+    browserUrl: env.AMAZON_GST_MTR_B2B_BROWSER_URL,
+    browserDownloadSelector: env.AMAZON_GST_MTR_B2B_BROWSER_DOWNLOAD_SELECTOR,
+    browserWaitBeforeDownloadMs: 120000,
+  },
+  {
+    key: "amazon-gst-mtr-b2c",
+    label: "GST MTR B2C Report",
+    storagePath: "amazon/tax/mtr-b2c",
+    preferredSource: "browser",
+    fileExtension: "csv",
+    browserUrl: env.AMAZON_GST_MTR_B2C_BROWSER_URL,
+    browserDownloadSelector: env.AMAZON_GST_MTR_B2C_BROWSER_DOWNLOAD_SELECTOR,
+    browserWaitBeforeDownloadMs: 120000,
+  },
+  {
+    key: "amazon-gst-mtr-stock-transfer",
+    label: "GST MTR Stock Transfer Report",
+    storagePath: "amazon/tax/stock-transfer",
+    preferredSource: "browser",
+    fileExtension: "csv",
+    browserUrl: env.AMAZON_GST_MTR_STOCK_TRANSFER_BROWSER_URL,
+    browserDownloadSelector:
+      env.AMAZON_GST_MTR_STOCK_TRANSFER_BROWSER_DOWNLOAD_SELECTOR,
+    browserWaitBeforeDownloadMs: 120000,
+  },
+  {
+    key: "amazon-returns-b2c",
+    label: "Returns Report B2C",
+    storagePath: "amazon/returns/b2c",
+    reportTypeId: env.AMAZON_RETURNS_B2C_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-returns-b2b",
+    label: "Returns Report B2B",
+    storagePath: "amazon/returns/b2b",
+    reportTypeId: env.AMAZON_RETURNS_B2B_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-payment-transaction",
+    label: "Payment Report Transaction",
+    storagePath: "amazon/payments/transactions",
+    reportTypeId: env.AMAZON_PAYMENT_TRANSACTION_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-claims-reimbursements",
+    label: "Claims and Reimbursements Report",
+    storagePath: "amazon/claims-reimbursements",
+    reportTypeId: env.AMAZON_CLAIMS_REIMBURSEMENTS_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-fba-customer-returns",
+    label: "FBA Customer Returns Report",
+    storagePath: "amazon/fba/customer-returns",
+    reportTypeId: env.AMAZON_FBA_CUSTOMER_RETURNS_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "tsv",
+  },
+  {
+    key: "amazon-fba-removal-shipment-detail",
+    label: "FBA Removal Shipment Detail Report",
+    storagePath: "amazon/fba/removal-shipment-detail",
+    reportTypeId: env.AMAZON_FBA_REMOVAL_SHIPMENT_DETAIL_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "tsv",
+  },
+  {
+    key: "amazon-fba-removal-order-detail",
+    label: "FBA Removal Order Detail Report",
+    storagePath: "amazon/fba/removal-order-detail",
+    reportTypeId: env.AMAZON_FBA_REMOVAL_ORDER_DETAIL_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "tsv",
+  },
+  {
+    key: "amazon-afn-inventory",
+    label: "AFN Inventory Report",
+    storagePath: "amazon/fba/afn-inventory",
+    reportTypeId: env.AMAZON_AFN_INVENTORY_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "tsv",
+  },
+  {
+    key: "amazon-sales-and-traffic",
+    label: "Sales and Traffic Report",
+    storagePath: "amazon/sales-and-traffic",
+    reportTypeId: env.AMAZON_SALES_AND_TRAFFIC_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-brand-analytics-search-catalog-performance",
+    label: "Brand Analytics Search Catalog Performance Report",
+    storagePath: "amazon/brand-analytics/search-catalog-performance",
+    reportTypeId:
+      env.AMAZON_BRAND_ANALYTICS_SEARCH_CATALOG_PERFORMANCE_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-brand-analytics-search-query-performance",
+    label: "Brand Analytics Search Query Performance Report",
+    storagePath: "amazon/brand-analytics/search-query-performance",
+    reportTypeId:
+      env.AMAZON_BRAND_ANALYTICS_SEARCH_QUERY_PERFORMANCE_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-brand-analytics-search-terms",
+    label: "Brand Analytics Search Terms Report",
+    storagePath: "amazon/brand-analytics/search-terms",
+    reportTypeId: env.AMAZON_BRAND_ANALYTICS_SEARCH_TERMS_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-brand-analytics-repeat-purchase",
+    label: "Brand Analytics Repeat Purchase Report",
+    storagePath: "amazon/brand-analytics/repeat-purchase",
+    reportTypeId: env.AMAZON_BRAND_ANALYTICS_REPEAT_PURCHASE_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-flat-file-open-listings-data",
+    label: "Flat File Open Listings Data",
+    storagePath: "amazon/listings/open-listings-data",
+    reportTypeId: env.AMAZON_FLAT_FILE_OPEN_LISTINGS_DATA_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-v2-seller-performance",
+    label: "V2 Seller Performance Report",
+    storagePath: "amazon/seller-performance/v2",
+    reportTypeId: env.AMAZON_V2_SELLER_PERFORMANCE_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-v2-settlement-report-data-flat-file-v2",
+    label: "V2 Settlement Report Data Flat File",
+    storagePath: "amazon/payment-statements/v2",
+    reportTypeId:
+      env.AMAZON_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-day-level-inventory",
+    label: "Day Level Inventory Report",
+    storagePath: "amazon/inventory/day-level",
+    reportTypeId: env.AMAZON_DAY_LEVEL_INVENTORY_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "tsv",
+  },
+  {
+    key: "amazon-ads-campaign",
+    label: "Ads and Campaign Report",
+    storagePath: "amazon/ads-campaign",
+    reportTypeId: env.AMAZON_ADS_CAMPAIGN_REPORT_TYPE_ID,
+    preferredSource: "browser",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-lis-data",
+    label: "LIS Data",
+    storagePath: "amazon/lis-data",
+    reportTypeId: env.AMAZON_LIS_DATA_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-payment-statements",
+    label: "Payment All Statements Report",
+    storagePath: "amazon/payment-statements",
+    reportTypeId: env.AMAZON_PAYMENT_STATEMENTS_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
+];
+
+export function getAmazonReport(key: string): AmazonReportDefinition {
+  const report = amazonReports.find((entry) => entry.key === key);
+  if (!report) {
+    throw new Error(`Unknown report key: ${key}`);
+  }
+
+  return report;
+}

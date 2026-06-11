@@ -1,0 +1,670 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ReportArtifact {
+  id          String   @id @default(cuid())
+  reportKey   String
+  reportLabel String
+  storagePath String
+  fileName    String
+  contentType String
+  source      String
+  rawContent  String   @db.Text
+  sha256      String
+  createdAt   DateTime @default(now())
+
+  @@index([reportKey, createdAt])
+  @@index([storagePath, createdAt])
+}
+
+model ReturnPrimeReturn {
+  id                   String   @id @default(cuid())
+  returnPrimeId        String?  @unique
+  requestNumber         String?
+  requestType           String?
+  status                String?
+  channel               Int?
+  orderId               String?
+  orderName             String?
+  orderCreatedAt        DateTime?
+  fulfillmentId         String?
+  deliveryStatus        String?
+  deliveryDate          DateTime?
+  customerEmail         String?
+  postalCode            String?
+  receivedStatus        Boolean  @default(false)
+  inspectedStatus       Boolean  @default(false)
+  rejectedStatus        Boolean  @default(false)
+  archivedStatus        Boolean  @default(false)
+  refundStatus          String?
+  eligibleRefundStatus  Boolean  @default(false)
+  refundedAmount        Decimal  @default(0)
+  originalProductId     String?
+  sku                   String?
+  tracking              String?
+  quantity              Int?
+  actualAmount          Decimal?
+  imageSrc              String?
+  rawJson               Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([requestNumber])
+  @@index([status, channel])
+  @@index([createdAt])
+}
+
+model ShiprocketOrder {
+  id                String   @id @default(cuid())
+  shiprocketOrderId String?  @unique
+  channelId         String?
+  channelOrderId    String?
+  status            String?
+  awb               String?
+  productId         String?
+  productName       String?
+  price             Decimal?
+  shipmentId        String?
+  rtoAwb            String?
+  returnAwb         String?
+  etd               DateTime?
+  rtoInitiatedAt    DateTime?
+  orderItemSku      String?
+  packageId         String?
+  rawPayload        Json?
+  rawContent        String   @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([channelOrderId])
+  @@index([awb])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AmazonMtrRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  itemname                     String?
+  itemdescription              String?
+  listingid                    String?
+  sellersku                    String?
+  price                        String?
+  quantity                     String?
+  opendate                     String?
+  imageurl                     String?
+  itemismarketplace            String?
+  productidtype                String?
+  zshopshippingfee             String?
+  itemnote                     String?
+  itemcondition                String?
+  zshopcategory1               String?
+  zshopbrowsepath              String?
+  zshopstorefrontfeature       String?
+  asin1                        String?
+  asin2                        String?
+  asin3                        String?
+  willshipinternationally      String?
+  expeditedshipping            String?
+  zshopboldface                String?
+  productid                    String?
+  bidforfeaturedplacement      String?
+  adddelete                    String?
+  pendingquantity              String?
+  fulfillmentchannel           String?
+  optionalpaymenttypeexclusion String?
+  merchantshippinggroup        String?
+  status                       String?
+  maximumretailprice           String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonClaimsReimbursementsRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  approvaldate                String?
+  reimbursementid             String?
+  caseid                      String?
+  amazonorderid               String?
+  reason                      String?
+  sku                         String?
+  fnsku                       String?
+  asin                        String?
+  productname                 String?
+  condition                   String?
+  currencyunit                String?
+  amountperunit               String?
+  amounttotal                 String?
+  quantityreimbursedcash      String?
+  quantityreimbursedinventory String?
+  quantityreimbursedtotal     String?
+  originalreimbursementid     String?
+  originalreimbursementtype   String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonReturnsB2bRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // TSV Columns
+  requestdate        String?
+  orderid            String?
+  shipmentdate       String?
+  sku                String?
+  fnsku              String?
+  disposition        String?
+  shippedquantity    String?
+  carrier            String?
+  trackingnumber     String?
+  shipmentstatus     String?
+  removalordertype   String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonReturnsB2cRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV/TSV Columns for FBA Customer Returns
+  returndate            String?
+  orderid               String?
+  sku                   String?
+  asin                  String?
+  fnsku                 String?
+  productname           String?
+  quantity              String?
+  fulfillmentcenterid   String?
+  detaileddisposition   String?
+  reason                String?
+  licenseplatenumber    String?
+  customercomments      String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonReturnsB2bOrderRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // TSV Columns
+  requestdate        String?
+  orderid            String?
+  ordersource        String?
+  ordertype          String?
+  servicespeed       String?
+  orderstatus        String?
+  lastupdateddate    String?
+  sku                String?
+  fnsku              String?
+  disposition        String?
+  requestedquantity  String?
+  cancelledquantity  String?
+  disposedquantity   String?
+  shippedquantity    String?
+  inprocessquantity  String?
+  removalfee         String?
+  currency           String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonSalesAndTrafficRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // Extracted JSON Columns
+  type                         String?  // "date" or "asin"
+  date                         String?
+  parentAsin                   String?
+  orderedProductSalesAmount    String?
+  orderedProductSalesCurrency  String?
+  unitsOrdered                 String?
+  pageViews                    String?
+  sessions                     String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonFlatFileOpenListingsDataRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  sku                        String?
+  asin                       String?
+  price                      String?
+  quantity                   String?
+  business_price             String?
+  quantity_price_type        String?
+  quantity_lower_bound_1     String?
+  quantity_price_1           String?
+  quantity_lower_bound_2     String?
+  quantity_price_2           String?
+  quantity_lower_bound_3     String?
+  quantity_price_3           String?
+  quantity_lower_bound_4     String?
+  quantity_price_4           String?
+  quantity_lower_bound_5     String?
+  quantity_price_5           String?
+  progressive_price_type     String?
+  progressive_lower_bound_1  String?
+  progressive_price_1        String?
+  progressive_lower_bound_2  String?
+  progressive_price_2        String?
+  progressive_lower_bound_3  String?
+  progressive_price_3        String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonMerchantListingsAllRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  itemname                     String?
+  itemdescription              String?
+  listingid                    String?
+  sellersku                    String?
+  price                        String?
+  quantity                     String?
+  opendate                     String?
+  imageurl                     String?
+  itemismarketplace            String?
+  productidtype                String?
+  zshopshippingfee             String?
+  itemnote                     String?
+  itemcondition                String?
+  zshopcategory1               String?
+  zshopbrowsepath              String?
+  zshopstorefrontfeature       String?
+  asin1                        String?
+  asin2                        String?
+  asin3                        String?
+  willshipinternationally      String?
+  expeditedshipping            String?
+  zshopboldface                String?
+  productid                    String?
+  bidforfeaturedplacement      String?
+  adddelete                    String?
+  pendingquantity              String?
+  fulfillmentchannel           String?
+  optionalpaymenttypeexclusion String?
+  merchantshippinggroup        String?
+  status                       String?
+  maximumretailprice           String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonV2SellerPerformanceRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // Extracted JSON Columns
+  ahrStatus     String?
+  ahrScore      String?
+  status        String?
+  marketplaceId String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model EasyEcomInventory {
+  id                String   @id @default(cuid())
+  date              String   // Snapshot Date: yyyy-MM-dd
+  snapshotType      String   // "Opening" or "Closing"
+  
+  // EasyEcom API Columns
+  companyId         Int?
+  skuId             Int?
+  name              String?
+  sku               String
+  slug              String?
+  modelNo           String?
+  color             String?
+  size              String?
+  brand             String?
+  quantity          Int?
+  availableQty      Int?
+  inventoryStatus   String?
+  easyEcomUpdatedAt String?
+  warehouseName     String?
+  warehouseId       Int?
+  subWarehouse      String?
+  floor             String?
+  zone              String?
+  aisle             String?
+  rack              String?
+  shelf             String?
+  bin               String?
+  reservedQty       Int?
+  bufferQuantity    Int?
+  isActive          Int?
+  thresholdQty      Int?
+  rank              String?
+
+  rawJson           Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([date, snapshotType, sku, warehouseId])
+  @@index([date, snapshotType])
+  @@index([sku])
+}
+
+model ShopifyOrder {
+  id                                    String                 @id // Admin GraphQL API ID (e.g. gid://shopify/Order/xxx)
+  shopifyOrderId                        String                 @unique // REST Order ID (numeric string)
+  appId                                 String?
+  browserIp                             String?
+  buyerAcceptsMarketing                 Boolean?
+  cancelReason                          String?
+  cancelledAt                           DateTime?
+  cartToken                             String?
+  checkoutId                            String?
+  checkoutToken                         String?
+  clientDetails                         Json?
+  closedAt                              DateTime?
+  company                               Json?
+  confirmationNumber                    String?
+  confirmed                             Boolean?
+  contactEmail                          String?
+  createdAt                             DateTime?
+  currency                              String?
+  currentSubtotalPrice                  Decimal?               @db.Decimal(12, 4)
+  currentSubtotalPriceSet               Json?
+  currentTotalAdditionalFeesSet         Json?
+  currentTotalDiscounts                 Decimal?               @db.Decimal(12, 4)
+  currentTotalDiscountsSet              Json?
+  currentTotalDutiesSet                 Json?
+  currentTotalPrice                     Decimal?               @db.Decimal(12, 4)
+  currentTotalPriceSet                  Json?
+  currentTotalTax                       Decimal?               @db.Decimal(12, 4)
+  currentTotalTaxSet                    Json?
+  customerLocale                        String?
+  deviceId                              String?
+  discountCodes                         Json?
+  dutiesIncluded                        Boolean?
+  email                                 String?
+  estimatedTaxes                        Boolean?
+  financialStatus                       String?
+  fulfillmentStatus                     String?
+  landingSite                           String?
+  landingSiteRef                        String?
+  locationId                            String?
+  merchantBusinessEntityId              String?
+  merchantOfRecordAppId                 String?
+  name                                  String?
+  note                                  String?
+  noteAttributes                        Json?
+  number                                Int?
+  orderNumber                           Int?
+  orderStatusUrl                        String?
+  originalTotalAdditionalFeesSet        Json?
+  originalTotalDutiesSet                Json?
+  paymentGatewayNames                   Json?
+  phone                                 String?
+  poNumber                              String?
+  presentmentCurrency                   String?
+  processedAt                           DateTime?
+  reference                             String?
+  referringSite                         String?
+  sourceIdentifier                      String?
+  sourceName                            String?
+  sourceUrl                             String?
+  subtotalPrice                         Decimal?               @db.Decimal(12, 4)
+  subtotalPriceSet                      Json?
+  tags                                  String?
+  taxExempt                             Boolean?
+  taxLines                              Json?
+  taxesIncluded                         Boolean?
+  test                                  Boolean?
+  token                                 String?
+  totalCashRoundingPaymentAdjustmentSet Json?
+  totalCashRoundingRefundAdjustmentSet  Json?
+  totalDiscounts                        Decimal?               @db.Decimal(12, 4)
+  totalDiscountsSet                     Json?
+  totalLineItemsPrice                   Decimal?               @db.Decimal(12, 4)
+  totalLineItemsPriceSet                Json?
+  totalOutstanding                      Decimal?               @db.Decimal(12, 4)
+  totalPrice                            Decimal?               @db.Decimal(12, 4)
+  totalPriceSet                         Json?
+  totalShippingPriceSet                 Json?
+  totalTax                              Decimal?               @db.Decimal(12, 4)
+  totalTaxSet                           Json?
+  totalTipReceived                      Decimal?               @db.Decimal(12, 4)
+  totalWeight                           Int?
+  updatedAt                             DateTime?
+  userId                                String?
+  billingAddress                        Json?
+  customer                              Json?
+  discountApplications                  Json?
+  fulfillments                          Json?
+  paymentTerms                          Json?
+  refunds                               Json?
+  shippingAddress                       Json?
+  shippingLines                         Json?
+  rawJson                               Json?
+  dbCreatedAt                           DateTime               @default(now())
+  dbUpdatedAt                           DateTime               @updatedAt
+  lineItems                             ShopifyOrderLineItem[]
+
+  @@index([orderNumber])
+  @@index([financialStatus])
+  @@index([fulfillmentStatus])
+  @@index([createdAt])
+}
+
+model ShopifyOrderLineItem {
+  id                         String       @id // Admin GraphQL API ID (e.g. gid://shopify/LineItem/xxx)
+  shopifyLineItemId          String       @unique // REST Line Item ID (numeric string)
+  orderId                    String
+  attributedStaffs           Json?
+  currentQuantity            Int?
+  fulfillableQuantity        Int?
+  fulfillmentService         String?
+  fulfillmentStatus          String?
+  giftCard                   Boolean?
+  grams                      Int?
+  name                       String?
+  price                      Decimal?     @db.Decimal(12, 4)
+  priceSet                   Json?
+  productExists              Boolean?
+  productId                  String?
+  properties                 Json?
+  quantity                   Int?
+  requiresShipping           Boolean?
+  sku                        String?
+  taxable                    Boolean?
+  title                      String?
+  totalDiscount              Decimal?     @db.Decimal(12, 4)
+  totalDiscountSet           Json?
+  variantId                  String?
+  variantInventoryManagement String?
+  variantTitle               String?
+  vendor                     String?
+  taxLines                   Json?
+  duties                     Json?
+  discountAllocations        Json?
+  order                      ShopifyOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([sku])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model ShopifyReturn {
+  id                        String                  @id // GraphQL ID (e.g. gid://shopify/Return/xxx)
+  name                      String?
+  status                    String?
+  createdAt                 DateTime?
+  closedAt                  DateTime?
+  requestApprovedAt         DateTime?
+  totalQuantity             Int?
+  orderId                   String?
+  declineReason             String?
+  declineNote               String?
+  refunds                   Json?
+  returnShippingFees        Json?
+  reverseFulfillmentOrders  Json?
+  suggestedFinancialOutcome Json?
+  rawJson                   Json?
+  dbCreatedAt               DateTime                @default(now())
+  dbUpdatedAt               DateTime                @updatedAt
+  returnLineItems           ShopifyReturnLineItem[]
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ShopifyReturnLineItem {
+  id                              String        @id // GraphQL ID (e.g. gid://shopify/ReturnLineItem/xxx)
+  returnId                        String
+  customerNote                    String?
+  fulfillmentLineItem             Json?
+  processableQuantity             Int?
+  processedQuantity               Int?
+  quantity                        Int?
+  refundableQuantity              Int?
+  refundedQuantity                Int?
+  restockingFee                   Json?
+  returnReason                    String?
+  returnReasonNote                String?
+  totalWeight                     Json?
+  unprocessedQuantity             Int?
+  withCodeDiscountedTotalPriceSet Json?
+  return                          ShopifyReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@index([returnId])
+}
+
+model ShopifyInventoryItem {
+  id                           String                  @id // GraphQL ID (e.g. gid://shopify/InventoryItem/xxx)
+  legacyResourceId             String?
+  sku                          String?
+  unitCost                     Decimal?                @db.Decimal(12, 4)
+  tracked                      Boolean?
+  requiresShipping             Boolean?
+  createdAt                    DateTime?
+  updatedAt                    DateTime?
+  variantId                    String?
+  countryCodeOfOrigin          String?
+  countryHarmonizedSystemCodes Json?
+  duplicateSkuCount            Int?
+  harmonizedSystemCode         String?
+  inventoryHistoryUrl          String?
+  locationsCount               Int?
+  measurement                  Json?
+  provinceCodeOfOrigin         String?
+  trackedEditable              Json?
+  dbCreatedAt                  DateTime                @default(now())
+  dbUpdatedAt                  DateTime                @updatedAt
+  levels                       ShopifyInventoryLevel[]
+
+  @@index([sku])
+}
+
+model ShopifyInventoryLevel {
+  id                String               @id @default(cuid()) // Change from GraphQL ID to auto-generated CUID to allow daily duplicates
+  shopifyLevelId    String // Store the GraphQL ID here
+  inventoryItemId   String
+  date              String // Snapshot Date: yyyy-MM-dd
+  snapshotType      String // "Opening" or "Closing"
+  createdAt         DateTime?
+  updatedAt         DateTime?
+  locationId        String?
+  locationName      String?
+  canDeactivate     Boolean?
+  deactivationAlert String?
+  availableQty      Int?
+  onHandQty         Int?
+  committedQty      Int?
+  reservedQty       Int?
+  rawJson           Json?
+  item              ShopifyInventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@unique([date, snapshotType, inventoryItemId, locationId]) // Allow one log per day/snapshot/location
+  @@index([date, snapshotType])
+  @@index([inventoryItemId])
+  @@index([locationId])
+}
