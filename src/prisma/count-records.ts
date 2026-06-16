@@ -1,4 +1,4 @@
-import { prisma } from "./client.js";
+import { prisma, supabasePrisma } from "./client.js";
 
 async function main() {
   console.log("=== Database Record Counts ===");
@@ -24,32 +24,51 @@ async function main() {
     const shopifyInventoryLevels = await prisma.shopifyInventoryLevel.count();
     console.log(`Shopify Inventory Levels: ${shopifyInventoryLevels}`);
 
-    const mtrRows = await prisma.amazonMtrRow.count();
-    console.log(`Amazon MTR Rows: ${mtrRows}`);
+    if (supabasePrisma) {
+      const mtrRows = await supabasePrisma.amazonMtrRow.count();
+      console.log(`Amazon MTR Rows: ${mtrRows}`);
 
-    const claims = await prisma.amazonClaimsReimbursementsRow.count();
-    console.log(`Amazon Claims & Reimbursements: ${claims}`);
+      const claims = await supabasePrisma.amazonClaimsReimbursementsRow.count();
+      console.log(`Amazon Claims & Reimbursements: ${claims}`);
 
-    const returnsB2b = await prisma.amazonReturnsB2bRow.count();
-    console.log(`Amazon B2B Returns: ${returnsB2b}`);
+      const returnsB2b = await supabasePrisma.amazonReturnsB2bRow.count();
+      console.log(`Amazon B2B Returns: ${returnsB2b}`);
 
-    const returnsB2bOrder = await prisma.amazonReturnsB2bOrderRow.count();
-    console.log(`Amazon B2B Removal Orders: ${returnsB2bOrder}`);
+      const returnsB2bOrder = await supabasePrisma.amazonReturnsB2bOrderRow.count();
+      console.log(`Amazon B2B Removal Orders: ${returnsB2bOrder}`);
 
-    const returnsB2c = await prisma.amazonReturnsB2cRow.count();
-    console.log(`Amazon B2C Returns: ${returnsB2c}`);
+      const returnsB2c = await supabasePrisma.amazonReturnsB2cRow.count();
+      console.log(`Amazon B2C Returns: ${returnsB2c}`);
 
-    const salesTraffic = await prisma.amazonSalesAndTrafficRow.count();
-    console.log(`Amazon Sales and Traffic: ${salesTraffic}`);
+      const salesTraffic = await supabasePrisma.amazonSalesAndTrafficRow.count();
+      console.log(`Amazon Sales and Traffic: ${salesTraffic}`);
 
-    const flatListings = await prisma.amazonFlatFileOpenListingsDataRow.count();
-    console.log(`Amazon Flat File Open Listings: ${flatListings}`);
+      const flatListings = await supabasePrisma.amazonFlatFileOpenListingsDataRow.count();
+      console.log(`Amazon Flat File Open Listings: ${flatListings}`);
 
-    const merchantListings = await prisma.amazonMerchantListingsAllRow.count();
-    console.log(`Amazon Merchant Listings All: ${merchantListings}`);
+      const ledgerSummary = await supabasePrisma.amazonLedgerSummaryRow.count();
+      console.log(`Amazon Ledger Summary: ${ledgerSummary}`);
 
-    const sellerPerformance = await prisma.amazonV2SellerPerformanceRow.count();
-    console.log(`Amazon V2 Seller Performance: ${sellerPerformance}`);
+      const sellerPerformance = await supabasePrisma.amazonV2SellerPerformanceRow.count();
+      console.log(`Amazon V2 Seller Performance: ${sellerPerformance}`);
+
+      const gstB2b = await supabasePrisma.amazonGstMonthlyB2bRow.count();
+      console.log(`Amazon GST Monthly B2B: ${gstB2b}`);
+
+      const gstB2c = await supabasePrisma.amazonGstMonthlyB2cRow.count();
+      console.log(`Amazon GST Monthly B2C: ${gstB2c}`);
+
+      const gstStr = await supabasePrisma.amazonGstMonthlyStrRow.count();
+      console.log(`Amazon GST Monthly STR: ${gstStr}`);
+
+      const elecSettlement = await supabasePrisma.amazonElectronicsSettlementRow.count();
+      console.log(`Amazon Electronics Settlements: ${elecSettlement}`);
+
+      const codSettlement = await supabasePrisma.amazonCODSettlementRow.count();
+      console.log(`Amazon COD Settlements: ${codSettlement}`);
+    } else {
+      console.log("Supabase DB not configured (SUPABASE_DB_URL missing). Skipping Amazon counts.");
+    }
   } catch (error) {
     console.error("Error fetching counts:", error);
   } finally {

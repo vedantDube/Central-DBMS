@@ -24,7 +24,7 @@ const items: ReportRequest[] = [
   { id: "GET_BRAND_ANALYTICS_SEARCH_TERMS_REPORT", dir: "amazon/brand-analytics/search-terms", ext: "csv" },
   { id: "GET_BRAND_ANALYTICS_REPEAT_PURCHASE_REPORT", dir: "amazon/brand-analytics/repeat-purchase", ext: "csv" },
   { id: "GET_FLAT_FILE_OPEN_LISTINGS_DATA", dir: "amazon/listings/open-listings-data", ext: "csv" },
-  { id: "GET_MERCHANT_LISTINGS_ALL_DATA", dir: "amazon/listings/merchant-listings-all", ext: "csv" },
+  { id: "GET_LEDGER_SUMMARY_VIEW_DATA", dir: "amazon/ledger", ext: "tsv" },
   { id: "GET_DATE_RANGE_FINANCIAL_HOLDS_DATA", dir: "amazon/payments/financial-holds", ext: "csv" },
   { id: "GET_V2_SELLER_PERFORMANCE_REPORT", dir: "amazon/seller-performance/v2", ext: "csv" },
   { id: "GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2", dir: "amazon/payment-statements/v2", ext: "csv" },

@@ -5,6 +5,9 @@ export type AmazonReportKey =
   | "amazon-gst-mtr-b2b"
   | "amazon-gst-mtr-b2c"
   | "amazon-gst-mtr-stock-transfer"
+  | "amazon-gst-monthly-b2b"
+  | "amazon-gst-monthly-b2c"
+  | "amazon-gst-monthly-str"
   | "amazon-returns-b2c"
   | "amazon-returns-b2b"
   | "amazon-payment-transaction"
@@ -24,7 +27,8 @@ export type AmazonReportKey =
   | "amazon-day-level-inventory"
   | "amazon-ads-campaign"
   | "amazon-lis-data"
-  | "amazon-payment-statements";
+  | "amazon-payment-statements"
+  | "amazon-ledger-summary";
 
 export type AmazonReportDefinition = {
   key: AmazonReportKey;

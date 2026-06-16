@@ -19,7 +19,7 @@ import { fetchAllInventory } from "./fetchAllInventory.js";
       const txt = await tokenRes.text();
       throw new Error(`Failed to obtain token: HTTP ${tokenRes.status} ${txt}`);
     }
-    const tokenData = await tokenRes.json();
+    const tokenData = await tokenRes.json() as any;
     const token = tokenData?.data?.token?.jwt_token;
     if (!token) throw new Error("Token not found in response");
     // Export token to env variable used by fetchAllInventory

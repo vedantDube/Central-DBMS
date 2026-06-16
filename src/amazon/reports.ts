@@ -42,6 +42,27 @@ export const amazonReports: AmazonReportDefinition[] = [
     browserWaitBeforeDownloadMs: 120000,
   },
   {
+    key: "amazon-gst-monthly-b2b",
+    label: "GST Monthly B2B Report",
+    storagePath: "amazon/tax/monthly-b2b",
+    preferredSource: "browser",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-gst-monthly-b2c",
+    label: "GST Monthly B2C Report",
+    storagePath: "amazon/tax/monthly-b2c",
+    preferredSource: "browser",
+    fileExtension: "csv",
+  },
+  {
+    key: "amazon-gst-monthly-str",
+    label: "GST Monthly STR Report",
+    storagePath: "amazon/tax/monthly-str",
+    preferredSource: "browser",
+    fileExtension: "csv",
+  },
+  {
     key: "amazon-returns-b2c",
     label: "Returns Report B2C",
     storagePath: "amazon/returns/b2c",
@@ -203,6 +224,14 @@ export const amazonReports: AmazonReportDefinition[] = [
     reportTypeId: env.AMAZON_PAYMENT_STATEMENTS_REPORT_TYPE_ID,
     preferredSource: "sp-api",
     fileExtension: "csv",
+  },
+  {
+    key: "amazon-ledger-summary",
+    label: "Ledger Summary Report",
+    storagePath: "amazon/ledger",
+    reportTypeId: env.AMAZON_LEDGER_SUMMARY_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "tsv",
   },
 ];
 

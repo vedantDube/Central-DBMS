@@ -11,12 +11,14 @@ function getArgValue(flag: string): string | undefined {
 async function getEasyEcomToken(
   email: string,
   password: string,
-  locationKey: string
+  locationKey: string,
+  apiKey: string
 ): Promise<string> {
   const res = await fetch("https://api.easyecom.io/access/token", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "x-api-key": apiKey
     },
     body: JSON.stringify({
       email,
@@ -31,7 +33,7 @@ async function getEasyEcomToken(
     );
   }
 
-  const json = await res.json();
+  const json = await res.json() as any;
 
   const token = json?.data?.token?.jwt_token;
 
@@ -70,7 +72,7 @@ async function fetchInventoryPage(
     );
   }
 
-  const json = await res.json();
+  const json = await res.json() as any;
 
   const inventoryData = json?.data?.inventoryData;
 
@@ -103,11 +105,9 @@ async function saveBatch(records: any[]) {
       chunk.map((record) =>
         prisma.easyEcomInventory.upsert({
           where: {
-            date_snapshotType_sku_warehouseId: {
+            date_sku: {
               date: record.date,
-              snapshotType: record.snapshotType,
-              sku: record.sku,
-              warehouseId: record.warehouseId
+              sku: record.sku
             }
           },
           update: record,
@@ -131,9 +131,6 @@ async function main() {
     process.exit(1);
   }
 
-  const snapshotType =
-    snapshotTypeInput as "Opening" | "Closing";
-
   const email = process.env.EASY_ECOM_EMAIL;
   const password = process.env.EASY_ECOM_PASSWORD;
   const apiKey = process.env.EASY_ECOM_API_KEY;
@@ -150,7 +147,8 @@ async function main() {
   const token = await getEasyEcomToken(
     email,
     password,
-    locationKey
+    locationKey,
+    apiKey
   );
 
   console.log("Authentication successful.");
@@ -203,54 +201,14 @@ async function main() {
       .filter((item) => item.sku)
       .map((item) => ({
         date: dateStr,
-        snapshotType,
-
-        companyId: null,
-        skuId: null,
-
-        name: item.productName ?? null,
         sku: String(item.sku),
-
-        slug: null,
-
+        name: item.productName ?? null,
         modelNo: item.modelNo ?? null,
         color: item.color ?? null,
         size: item.size ?? null,
         brand: item.brand ?? null,
-
-        quantity: Number(
-          item.availableInventory ?? 0
-        ),
-
-        availableQty: Number(
-          item.availableInventory ?? 0
-        ),
-
-        inventoryStatus:
-          item.category ?? null,
-
-        easyEcomUpdatedAt:
-          item.lastUpdateDate ?? null,
-
-        warehouseName:
-          item.location_key ?? null,
-
-        warehouseId: 0,
-
-        subWarehouse: null,
-        floor: null,
-        zone: null,
-        aisle: null,
-        rack: null,
-        shelf: null,
-        bin: null,
-
-        reservedQty: 0,
-        bufferQuantity: 0,
-        isActive: 1,
-        thresholdQty: null,
-        rank: null,
-
+        quantity: Number(item.availableInventory ?? 0),
+        inventoryStatus: item.category ?? null,
         rawJson: item
       }));
 

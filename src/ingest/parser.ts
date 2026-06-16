@@ -120,9 +120,9 @@ export async function parseBuffer(
     return result;
   }
 
-  if (ext === ".csv" || ext === ".tsv") {
+  if (ext === ".csv" || ext === ".tsv" || ext === ".txt") {
     const text = buffer.toString("utf8");
-    const tryDelims = ext === ".tsv" ? ["\t"] : [",", "\t"];
+    const tryDelims = (ext === ".tsv" || ext === ".txt") ? ["\t"] : [",", "\t"];
     let records: any[] | null = null;
     let usedDelim = ",";
     let bestColCount = -1;

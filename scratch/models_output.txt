@@ -1,0 +1,464 @@
+=== PRISMA MODELS ===
+model AmazonGstMonthlyB2bRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  seller_gstin                 String?
+  invoice_number               String?
+  invoice_date                 String?
+  transaction_type             String?
+  order_id                     String?
+  shipment_id                  String?
+  shipment_date                String?
+  order_date                   String?
+  shipment_item_id             String?
+  quantity                     String?
+  item_description             String?
+  asin                         String?
+  hsnsac                       String?
+  sku                          String?
+  product_tax_code             String?
+  bill_from_city               String?
+  bill_from_state              String?
+  bill_from_country            String?
+  bill_from_postal_code        String?
+  ship_from_city               String?
+  ship_from_state              String?
+  ship_from_country            String?
+  ship_from_postal_code        String?
+  ship_to_city                 String?
+  ship_to_state                String?
+  ship_to_country              String?
+  ship_to_postal_code          String?
+  invoice_amount               String?
+  tax_exclusive_gross          String?
+  total_tax_amount             String?
+  cgst_rate                    String?
+  sgst_rate                    String?
+  utgst_rate                   String?
+  igst_rate                    String?
+  compensatory_cess_rate       String?
+  principal_amount             String?
+  principal_amount_basis       String?
+  cgst_tax                     String?
+  sgst_tax                     String?
+  utgst_tax                    String?
+  igst_tax                     String?
+  compensatory_cess_tax        String?
+  shipping_amount              String?
+  shipping_amount_basis        String?
+  shipping_cgst_tax            String?
+  shipping_sgst_tax            String?
+  shipping_utgst_tax           String?
+  shipping_igst_tax            String?
+  shipping_cess_tax            String?
+  gift_wrap_amount             String?
+  gift_wrap_amount_basis       String?
+  gift_wrap_cgst_tax           String?
+  gift_wrap_sgst_tax           String?
+  gift_wrap_utgst_tax          String?
+  gift_wrap_igst_tax           String?
+  gift_wrap_compensatory_cess_tax String?
+  item_promo_discount          String?
+  item_promo_discount_basis    String?
+  item_promo_tax               String?
+  shipping_promo_discount      String?
+  shipping_promo_discount_basis String?
+  shipping_promo_tax           String?
+  gift_wrap_promo_discount     String?
+  gift_wrap_promo_discount_basis String?
+  gift_wrap_promo_tax          String?
+  tcs_cgst_rate                String?
+  tcs_cgst_amount              String?
+  tcs_sgst_rate                String?
+  tcs_sgst_amount              String?
+  tcs_utgst_rate               String?
+  tcs_utgst_amount             String?
+  tcs_igst_rate                String?
+  tcs_igst_amount              String?
+  warehouse_id                 String?
+  fulfillment_channel          String?
+  payment_method_code          String?
+  bill_to_city                 String?
+  bill_to_state                String?
+  bill_to_country              String?
+  bill_to_postalcode           String?
+  customer_bill_to_gstid       String?
+  customer_ship_to_gstid       String?
+  buyer_name                   String?
+  credit_note_no               String?
+  credit_note_date             String?
+  irn_number                   String?
+  irn_filing_status            String?
+  irn_date                     String?
+  irn_error_code               String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonGstMonthlyB2cRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  seller_gstin                 String?
+  invoice_number               String?
+  invoice_date                 String?
+  transaction_type             String?
+  order_id                     String?
+  shipment_id                  String?
+  shipment_date                String?
+  order_date                   String?
+  shipment_item_id             String?
+  quantity                     String?
+  item_description             String?
+  asin                         String?
+  hsnsac                       String?
+  sku                          String?
+  product_tax_code             String?
+  bill_from_city               String?
+  bill_from_state              String?
+  bill_from_country            String?
+  bill_from_postal_code        String?
+  ship_from_city               String?
+  ship_from_state              String?
+  ship_from_country            String?
+  ship_from_postal_code        String?
+  ship_to_city                 String?
+  ship_to_state                String?
+  ship_to_country              String?
+  ship_to_postal_code          String?
+  invoice_amount               String?
+  tax_exclusive_gross          String?
+  total_tax_amount             String?
+  cgst_rate                    String?
+  sgst_rate                    String?
+  utgst_rate                   String?
+  igst_rate                    String?
+  compensatory_cess_rate       String?
+  principal_amount             String?
+  principal_amount_basis       String?
+  cgst_tax                     String?
+  sgst_tax                     String?
+  igst_tax                     String?
+  utgst_tax                    String?
+  compensatory_cess_tax        String?
+  shipping_amount              String?
+  shipping_amount_basis        String?
+  shipping_cgst_tax            String?
+  shipping_sgst_tax            String?
+  shipping_utgst_tax           String?
+  shipping_igst_tax            String?
+  shipping_cess_tax_amount     String?
+  gift_wrap_amount             String?
+  gift_wrap_amount_basis       String?
+  gift_wrap_cgst_tax           String?
+  gift_wrap_sgst_tax           String?
+  gift_wrap_utgst_tax          String?
+  gift_wrap_igst_tax           String?
+  gift_wrap_compensatory_cess_tax String?
+  item_promo_discount          String?
+  item_promo_discount_basis    String?
+  item_promo_tax               String?
+  shipping_promo_discount      String?
+  shipping_promo_discount_basis String?
+  shipping_promo_tax           String?
+  gift_wrap_promo_discount     String?
+  gift_wrap_promo_discount_basis String?
+  gift_wrap_promo_tax          String?
+  tcs_cgst_rate                String?
+  tcs_cgst_amount              String?
+  tcs_sgst_rate                String?
+  tcs_sgst_amount              String?
+  tcs_utgst_rate               String?
+  tcs_utgst_amount             String?
+  tcs_igst_rate                String?
+  tcs_igst_amount              String?
+  warehouse_id                 String?
+  fulfillment_channel          String?
+  payment_method_code          String?
+  credit_note_no               String?
+  credit_note_date             String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+model AmazonGstMonthlyStrRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  fileName   String
+  sourceName String?
+  rowIndex   Int
+  data       Json
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  gstin_of_receiver            String?
+  transaction_type             String?
+  transaction_id               String?
+  order_id                     String?
+  ship_from_fc                 String?
+  ship_from_city               String?
+  ship_from_state              String?
+  ship_from_country            String?
+  ship_from_postal_code        String?
+  ship_to_fc                   String?
+  ship_to_city                 String?
+  ship_to_state                String?
+  ship_to_country              String?
+  ship_to_postal_code          String?
+  invoice_number               String?
+  invoice_date                 String?
+  invoice_value                String?
+  asin                         String?
+  sku                          String?
+  quantity                     String?
+  hsn_code                     String?
+  taxable_value                String?
+  igst_rate                    String?
+  igst_amount                  String?
+  sgst_rate                    String?
+  sgst_amount                  String?
+  utgst_rate                   String?
+  utgst_amount                 String?
+  cgst_rate                    String?
+  cgst_amount                  String?
+  compensatory_cess_rate       String?
+  compensatory_cess_amount     String?
+  gstin_of_supplier            String?
+  irn_number                   String?
+  irn_filing_status            String?
+  irn_date                     String?
+  irn_error_code               String?
+
+  @@unique([reportKey, fileName, sourceName, rowIndex])
+  @@index([reportKey, createdAt])
+  @@index([fileName, createdAt])
+}
+
+=== FIELD LISTS FOR runner.ts ===
+amazon_gst_monthly_b2b: [
+  "seller_gstin",
+  "invoice_number",
+  "invoice_date",
+  "transaction_type",
+  "order_id",
+  "shipment_id",
+  "shipment_date",
+  "order_date",
+  "shipment_item_id",
+  "quantity",
+  "item_description",
+  "asin",
+  "hsnsac",
+  "sku",
+  "product_tax_code",
+  "bill_from_city",
+  "bill_from_state",
+  "bill_from_country",
+  "bill_from_postal_code",
+  "ship_from_city",
+  "ship_from_state",
+  "ship_from_country",
+  "ship_from_postal_code",
+  "ship_to_city",
+  "ship_to_state",
+  "ship_to_country",
+  "ship_to_postal_code",
+  "invoice_amount",
+  "tax_exclusive_gross",
+  "total_tax_amount",
+  "cgst_rate",
+  "sgst_rate",
+  "utgst_rate",
+  "igst_rate",
+  "compensatory_cess_rate",
+  "principal_amount",
+  "principal_amount_basis",
+  "cgst_tax",
+  "sgst_tax",
+  "utgst_tax",
+  "igst_tax",
+  "compensatory_cess_tax",
+  "shipping_amount",
+  "shipping_amount_basis",
+  "shipping_cgst_tax",
+  "shipping_sgst_tax",
+  "shipping_utgst_tax",
+  "shipping_igst_tax",
+  "shipping_cess_tax",
+  "gift_wrap_amount",
+  "gift_wrap_amount_basis",
+  "gift_wrap_cgst_tax",
+  "gift_wrap_sgst_tax",
+  "gift_wrap_utgst_tax",
+  "gift_wrap_igst_tax",
+  "gift_wrap_compensatory_cess_tax",
+  "item_promo_discount",
+  "item_promo_discount_basis",
+  "item_promo_tax",
+  "shipping_promo_discount",
+  "shipping_promo_discount_basis",
+  "shipping_promo_tax",
+  "gift_wrap_promo_discount",
+  "gift_wrap_promo_discount_basis",
+  "gift_wrap_promo_tax",
+  "tcs_cgst_rate",
+  "tcs_cgst_amount",
+  "tcs_sgst_rate",
+  "tcs_sgst_amount",
+  "tcs_utgst_rate",
+  "tcs_utgst_amount",
+  "tcs_igst_rate",
+  "tcs_igst_amount",
+  "warehouse_id",
+  "fulfillment_channel",
+  "payment_method_code",
+  "bill_to_city",
+  "bill_to_state",
+  "bill_to_country",
+  "bill_to_postalcode",
+  "customer_bill_to_gstid",
+  "customer_ship_to_gstid",
+  "buyer_name",
+  "credit_note_no",
+  "credit_note_date",
+  "irn_number",
+  "irn_filing_status",
+  "irn_date",
+  "irn_error_code"
+],
+amazon_gst_monthly_b2c: [
+  "seller_gstin",
+  "invoice_number",
+  "invoice_date",
+  "transaction_type",
+  "order_id",
+  "shipment_id",
+  "shipment_date",
+  "order_date",
+  "shipment_item_id",
+  "quantity",
+  "item_description",
+  "asin",
+  "hsnsac",
+  "sku",
+  "product_tax_code",
+  "bill_from_city",
+  "bill_from_state",
+  "bill_from_country",
+  "bill_from_postal_code",
+  "ship_from_city",
+  "ship_from_state",
+  "ship_from_country",
+  "ship_from_postal_code",
+  "ship_to_city",
+  "ship_to_state",
+  "ship_to_country",
+  "ship_to_postal_code",
+  "invoice_amount",
+  "tax_exclusive_gross",
+  "total_tax_amount",
+  "cgst_rate",
+  "sgst_rate",
+  "utgst_rate",
+  "igst_rate",
+  "compensatory_cess_rate",
+  "principal_amount",
+  "principal_amount_basis",
+  "cgst_tax",
+  "sgst_tax",
+  "igst_tax",
+  "utgst_tax",
+  "compensatory_cess_tax",
+  "shipping_amount",
+  "shipping_amount_basis",
+  "shipping_cgst_tax",
+  "shipping_sgst_tax",
+  "shipping_utgst_tax",
+  "shipping_igst_tax",
+  "shipping_cess_tax_amount",
+  "gift_wrap_amount",
+  "gift_wrap_amount_basis",
+  "gift_wrap_cgst_tax",
+  "gift_wrap_sgst_tax",
+  "gift_wrap_utgst_tax",
+  "gift_wrap_igst_tax",
+  "gift_wrap_compensatory_cess_tax",
+  "item_promo_discount",
+  "item_promo_discount_basis",
+  "item_promo_tax",
+  "shipping_promo_discount",
+  "shipping_promo_discount_basis",
+  "shipping_promo_tax",
+  "gift_wrap_promo_discount",
+  "gift_wrap_promo_discount_basis",
+  "gift_wrap_promo_tax",
+  "tcs_cgst_rate",
+  "tcs_cgst_amount",
+  "tcs_sgst_rate",
+  "tcs_sgst_amount",
+  "tcs_utgst_rate",
+  "tcs_utgst_amount",
+  "tcs_igst_rate",
+  "tcs_igst_amount",
+  "warehouse_id",
+  "fulfillment_channel",
+  "payment_method_code",
+  "credit_note_no",
+  "credit_note_date"
+],
+amazon_gst_monthly_str: [
+  "gstin_of_receiver",
+  "transaction_type",
+  "transaction_id",
+  "order_id",
+  "ship_from_fc",
+  "ship_from_city",
+  "ship_from_state",
+  "ship_from_country",
+  "ship_from_postal_code",
+  "ship_to_fc",
+  "ship_to_city",
+  "ship_to_state",
+  "ship_to_country",
+  "ship_to_postal_code",
+  "invoice_number",
+  "invoice_date",
+  "invoice_value",
+  "asin",
+  "sku",
+  "quantity",
+  "hsn_code",
+  "taxable_value",
+  "igst_rate",
+  "igst_amount",
+  "sgst_rate",
+  "sgst_amount",
+  "utgst_rate",
+  "utgst_amount",
+  "cgst_rate",
+  "cgst_amount",
+  "compensatory_cess_rate",
+  "compensatory_cess_amount",
+  "gstin_of_supplier",
+  "irn_number",
+  "irn_filing_status",
+  "irn_date",
+  "irn_error_code"
+],

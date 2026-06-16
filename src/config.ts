@@ -5,6 +5,7 @@ loadEnv();
 
 const schema = z.object({
   SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_DB_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   SUPABASE_BUCKET: z.string().default("amazon-raw"),
   SP_REFRESH_TOKEN: z.string().optional(),
@@ -51,6 +52,7 @@ const schema = z.object({
   AMAZON_ADS_CAMPAIGN_REPORT_TYPE_ID: z.string().optional(),
   AMAZON_LIS_DATA_REPORT_TYPE_ID: z.string().optional(),
   AMAZON_PAYMENT_STATEMENTS_REPORT_TYPE_ID: z.string().optional(),
+  AMAZON_LEDGER_SUMMARY_REPORT_TYPE_ID: z.string().optional(),
   AMAZON_BROWSER_REPORT_URL: z.string().optional(),
   AMAZON_BROWSER_DOWNLOAD_SELECTOR: z.string().optional(),
   AMAZON_INTER_REQUEST_DELAY_MS: z.string().optional(),

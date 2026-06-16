@@ -1,2 +1,3 @@
-2026/05/30-10:23:58.467 40e0 Creating DB C:\Users\Vedan\OneDrive\Desktop\cdbms\.playwright\amazon-browser\Default\Extension Scripts since it was missing.
-2026/05/30-10:23:58.476 40e0 Reusing MANIFEST C:\Users\Vedan\OneDrive\Desktop\cdbms\.playwright\amazon-browser\Default\Extension Scripts/MANIFEST-000001
+2026/06/01-17:39:34.915 7890 Reusing MANIFEST C:\Users\Vedan\OneDrive\Desktop\cdbms\.playwright\amazon-browser\Default\Extension Scripts/MANIFEST-000001
+2026/06/01-17:39:34.916 7890 Recovering log #3
+2026/06/01-17:39:34.916 7890 Reusing old log C:\Users\Vedan\OneDrive\Desktop\cdbms\.playwright\amazon-browser\Default\Extension Scripts/000003.log 

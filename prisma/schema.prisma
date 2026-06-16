@@ -88,345 +88,24 @@ model ShiprocketOrder {
   @@index([createdAt])
 }
 
-model AmazonMtrRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // CSV Columns
-  itemname                     String?
-  itemdescription              String?
-  listingid                    String?
-  sellersku                    String?
-  price                        String?
-  quantity                     String?
-  opendate                     String?
-  imageurl                     String?
-  itemismarketplace            String?
-  productidtype                String?
-  zshopshippingfee             String?
-  itemnote                     String?
-  itemcondition                String?
-  zshopcategory1               String?
-  zshopbrowsepath              String?
-  zshopstorefrontfeature       String?
-  asin1                        String?
-  asin2                        String?
-  asin3                        String?
-  willshipinternationally      String?
-  expeditedshipping            String?
-  zshopboldface                String?
-  productid                    String?
-  bidforfeaturedplacement      String?
-  adddelete                    String?
-  pendingquantity              String?
-  fulfillmentchannel           String?
-  optionalpaymenttypeexclusion String?
-  merchantshippinggroup        String?
-  status                       String?
-  maximumretailprice           String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonClaimsReimbursementsRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // CSV Columns
-  approvaldate                String?
-  reimbursementid             String?
-  caseid                      String?
-  amazonorderid               String?
-  reason                      String?
-  sku                         String?
-  fnsku                       String?
-  asin                        String?
-  productname                 String?
-  condition                   String?
-  currencyunit                String?
-  amountperunit               String?
-  amounttotal                 String?
-  quantityreimbursedcash      String?
-  quantityreimbursedinventory String?
-  quantityreimbursedtotal     String?
-  originalreimbursementid     String?
-  originalreimbursementtype   String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonReturnsB2bRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // TSV Columns
-  requestdate        String?
-  orderid            String?
-  shipmentdate       String?
-  sku                String?
-  fnsku              String?
-  disposition        String?
-  shippedquantity    String?
-  carrier            String?
-  trackingnumber     String?
-  shipmentstatus     String?
-  removalordertype   String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonReturnsB2cRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // CSV/TSV Columns for FBA Customer Returns
-  returndate            String?
-  orderid               String?
-  sku                   String?
-  asin                  String?
-  fnsku                 String?
-  productname           String?
-  quantity              String?
-  fulfillmentcenterid   String?
-  detaileddisposition   String?
-  reason                String?
-  licenseplatenumber    String?
-  customercomments      String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonReturnsB2bOrderRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // TSV Columns
-  requestdate        String?
-  orderid            String?
-  ordersource        String?
-  ordertype          String?
-  servicespeed       String?
-  orderstatus        String?
-  lastupdateddate    String?
-  sku                String?
-  fnsku              String?
-  disposition        String?
-  requestedquantity  String?
-  cancelledquantity  String?
-  disposedquantity   String?
-  shippedquantity    String?
-  inprocessquantity  String?
-  removalfee         String?
-  currency           String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonSalesAndTrafficRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // Extracted JSON Columns
-  type                         String?  // "date" or "asin"
-  date                         String?
-  parentAsin                   String?
-  orderedProductSalesAmount    String?
-  orderedProductSalesCurrency  String?
-  unitsOrdered                 String?
-  pageViews                    String?
-  sessions                     String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonFlatFileOpenListingsDataRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // CSV Columns
-  sku                        String?
-  asin                       String?
-  price                      String?
-  quantity                   String?
-  business_price             String?
-  quantity_price_type        String?
-  quantity_lower_bound_1     String?
-  quantity_price_1           String?
-  quantity_lower_bound_2     String?
-  quantity_price_2           String?
-  quantity_lower_bound_3     String?
-  quantity_price_3           String?
-  quantity_lower_bound_4     String?
-  quantity_price_4           String?
-  quantity_lower_bound_5     String?
-  quantity_price_5           String?
-  progressive_price_type     String?
-  progressive_lower_bound_1  String?
-  progressive_price_1        String?
-  progressive_lower_bound_2  String?
-  progressive_price_2        String?
-  progressive_lower_bound_3  String?
-  progressive_price_3        String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonMerchantListingsAllRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // CSV Columns
-  itemname                     String?
-  itemdescription              String?
-  listingid                    String?
-  sellersku                    String?
-  price                        String?
-  quantity                     String?
-  opendate                     String?
-  imageurl                     String?
-  itemismarketplace            String?
-  productidtype                String?
-  zshopshippingfee             String?
-  itemnote                     String?
-  itemcondition                String?
-  zshopcategory1               String?
-  zshopbrowsepath              String?
-  zshopstorefrontfeature       String?
-  asin1                        String?
-  asin2                        String?
-  asin3                        String?
-  willshipinternationally      String?
-  expeditedshipping            String?
-  zshopboldface                String?
-  productid                    String?
-  bidforfeaturedplacement      String?
-  adddelete                    String?
-  pendingquantity              String?
-  fulfillmentchannel           String?
-  optionalpaymenttypeexclusion String?
-  merchantshippinggroup        String?
-  status                       String?
-  maximumretailprice           String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
-model AmazonV2SellerPerformanceRow {
-  id         String   @id @default(cuid())
-  reportKey  String
-  fileName   String
-  sourceName String?
-  rowIndex   Int
-  data       Json
-  createdAt  DateTime @default(now())
-
-  // Extracted JSON Columns
-  ahrStatus     String?
-  ahrScore      String?
-  status        String?
-  marketplaceId String?
-
-  @@unique([reportKey, fileName, sourceName, rowIndex])
-  @@index([reportKey, createdAt])
-  @@index([fileName, createdAt])
-}
-
 model EasyEcomInventory {
-  id                String   @id @default(cuid())
-  date              String   // Snapshot Date: yyyy-MM-dd
-  snapshotType      String   // "Opening" or "Closing"
-  
-  // EasyEcom API Columns
-  companyId         Int?
-  skuId             Int?
-  name              String?
-  sku               String
-  slug              String?
-  modelNo           String?
-  color             String?
-  size              String?
-  brand             String?
-  quantity          Int?
-  availableQty      Int?
-  inventoryStatus   String?
-  easyEcomUpdatedAt String?
-  warehouseName     String?
-  warehouseId       Int?
-  subWarehouse      String?
-  floor             String?
-  zone              String?
-  aisle             String?
-  rack              String?
-  shelf             String?
-  bin               String?
-  reservedQty       Int?
-  bufferQuantity    Int?
-  isActive          Int?
-  thresholdQty      Int?
-  rank              String?
+  id              String   @id @default(cuid())
+  date            String   // Snapshot Date: yyyy-MM-dd
+  sku             String
+  name            String?
+  modelNo         String?
+  color           String?
+  size            String?
+  brand           String?
+  quantity        Int?
+  inventoryStatus String?
 
-  rawJson           Json?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  rawJson         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  @@unique([date, snapshotType, sku, warehouseId])
-  @@index([date, snapshotType])
+  @@unique([date, sku])
+  @@index([date])
   @@index([sku])
 }
 
@@ -668,3 +347,105 @@ model ShopifyInventoryLevel {
   @@index([inventoryItemId])
   @@index([locationId])
 }
+
+model EasyEcomProductMaster {
+  id                             String   @id @default(cuid())
+  createdAt                      DateTime @default(now())
+  
+  cp_id                          Int      @unique
+  product_id                     Int
+  sku                            String
+  product_name                   String?
+  description                    String?
+  active                         String?
+  created_at                     String?
+  updated_at                     String?
+  inventory                      Int?
+  product_type                   String?
+  brand                          String?
+  colour                         String?
+  category_id                    Int?
+  brand_id                       Int?
+  accounting_sku                 String?
+  accounting_unit                String?
+  category_name                  String?
+  expiry_type                    String?
+  category_shelf_life            Int?
+  category_shelf_life_percentage Float?
+  company_name                   String?
+  c_id                           Int?
+  height                         String?
+  length                         String?
+  width                          String?
+  weight                         String?
+  cost                           Float?
+  mrp                            Float?
+  size                           String?
+  cp_sub_products_count          Int?
+  model_no                       String?
+  EANUPC                         String?
+  hsn_code                       String?
+  product_image_url              String?
+  cp_inventory                   Int?
+  tax_rule_name                  String?
+  tax_rate                       Float?
+  vendor_code                    String?
+}
+
+model EasyEcomPurchaseOrder {
+  id                      String   @id @default(cuid())
+  createdAt               DateTime @default(now())
+  
+  po_id                   Int      @unique
+  total_po_value          String?
+  po_number               Int?
+  po_ref_num              String?
+  po_status_id            Int?
+  po_created_date         String?
+  po_updated_date         String?
+  po_created_warehouse    String?
+  po_created_location_key String?
+  vendor_name             String?
+  vendor_c_id             Int?
+  vendor_code             String?
+  vendor_location_key     String?
+  
+  items                   Json     // Stores array of po_items
+}
+
+model EasyEcomProductionOrder {
+  id                    String   @id @default(cuid())
+  createdAt             DateTime @default(now())
+  
+  invoice_id            Int      @unique
+  order_id              Int
+  reference_code        String?
+  company_name          String?
+  location_key          String?
+  warehouseId           Int?
+  import_warehouse_name String?
+  order_type            String?
+  order_type_key        String?
+  marketplace           String?
+  order_date            String?
+  invoice_date          String?
+  last_update_date      String?
+  invoice_number        String?
+  order_status          String?
+  order_status_id       Int?
+  shipping_status       String?
+  payment_mode          String?
+  customer_name         String?
+  contact_num           String?
+  city                  String?
+  pin_code              String?
+  state                 String?
+  country               String?
+  total_amount          Float?
+  total_tax             Float?
+  total_discount        Float?
+  collectable_amount    Float?
+  
+  suborders             Json     // Stores array of suborders
+}
+

@@ -28,6 +28,12 @@ const ALL_TASKS: ScriptTask[] = [
     description: "Automates browser download for GST MTR reports"
   },
   {
+    name: "Amazon GST Monthly Reports Sync",
+    command: "tsx",
+    args: ["src/amazon/gst-monthly-browser.ts"],
+    description: "Automates browser download for GST Monthly Reports (B2B, B2C, STR)"
+  },
+  {
     name: "Shiprocket Fetch Orders",
     command: "tsx",
     args: ["src/shiprocket/fetch-orders.ts"],
@@ -38,6 +44,24 @@ const ALL_TASKS: ScriptTask[] = [
     command: "tsx",
     args: ["src/easyecom/fetch-inventory.ts", "--snapshot", "Opening"],
     description: "Fetches inventory data from Easyecom API"
+  },
+  {
+    name: "Easyecom Fetch Product Master",
+    command: "tsx",
+    args: ["src/easyecom/fetch-product-master.ts"],
+    description: "Fetches product master data from Easyecom API"
+  },
+  {
+    name: "Easyecom Fetch Purchase Orders",
+    command: "tsx",
+    args: ["src/easyecom/fetch-purchase-orders.ts"],
+    description: "Fetches purchase orders from Easyecom API"
+  },
+  {
+    name: "Easyecom Fetch Production Orders",
+    command: "tsx",
+    args: ["src/easyecom/fetch-production-orders.ts"],
+    description: "Fetches production orders from Easyecom API"
   },
   {
     name: "Shopify Fetch Orders",
@@ -116,8 +140,28 @@ async function main() {
   const args = process.argv.slice(2);
   const bailOnError = args.includes("--bail") || args.includes("-b");
   
-  // Filter out any CLI flag arguments (starting with -) to check for task filters
-  const filters = args.filter(arg => !arg.startsWith("-"));
+  // Parse --days parameter
+  const daysIndex = args.indexOf("--days");
+  let daysVal: string | undefined;
+  if (daysIndex !== -1 && args[daysIndex + 1]) {
+    daysVal = args[daysIndex + 1];
+  }
+
+  // Filter out any CLI flag arguments (starting with -) or value parameters to check for task filters
+  const filters: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--days") {
+      i++; // Skip value
+      continue;
+    }
+    if (args[i] === "--bail" || args[i] === "-b") {
+      continue; // Skip flags
+    }
+    if (args[i].startsWith("-")) {
+      continue;
+    }
+    filters.push(args[i]);
+  }
 
   let tasksToRun = ALL_TASKS;
   if (filters.length > 0) {
@@ -136,7 +180,7 @@ async function main() {
     }
   }
 
-  printHeader(`Starting Ingestion Run (${tasksToRun.length} tasks scheduled)`);
+  printHeader(`Starting Ingestion Run (${tasksToRun.length} tasks scheduled, days=${daysVal ?? "default"})`);
   
   const results: Array<{
     Task: string;
@@ -147,7 +191,11 @@ async function main() {
   let overallSuccess = true;
 
   for (const task of tasksToRun) {
-    const { success, durationMs } = await runTask(task);
+    // Append --days parameter to tasks if passed
+    const taskArgs = daysVal ? [...task.args, "--days", daysVal] : task.args;
+    const modifiedTask = { ...task, args: taskArgs };
+
+    const { success, durationMs } = await runTask(modifiedTask);
     const durationSec = `${(durationMs / 1000).toFixed(2)}s`;
     
     results.push({

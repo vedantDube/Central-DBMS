@@ -11,7 +11,7 @@ async function test() {
     body: JSON.stringify({ email, password, location_key: locationKey })
   });
   
-  const data = await res.json();
+  const data = await res.json() as any;
   console.log('Login Response:', data);
   
   if (data.data?.token?.jwt_token) {

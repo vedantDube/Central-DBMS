@@ -120,7 +120,7 @@ async function getLwaAccessToken(): Promise<string> {
   return payload.access_token;
 }
 
-async function spApiRequest<T>(
+export async function spApiRequest<T>(
   method: "GET" | "POST",
   path: string,
   body?: unknown,
@@ -171,7 +171,7 @@ async function spApiRequest<T>(
   return response.json() as Promise<T>;
 }
 
-async function downloadDocument(
+export async function downloadDocument(
   documentId: string,
   fileExtension: "csv" | "tsv",
 ): Promise<DownloadResult> {

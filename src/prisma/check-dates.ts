@@ -1,10 +1,15 @@
-import { prisma } from "./client.js";
+import { prisma, supabasePrisma } from "./client.js";
 
 async function main() {
   console.log("=== Database Date Ranges ===");
   try {
+    if (!supabasePrisma) {
+      console.log("Supabase DB not configured (SUPABASE_DB_URL missing). Skipping Amazon date range checks.");
+      return;
+    }
+
     // 1. Amazon B2C Customer Returns
-    const b2cDates = await prisma.amazonReturnsB2cRow.findMany({
+    const b2cDates = await supabasePrisma.amazonReturnsB2cRow.findMany({
       select: { returndate: true },
       where: { returndate: { not: null } },
     });
@@ -12,7 +17,7 @@ async function main() {
     console.log(`Amazon B2C Returns Date Range: ${b2cSorted[0] ?? "N/A"} to ${b2cSorted[b2cSorted.length - 1] ?? "N/A"} (${b2cDates.length} records)`);
 
     // 2. Amazon B2B Removal Shipments
-    const b2bShipmentDates = await prisma.amazonReturnsB2bRow.findMany({
+    const b2bShipmentDates = await supabasePrisma.amazonReturnsB2bRow.findMany({
       select: { requestdate: true },
       where: { requestdate: { not: null } },
     });
@@ -20,7 +25,7 @@ async function main() {
     console.log(`Amazon B2B Returns Date Range: ${b2bSorted[0] ?? "N/A"} to ${b2bSorted[b2bSorted.length - 1] ?? "N/A"} (${b2bShipmentDates.length} records)`);
 
     // 3. Amazon B2B Removal Orders
-    const b2bOrderDates = await prisma.amazonReturnsB2bOrderRow.findMany({
+    const b2bOrderDates = await supabasePrisma.amazonReturnsB2bOrderRow.findMany({
       select: { requestdate: true },
       where: { requestdate: { not: null } },
     });
@@ -28,7 +33,7 @@ async function main() {
     console.log(`Amazon B2B Removal Orders Date Range: ${b2bOrderSorted[0] ?? "N/A"} to ${b2bOrderSorted[b2bOrderSorted.length - 1] ?? "N/A"} (${b2bOrderDates.length} records)`);
 
     // 4. Amazon Sales and Traffic
-    const salesTrafficDates = await prisma.amazonSalesAndTrafficRow.findMany({
+    const salesTrafficDates = await supabasePrisma.amazonSalesAndTrafficRow.findMany({
       select: { date: true },
       where: { date: { not: null } },
     });
@@ -36,7 +41,7 @@ async function main() {
     console.log(`Amazon Sales & Traffic Date Range: ${salesTrafficSorted[0] ?? "N/A"} to ${salesTrafficSorted[salesTrafficSorted.length - 1] ?? "N/A"} (${salesTrafficDates.length} records)`);
 
     // 5. Amazon MTR Rows
-    const mtrDates = await prisma.amazonMtrRow.findMany({
+    const mtrDates = await supabasePrisma.amazonMtrRow.findMany({
       select: { opendate: true },
       where: { opendate: { not: null } },
     });
@@ -44,7 +49,7 @@ async function main() {
     console.log(`Amazon MTR Rows Date Range: ${mtrSorted[0] ?? "N/A"} to ${mtrSorted[mtrSorted.length - 1] ?? "N/A"} (${mtrDates.length} records)`);
 
     // 6. Amazon Claims
-    const claimsDates = await prisma.amazonClaimsReimbursementsRow.findMany({
+    const claimsDates = await supabasePrisma.amazonClaimsReimbursementsRow.findMany({
       select: { approvaldate: true },
       where: { approvaldate: { not: null } },
     });
