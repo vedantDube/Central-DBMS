@@ -28,7 +28,8 @@ export type AmazonReportKey =
   | "amazon-ads-campaign"
   | "amazon-lis-data"
   | "amazon-payment-statements"
-  | "amazon-ledger-summary";
+  | "amazon-ledger-summary"
+  | "amazon-unified-transaction";
 
 export type AmazonReportDefinition = {
   key: AmazonReportKey;

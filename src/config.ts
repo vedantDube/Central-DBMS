@@ -53,6 +53,7 @@ const schema = z.object({
   AMAZON_LIS_DATA_REPORT_TYPE_ID: z.string().optional(),
   AMAZON_PAYMENT_STATEMENTS_REPORT_TYPE_ID: z.string().optional(),
   AMAZON_LEDGER_SUMMARY_REPORT_TYPE_ID: z.string().optional(),
+  AMAZON_UNIFIED_TRANSACTION_REPORT_TYPE_ID: z.string().optional(),
   AMAZON_BROWSER_REPORT_URL: z.string().optional(),
   AMAZON_BROWSER_DOWNLOAD_SELECTOR: z.string().optional(),
   AMAZON_INTER_REQUEST_DELAY_MS: z.string().optional(),
@@ -70,6 +71,18 @@ const schema = z.object({
   SHOPIFY_DOMAIN: z.string().default("cubelelo-cube-store.myshopify.com"),
   SHOPIFY_ACCESS_TOKEN: z.string().default("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"),
   SHOPIFY_API_VERSION: z.string().default("2024-01"),
+  CRON_TIMEZONE: z.string().default("Asia/Kolkata"),
+  CRON_SHIPROCKET_ORDERS: z.string().default("0 * * * *"),
+  CRON_SHOPIFY_ORDERS: z.string().default("30 * * * *"),
+  CRON_SHOPIFY_RETURNS: z.string().default("0 */2 * * *"),
+  CRON_RETURNPRIME_RETURNS: z.string().default("15 */2 * * *"),
+  CRON_SHOPIFY_INVENTORY: z.string().default("0 */3 * * *"),
+  CRON_EASYECOM_INVENTORY: z.string().default("15 */3 * * *"),
+  CRON_AMAZON_REQUEST_REPORTS: z.string().default("0 1 * * *"),
+  CRON_AMAZON_INGEST: z.string().default("0 2 * * *"),
+  CRON_EASYECOM_METADATA: z.string().default("0 3 * * *"),
+  CRON_AMAZON_MAP_COST: z.string().default("0 4 * * *"),
+  CRON_AMAZON_GST_SYNC: z.string().default("0 5 * * *"),
 });
 
 export const env = schema.parse(process.env);

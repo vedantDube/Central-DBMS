@@ -1,0 +1,2053 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T11:27:10.367Z
+💻 COMMAND: tsx src/run-all.ts Easyecom Fetch Product Master Easyecom Fetch Purchase Orders Easyecom Fetch Production Orders Easyecom Fetch Marketplace Listings
+============================================================
+
+
+============================================================
+🚀 Starting Ingestion Run (10 tasks scheduled, days=default)
+============================================================
+
+📋 Running Task: ReturnPrime Fetch Returns
+💡 Description:  Fetches returns data from ReturnPrime API
+💻 Executing:    tsx src/returnprime/fetch-returns.ts
+
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+
+Fetching page 1...
+Records Found On Page 1: 10
+Saved 10 records from page 1
+Total processed so far: 10
+
+Fetching page 2...
+Records Found On Page 2: 10
+Saved 10 records from page 2
+Total processed so far: 20
+
+Fetching page 3...
+Records Found On Page 3: 10
+Saved 10 records from page 3
+Total processed so far: 30
+
+Fetching page 4...
+Records Found On Page 4: 10
+Saved 10 records from page 4
+Total processed so far: 40
+
+Fetching page 5...
+Records Found On Page 5: 10
+Saved 10 records from page 5
+Total processed so far: 50
+
+Fetching page 6...
+Records Found On Page 6: 10
+Saved 10 records from page 6
+Total processed so far: 60
+
+Fetching page 7...
+Records Found On Page 7: 10
+Saved 10 records from page 7
+Total processed so far: 70
+
+Fetching page 8...
+Records Found On Page 8: 10
+Saved 10 records from page 8
+Total processed so far: 80
+
+Fetching page 9...
+Records Found On Page 9: 10
+Saved 10 records from page 9
+Total processed so far: 90
+
+Fetching page 10...
+Records Found On Page 10: 10
+Saved 10 records from page 10
+Total processed so far: 100
+
+Fetching page 11...
+Records Found On Page 11: 10
+Saved 10 records from page 11
+Total processed so far: 110
+
+Fetching page 12...
+Records Found On Page 12: 10
+Saved 10 records from page 12
+Total processed so far: 120
+
+Fetching page 13...
+Records Found On Page 13: 10
+Saved 10 records from page 13
+Total processed so far: 130
+
+Fetching page 14...
+Records Found On Page 14: 10
+Saved 10 records from page 14
+Total processed so far: 140
+
+Fetching page 15...
+Records Found On Page 15: 10
+Saved 10 records from page 15
+Total processed so far: 150
+
+Fetching page 16...
+Records Found On Page 16: 10
+Saved 10 records from page 16
+Total processed so far: 160
+
+Fetching page 17...
+Records Found On Page 17: 10
+Saved 10 records from page 17
+Total processed so far: 170
+
+Fetching page 18...
+Records Found On Page 18: 10
+Saved 10 records from page 18
+Total processed so far: 180
+
+Fetching page 19...
+Records Found On Page 19: 10
+Saved 10 records from page 19
+Total processed so far: 190
+
+Fetching page 20...
+Records Found On Page 20: 10
+Saved 10 records from page 20
+Total processed so far: 200
+
+Fetching page 21...
+Records Found On Page 21: 10
+Saved 10 records from page 21
+Total processed so far: 210
+
+Fetching page 22...
+Records Found On Page 22: 10
+Saved 10 records from page 22
+Total processed so far: 220
+
+Fetching page 23...
+Records Found On Page 23: 10
+Saved 10 records from page 23
+Total processed so far: 230
+
+Fetching page 24...
+Records Found On Page 24: 10
+Saved 10 records from page 24
+Total processed so far: 240
+
+Fetching page 25...
+Records Found On Page 25: 10
+Saved 10 records from page 25
+Total processed so far: 250
+
+Fetching page 26...
+Records Found On Page 26: 10
+Saved 10 records from page 26
+Total processed so far: 260
+
+Fetching page 27...
+Records Found On Page 27: 10
+Saved 10 records from page 27
+Total processed so far: 270
+
+Fetching page 28...
+Records Found On Page 28: 10
+Saved 10 records from page 28
+Total processed so far: 280
+
+Fetching page 29...
+Records Found On Page 29: 10
+Saved 10 records from page 29
+Total processed so far: 290
+
+Fetching page 30...
+Records Found On Page 30: 10
+Saved 10 records from page 30
+Total processed so far: 300
+
+Fetching page 31...
+Records Found On Page 31: 10
+Saved 10 records from page 31
+Total processed so far: 310
+
+Fetching page 32...
+Records Found On Page 32: 10
+Saved 10 records from page 32
+Total processed so far: 320
+
+Fetching page 33...
+Records Found On Page 33: 10
+Saved 10 records from page 33
+Total processed so far: 330
+
+Fetching page 34...
+Records Found On Page 34: 10
+Saved 10 records from page 34
+Total processed so far: 340
+
+Fetching page 35...
+Records Found On Page 35: 10
+Saved 10 records from page 35
+Total processed so far: 350
+
+Fetching page 36...
+Records Found On Page 36: 10
+Saved 10 records from page 36
+Total processed so far: 360
+
+Fetching page 37...
+Records Found On Page 37: 10
+Saved 10 records from page 37
+Total processed so far: 370
+
+Fetching page 38...
+Records Found On Page 38: 10
+Saved 10 records from page 38
+Total processed so far: 380
+
+Fetching page 39...
+Records Found On Page 39: 10
+Saved 10 records from page 39
+Total processed so far: 390
+
+Fetching page 40...
+Records Found On Page 40: 10
+Saved 10 records from page 40
+Total processed so far: 400
+
+Fetching page 41...
+Records Found On Page 41: 10
+Saved 10 records from page 41
+Total processed so far: 410
+
+Fetching page 42...
+Records Found On Page 42: 10
+Saved 10 records from page 42
+Total processed so far: 420
+
+Fetching page 43...
+Records Found On Page 43: 3
+Saved 3 records from page 43
+Total processed so far: 423
+
+Fetching page 44...
+Records Found On Page 44: 0
+No records found on page 44. Stopping pagination.
+
+================================
+Pages fetched: 43
+Total records saved: 423
+ReturnPrime sync completed
+================================
+
+✅ SUCCESS: "ReturnPrime Fetch Returns" completed in 38.56s
+
+📋 Running Task: Shiprocket Fetch Orders
+💡 Description:  Fetches orders data from Shiprocket API
+💻 Executing:    tsx src/shiprocket/fetch-orders.ts
+
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+Using active SHIPROCKET_TOKEN from environment.
+
+====================================
+Fetching Range 2026-04-09 → 2026-04-13
+====================================
+Fetching page 1
+Range 2026-04-09 → 2026-04-13 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-04-09 → 2026-04-13 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-04-09 → 2026-04-13 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-04-09 → 2026-04-13 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-04-09 → 2026-04-13 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-04-09 → 2026-04-13 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-04-09 → 2026-04-13 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-04-09 → 2026-04-13 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-04-09 → 2026-04-13 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-04-09 → 2026-04-13 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-04-09 → 2026-04-13 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-04-09 → 2026-04-13 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-04-09 → 2026-04-13 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-04-09 → 2026-04-13 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-04-09 → 2026-04-13 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-04-09 → 2026-04-13 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-04-09 → 2026-04-13 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-04-09 → 2026-04-13 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-04-09 → 2026-04-13 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-04-09 → 2026-04-13 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-04-09 → 2026-04-13 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-04-09 → 2026-04-13 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-04-09 → 2026-04-13 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-04-09 → 2026-04-13 | Page 24 | Orders: 4
+Fetching page 25
+Range 2026-04-09 → 2026-04-13 | Page 25 | Orders: 0
+
+====================================
+Fetching Range 2026-04-14 → 2026-04-18
+====================================
+Fetching page 1
+Range 2026-04-14 → 2026-04-18 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-04-14 → 2026-04-18 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-04-14 → 2026-04-18 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-04-14 → 2026-04-18 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-04-14 → 2026-04-18 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-04-14 → 2026-04-18 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-04-14 → 2026-04-18 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-04-14 → 2026-04-18 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-04-14 → 2026-04-18 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-04-14 → 2026-04-18 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-04-14 → 2026-04-18 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-04-14 → 2026-04-18 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-04-14 → 2026-04-18 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-04-14 → 2026-04-18 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-04-14 → 2026-04-18 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-04-14 → 2026-04-18 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-04-14 → 2026-04-18 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-04-14 → 2026-04-18 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-04-14 → 2026-04-18 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-04-14 → 2026-04-18 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-04-14 → 2026-04-18 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-04-14 → 2026-04-18 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-04-14 → 2026-04-18 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-04-14 → 2026-04-18 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-04-14 → 2026-04-18 | Page 25 | Orders: 15
+Fetching page 26
+Range 2026-04-14 → 2026-04-18 | Page 26 | Orders: 15
+Fetching page 27
+Range 2026-04-14 → 2026-04-18 | Page 27 | Orders: 15
+Fetching page 28
+Range 2026-04-14 → 2026-04-18 | Page 28 | Orders: 15
+Fetching page 29
+Range 2026-04-14 → 2026-04-18 | Page 29 | Orders: 15
+Fetching page 30
+Range 2026-04-14 → 2026-04-18 | Page 30 | Orders: 15
+Fetching page 31
+Range 2026-04-14 → 2026-04-18 | Page 31 | Orders: 15
+Fetching page 32
+Range 2026-04-14 → 2026-04-18 | Page 32 | Orders: 15
+Fetching page 33
+Range 2026-04-14 → 2026-04-18 | Page 33 | Orders: 15
+Fetching page 34
+Range 2026-04-14 → 2026-04-18 | Page 34 | Orders: 15
+Fetching page 35
+Range 2026-04-14 → 2026-04-18 | Page 35 | Orders: 3
+Fetching page 36
+Range 2026-04-14 → 2026-04-18 | Page 36 | Orders: 0
+
+====================================
+Fetching Range 2026-04-19 → 2026-04-23
+====================================
+Fetching page 1
+Range 2026-04-19 → 2026-04-23 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-04-19 → 2026-04-23 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-04-19 → 2026-04-23 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-04-19 → 2026-04-23 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-04-19 → 2026-04-23 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-04-19 → 2026-04-23 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-04-19 → 2026-04-23 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-04-19 → 2026-04-23 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-04-19 → 2026-04-23 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-04-19 → 2026-04-23 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-04-19 → 2026-04-23 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-04-19 → 2026-04-23 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-04-19 → 2026-04-23 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-04-19 → 2026-04-23 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-04-19 → 2026-04-23 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-04-19 → 2026-04-23 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-04-19 → 2026-04-23 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-04-19 → 2026-04-23 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-04-19 → 2026-04-23 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-04-19 → 2026-04-23 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-04-19 → 2026-04-23 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-04-19 → 2026-04-23 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-04-19 → 2026-04-23 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-04-19 → 2026-04-23 | Page 24 | Orders: 4
+Fetching page 25
+Range 2026-04-19 → 2026-04-23 | Page 25 | Orders: 0
+
+====================================
+Fetching Range 2026-04-24 → 2026-04-28
+====================================
+Fetching page 1
+Range 2026-04-24 → 2026-04-28 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-04-24 → 2026-04-28 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-04-24 → 2026-04-28 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-04-24 → 2026-04-28 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-04-24 → 2026-04-28 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-04-24 → 2026-04-28 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-04-24 → 2026-04-28 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-04-24 → 2026-04-28 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-04-24 → 2026-04-28 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-04-24 → 2026-04-28 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-04-24 → 2026-04-28 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-04-24 → 2026-04-28 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-04-24 → 2026-04-28 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-04-24 → 2026-04-28 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-04-24 → 2026-04-28 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-04-24 → 2026-04-28 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-04-24 → 2026-04-28 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-04-24 → 2026-04-28 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-04-24 → 2026-04-28 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-04-24 → 2026-04-28 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-04-24 → 2026-04-28 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-04-24 → 2026-04-28 | Page 22 | Orders: 4
+Fetching page 23
+Range 2026-04-24 → 2026-04-28 | Page 23 | Orders: 0
+
+====================================
+Fetching Range 2026-04-29 → 2026-05-03
+====================================
+Fetching page 1
+Range 2026-04-29 → 2026-05-03 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-04-29 → 2026-05-03 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-04-29 → 2026-05-03 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-04-29 → 2026-05-03 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-04-29 → 2026-05-03 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-04-29 → 2026-05-03 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-04-29 → 2026-05-03 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-04-29 → 2026-05-03 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-04-29 → 2026-05-03 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-04-29 → 2026-05-03 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-04-29 → 2026-05-03 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-04-29 → 2026-05-03 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-04-29 → 2026-05-03 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-04-29 → 2026-05-03 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-04-29 → 2026-05-03 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-04-29 → 2026-05-03 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-04-29 → 2026-05-03 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-04-29 → 2026-05-03 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-04-29 → 2026-05-03 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-04-29 → 2026-05-03 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-04-29 → 2026-05-03 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-04-29 → 2026-05-03 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-04-29 → 2026-05-03 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-04-29 → 2026-05-03 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-04-29 → 2026-05-03 | Page 25 | Orders: 15
+Fetching page 26
+Range 2026-04-29 → 2026-05-03 | Page 26 | Orders: 15
+Fetching page 27
+Range 2026-04-29 → 2026-05-03 | Page 27 | Orders: 15
+Fetching page 28
+Range 2026-04-29 → 2026-05-03 | Page 28 | Orders: 15
+Fetching page 29
+Range 2026-04-29 → 2026-05-03 | Page 29 | Orders: 15
+Fetching page 30
+Range 2026-04-29 → 2026-05-03 | Page 30 | Orders: 13
+Fetching page 31
+Range 2026-04-29 → 2026-05-03 | Page 31 | Orders: 0
+
+====================================
+Fetching Range 2026-05-04 → 2026-05-08
+====================================
+Fetching page 1
+Range 2026-05-04 → 2026-05-08 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-05-04 → 2026-05-08 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-05-04 → 2026-05-08 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-05-04 → 2026-05-08 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-05-04 → 2026-05-08 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-05-04 → 2026-05-08 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-05-04 → 2026-05-08 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-05-04 → 2026-05-08 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-05-04 → 2026-05-08 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-05-04 → 2026-05-08 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-05-04 → 2026-05-08 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-05-04 → 2026-05-08 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-05-04 → 2026-05-08 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-05-04 → 2026-05-08 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-05-04 → 2026-05-08 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-05-04 → 2026-05-08 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-05-04 → 2026-05-08 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-05-04 → 2026-05-08 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-05-04 → 2026-05-08 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-05-04 → 2026-05-08 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-05-04 → 2026-05-08 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-05-04 → 2026-05-08 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-05-04 → 2026-05-08 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-05-04 → 2026-05-08 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-05-04 → 2026-05-08 | Page 25 | Orders: 15
+Fetching page 26
+Range 2026-05-04 → 2026-05-08 | Page 26 | Orders: 15
+Fetching page 27
+Range 2026-05-04 → 2026-05-08 | Page 27 | Orders: 15
+Fetching page 28
+Range 2026-05-04 → 2026-05-08 | Page 28 | Orders: 15
+Fetching page 29
+Range 2026-05-04 → 2026-05-08 | Page 29 | Orders: 15
+Fetching page 30
+Range 2026-05-04 → 2026-05-08 | Page 30 | Orders: 2
+Fetching page 31
+Range 2026-05-04 → 2026-05-08 | Page 31 | Orders: 0
+
+====================================
+Fetching Range 2026-05-09 → 2026-05-13
+====================================
+Fetching page 1
+Range 2026-05-09 → 2026-05-13 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-05-09 → 2026-05-13 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-05-09 → 2026-05-13 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-05-09 → 2026-05-13 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-05-09 → 2026-05-13 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-05-09 → 2026-05-13 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-05-09 → 2026-05-13 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-05-09 → 2026-05-13 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-05-09 → 2026-05-13 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-05-09 → 2026-05-13 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-05-09 → 2026-05-13 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-05-09 → 2026-05-13 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-05-09 → 2026-05-13 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-05-09 → 2026-05-13 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-05-09 → 2026-05-13 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-05-09 → 2026-05-13 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-05-09 → 2026-05-13 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-05-09 → 2026-05-13 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-05-09 → 2026-05-13 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-05-09 → 2026-05-13 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-05-09 → 2026-05-13 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-05-09 → 2026-05-13 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-05-09 → 2026-05-13 | Page 23 | Orders: 4
+Fetching page 24
+Range 2026-05-09 → 2026-05-13 | Page 24 | Orders: 0
+
+====================================
+Fetching Range 2026-05-14 → 2026-05-18
+====================================
+Fetching page 1
+Range 2026-05-14 → 2026-05-18 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-05-14 → 2026-05-18 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-05-14 → 2026-05-18 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-05-14 → 2026-05-18 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-05-14 → 2026-05-18 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-05-14 → 2026-05-18 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-05-14 → 2026-05-18 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-05-14 → 2026-05-18 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-05-14 → 2026-05-18 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-05-14 → 2026-05-18 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-05-14 → 2026-05-18 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-05-14 → 2026-05-18 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-05-14 → 2026-05-18 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-05-14 → 2026-05-18 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-05-14 → 2026-05-18 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-05-14 → 2026-05-18 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-05-14 → 2026-05-18 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-05-14 → 2026-05-18 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-05-14 → 2026-05-18 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-05-14 → 2026-05-18 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-05-14 → 2026-05-18 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-05-14 → 2026-05-18 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-05-14 → 2026-05-18 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-05-14 → 2026-05-18 | Page 24 | Orders: 5
+Fetching page 25
+Range 2026-05-14 → 2026-05-18 | Page 25 | Orders: 0
+
+====================================
+Fetching Range 2026-05-19 → 2026-05-23
+====================================
+Fetching page 1
+Range 2026-05-19 → 2026-05-23 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-05-19 → 2026-05-23 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-05-19 → 2026-05-23 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-05-19 → 2026-05-23 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-05-19 → 2026-05-23 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-05-19 → 2026-05-23 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-05-19 → 2026-05-23 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-05-19 → 2026-05-23 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-05-19 → 2026-05-23 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-05-19 → 2026-05-23 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-05-19 → 2026-05-23 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-05-19 → 2026-05-23 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-05-19 → 2026-05-23 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-05-19 → 2026-05-23 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-05-19 → 2026-05-23 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-05-19 → 2026-05-23 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-05-19 → 2026-05-23 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-05-19 → 2026-05-23 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-05-19 → 2026-05-23 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-05-19 → 2026-05-23 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-05-19 → 2026-05-23 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-05-19 → 2026-05-23 | Page 22 | Orders: 2
+Fetching page 23
+Range 2026-05-19 → 2026-05-23 | Page 23 | Orders: 0
+
+====================================
+Fetching Range 2026-05-24 → 2026-05-28
+====================================
+Fetching page 1
+Range 2026-05-24 → 2026-05-28 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-05-24 → 2026-05-28 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-05-24 → 2026-05-28 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-05-24 → 2026-05-28 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-05-24 → 2026-05-28 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-05-24 → 2026-05-28 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-05-24 → 2026-05-28 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-05-24 → 2026-05-28 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-05-24 → 2026-05-28 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-05-24 → 2026-05-28 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-05-24 → 2026-05-28 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-05-24 → 2026-05-28 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-05-24 → 2026-05-28 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-05-24 → 2026-05-28 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-05-24 → 2026-05-28 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-05-24 → 2026-05-28 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-05-24 → 2026-05-28 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-05-24 → 2026-05-28 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-05-24 → 2026-05-28 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-05-24 → 2026-05-28 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-05-24 → 2026-05-28 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-05-24 → 2026-05-28 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-05-24 → 2026-05-28 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-05-24 → 2026-05-28 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-05-24 → 2026-05-28 | Page 25 | Orders: 15
+Fetching page 26
+Range 2026-05-24 → 2026-05-28 | Page 26 | Orders: 15
+Fetching page 27
+Range 2026-05-24 → 2026-05-28 | Page 27 | Orders: 15
+Fetching page 28
+Range 2026-05-24 → 2026-05-28 | Page 28 | Orders: 1
+Fetching page 29
+Range 2026-05-24 → 2026-05-28 | Page 29 | Orders: 0
+
+====================================
+Fetching Range 2026-05-29 → 2026-06-02
+====================================
+Fetching page 1
+Range 2026-05-29 → 2026-06-02 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-05-29 → 2026-06-02 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-05-29 → 2026-06-02 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-05-29 → 2026-06-02 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-05-29 → 2026-06-02 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-05-29 → 2026-06-02 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-05-29 → 2026-06-02 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-05-29 → 2026-06-02 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-05-29 → 2026-06-02 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-05-29 → 2026-06-02 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-05-29 → 2026-06-02 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-05-29 → 2026-06-02 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-05-29 → 2026-06-02 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-05-29 → 2026-06-02 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-05-29 → 2026-06-02 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-05-29 → 2026-06-02 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-05-29 → 2026-06-02 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-05-29 → 2026-06-02 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-05-29 → 2026-06-02 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-05-29 → 2026-06-02 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-05-29 → 2026-06-02 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-05-29 → 2026-06-02 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-05-29 → 2026-06-02 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-05-29 → 2026-06-02 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-05-29 → 2026-06-02 | Page 25 | Orders: 15
+Fetching page 26
+Range 2026-05-29 → 2026-06-02 | Page 26 | Orders: 15
+Fetching page 27
+Range 2026-05-29 → 2026-06-02 | Page 27 | Orders: 15
+Fetching page 28
+Range 2026-05-29 → 2026-06-02 | Page 28 | Orders: 12
+Fetching page 29
+Range 2026-05-29 → 2026-06-02 | Page 29 | Orders: 0
+
+====================================
+Fetching Range 2026-06-03 → 2026-06-07
+====================================
+Fetching page 1
+Range 2026-06-03 → 2026-06-07 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-06-03 → 2026-06-07 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-06-03 → 2026-06-07 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-06-03 → 2026-06-07 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-06-03 → 2026-06-07 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-06-03 → 2026-06-07 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-06-03 → 2026-06-07 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-06-03 → 2026-06-07 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-06-03 → 2026-06-07 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-06-03 → 2026-06-07 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-06-03 → 2026-06-07 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-06-03 → 2026-06-07 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-06-03 → 2026-06-07 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-06-03 → 2026-06-07 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-06-03 → 2026-06-07 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-06-03 → 2026-06-07 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-06-03 → 2026-06-07 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-06-03 → 2026-06-07 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-06-03 → 2026-06-07 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-06-03 → 2026-06-07 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-06-03 → 2026-06-07 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-06-03 → 2026-06-07 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-06-03 → 2026-06-07 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-06-03 → 2026-06-07 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-06-03 → 2026-06-07 | Page 25 | Orders: 1
+Fetching page 26
+Range 2026-06-03 → 2026-06-07 | Page 26 | Orders: 0
+
+====================================
+Fetching Range 2026-06-08 → 2026-06-12
+====================================
+Fetching page 1
+Range 2026-06-08 → 2026-06-12 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-06-08 → 2026-06-12 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-06-08 → 2026-06-12 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-06-08 → 2026-06-12 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-06-08 → 2026-06-12 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-06-08 → 2026-06-12 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-06-08 → 2026-06-12 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-06-08 → 2026-06-12 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-06-08 → 2026-06-12 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-06-08 → 2026-06-12 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-06-08 → 2026-06-12 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-06-08 → 2026-06-12 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-06-08 → 2026-06-12 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-06-08 → 2026-06-12 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-06-08 → 2026-06-12 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-06-08 → 2026-06-12 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-06-08 → 2026-06-12 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-06-08 → 2026-06-12 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-06-08 → 2026-06-12 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-06-08 → 2026-06-12 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-06-08 → 2026-06-12 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-06-08 → 2026-06-12 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-06-08 → 2026-06-12 | Page 23 | Orders: 1
+Fetching page 24
+Range 2026-06-08 → 2026-06-12 | Page 24 | Orders: 0
+
+====================================
+Fetching Range 2026-06-13 → 2026-06-17
+====================================
+Fetching page 1
+Range 2026-06-13 → 2026-06-17 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-06-13 → 2026-06-17 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-06-13 → 2026-06-17 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-06-13 → 2026-06-17 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-06-13 → 2026-06-17 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-06-13 → 2026-06-17 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-06-13 → 2026-06-17 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-06-13 → 2026-06-17 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-06-13 → 2026-06-17 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-06-13 → 2026-06-17 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-06-13 → 2026-06-17 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-06-13 → 2026-06-17 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-06-13 → 2026-06-17 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-06-13 → 2026-06-17 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-06-13 → 2026-06-17 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-06-13 → 2026-06-17 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-06-13 → 2026-06-17 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-06-13 → 2026-06-17 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-06-13 → 2026-06-17 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-06-13 → 2026-06-17 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-06-13 → 2026-06-17 | Page 21 | Orders: 10
+Fetching page 22
+Range 2026-06-13 → 2026-06-17 | Page 22 | Orders: 0
+
+====================================
+Fetching Range 2026-06-18 → 2026-06-22
+====================================
+Fetching page 1
+Range 2026-06-18 → 2026-06-22 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-06-18 → 2026-06-22 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-06-18 → 2026-06-22 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-06-18 → 2026-06-22 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-06-18 → 2026-06-22 | Page 5 | Orders: 15
+Fetching page 6
+Range 2026-06-18 → 2026-06-22 | Page 6 | Orders: 15
+Fetching page 7
+Range 2026-06-18 → 2026-06-22 | Page 7 | Orders: 15
+Fetching page 8
+Range 2026-06-18 → 2026-06-22 | Page 8 | Orders: 15
+Fetching page 9
+Range 2026-06-18 → 2026-06-22 | Page 9 | Orders: 15
+Fetching page 10
+Range 2026-06-18 → 2026-06-22 | Page 10 | Orders: 15
+Fetching page 11
+Range 2026-06-18 → 2026-06-22 | Page 11 | Orders: 15
+Fetching page 12
+Range 2026-06-18 → 2026-06-22 | Page 12 | Orders: 15
+Fetching page 13
+Range 2026-06-18 → 2026-06-22 | Page 13 | Orders: 15
+Fetching page 14
+Range 2026-06-18 → 2026-06-22 | Page 14 | Orders: 15
+Fetching page 15
+Range 2026-06-18 → 2026-06-22 | Page 15 | Orders: 15
+Fetching page 16
+Range 2026-06-18 → 2026-06-22 | Page 16 | Orders: 15
+Fetching page 17
+Range 2026-06-18 → 2026-06-22 | Page 17 | Orders: 15
+Fetching page 18
+Range 2026-06-18 → 2026-06-22 | Page 18 | Orders: 15
+Fetching page 19
+Range 2026-06-18 → 2026-06-22 | Page 19 | Orders: 15
+Fetching page 20
+Range 2026-06-18 → 2026-06-22 | Page 20 | Orders: 15
+Fetching page 21
+Range 2026-06-18 → 2026-06-22 | Page 21 | Orders: 15
+Fetching page 22
+Range 2026-06-18 → 2026-06-22 | Page 22 | Orders: 15
+Fetching page 23
+Range 2026-06-18 → 2026-06-22 | Page 23 | Orders: 15
+Fetching page 24
+Range 2026-06-18 → 2026-06-22 | Page 24 | Orders: 15
+Fetching page 25
+Range 2026-06-18 → 2026-06-22 | Page 25 | Orders: 15
+Fetching page 26
+Range 2026-06-18 → 2026-06-22 | Page 26 | Orders: 15
+Fetching page 27
+Range 2026-06-18 → 2026-06-22 | Page 27 | Orders: 15
+Fetching page 28
+Range 2026-06-18 → 2026-06-22 | Page 28 | Orders: 15
+Fetching page 29
+Range 2026-06-18 → 2026-06-22 | Page 29 | Orders: 15
+Fetching page 30
+Range 2026-06-18 → 2026-06-22 | Page 30 | Orders: 15
+Fetching page 31
+Range 2026-06-18 → 2026-06-22 | Page 31 | Orders: 15
+Fetching page 32
+Range 2026-06-18 → 2026-06-22 | Page 32 | Orders: 15
+Fetching page 33
+Range 2026-06-18 → 2026-06-22 | Page 33 | Orders: 15
+Fetching page 34
+Range 2026-06-18 → 2026-06-22 | Page 34 | Orders: 15
+Fetching page 35
+Range 2026-06-18 → 2026-06-22 | Page 35 | Orders: 15
+Fetching page 36
+Range 2026-06-18 → 2026-06-22 | Page 36 | Orders: 5
+Fetching page 37
+Range 2026-06-18 → 2026-06-22 | Page 37 | Orders: 0
+
+====================================
+Fetching Range 2026-06-23 → 2026-06-23
+====================================
+Fetching page 1
+Range 2026-06-23 → 2026-06-23 | Page 1 | Orders: 15
+Fetching page 2
+Range 2026-06-23 → 2026-06-23 | Page 2 | Orders: 15
+Fetching page 3
+Range 2026-06-23 → 2026-06-23 | Page 3 | Orders: 15
+Fetching page 4
+Range 2026-06-23 → 2026-06-23 | Page 4 | Orders: 15
+Fetching page 5
+Range 2026-06-23 → 2026-06-23 | Page 5 | Orders: 12
+Fetching page 6
+Range 2026-06-23 → 2026-06-23 | Page 6 | Orders: 0
+Finished. Synced 5843 Shiprocket orders.
+
+✅ SUCCESS: "Shiprocket Fetch Orders" completed in 1005.36s
+
+📋 Running Task: Easyecom Fetch Inventory
+💡 Description:  Fetches inventory data from Easyecom API
+💻 Executing:    tsx src/easyecom/fetch-inventory.ts --snapshot Opening
+
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Authenticating...
+Authentication successful.
+Fetching page 1...
+Received 150 inventory rows
+Saved page 1. Total: 150
+Fetching page 2...
+Received 150 inventory rows
+Saved page 2. Total: 300
+Fetching page 3...
+Received 150 inventory rows
+Saved page 3. Total: 450
+Fetching page 4...
+Received 150 inventory rows
+Saved page 4. Total: 600
+Fetching page 5...
+Received 150 inventory rows
+Saved page 5. Total: 750
+Fetching page 6...
+Received 150 inventory rows
+Saved page 6. Total: 900
+Fetching page 7...
+Received 150 inventory rows
+Saved page 7. Total: 1050
+Fetching page 8...
+Received 150 inventory rows
+Saved page 8. Total: 1200
+Fetching page 9...
+Received 150 inventory rows
+Saved page 9. Total: 1350
+Fetching page 10...
+Received 150 inventory rows
+Saved page 10. Total: 1500
+Fetching page 11...
+Received 150 inventory rows
+Saved page 11. Total: 1650
+Fetching page 12...
+Received 150 inventory rows
+Saved page 12. Total: 1800
+Fetching page 13...
+Received 150 inventory rows
+Saved page 13. Total: 1950
+Fetching page 14...
+Received 150 inventory rows
+Saved page 14. Total: 2100
+Fetching page 15...
+Received 150 inventory rows
+Saved page 15. Total: 2250
+Fetching page 16...
+Received 150 inventory rows
+Saved page 16. Total: 2400
+Fetching page 17...
+Received 150 inventory rows
+Saved page 17. Total: 2550
+Fetching page 18...
+Received 150 inventory rows
+Saved page 18. Total: 2700
+Fetching page 19...
+Received 141 inventory rows
+Saved page 19. Total: 2841
+Finished. Saved 2841 inventory records.
+
+✅ SUCCESS: "Easyecom Fetch Inventory" completed in 115.92s
+
+📋 Running Task: Easyecom Fetch Product Master
+💡 Description:  Fetches product master data from Easyecom API
+💻 Executing:    tsx src/easyecom/fetch-product-master.ts
+
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Authenticating with EasyEcom...
+Authentication successful.
+Fetching Product Master page 1...
+Received 150 product rows.
+Saved Product Master page 1. Total saved: 150
+Fetching Product Master page 2...
+Received 150 product rows.
+Saved Product Master page 2. Total saved: 300
+Fetching Product Master page 3...
+Received 150 product rows.
+Saved Product Master page 3. Total saved: 450
+Fetching Product Master page 4...
+Received 150 product rows.
+Saved Product Master page 4. Total saved: 600
+Fetching Product Master page 5...
+Received 150 product rows.
+Saved Product Master page 5. Total saved: 750
+Fetching Product Master page 6...
+Received 150 product rows.
+Saved Product Master page 6. Total saved: 900
+Fetching Product Master page 7...
+Received 150 product rows.
+Saved Product Master page 7. Total saved: 1050
+Fetching Product Master page 8...
+Received 150 product rows.
+Saved Product Master page 8. Total saved: 1200
+Fetching Product Master page 9...
+Received 150 product rows.
+Saved Product Master page 9. Total saved: 1350
+Fetching Product Master page 10...
+Received 150 product rows.
+Saved Product Master page 10. Total saved: 1500
+Fetching Product Master page 11...
+Received 150 product rows.
+Saved Product Master page 11. Total saved: 1650
+Fetching Product Master page 12...
+Received 150 product rows.
+Saved Product Master page 12. Total saved: 1800
+Fetching Product Master page 13...
+Received 150 product rows.
+Saved Product Master page 13. Total saved: 1950
+Fetching Product Master page 14...
+Received 150 product rows.
+Saved Product Master page 14. Total saved: 2100
+Fetching Product Master page 15...
+Received 150 product rows.
+Saved Product Master page 15. Total saved: 2250
+Fetching Product Master page 16...
+Received 150 product rows.
+Saved Product Master page 16. Total saved: 2400
+Fetching Product Master page 17...
+Received 150 product rows.
+Saved Product Master page 17. Total saved: 2550
+Fetching Product Master page 18...
+Received 150 product rows.
+Saved Product Master page 18. Total saved: 2700
+Fetching Product Master page 19...
+Received 150 product rows.
+Saved Product Master page 19. Total saved: 2850
+Fetching Product Master page 20...
+Received 150 product rows.
+Saved Product Master page 20. Total saved: 3000
+Fetching Product Master page 21...
+Received 150 product rows.
+Saved Product Master page 21. Total saved: 3150
+Fetching Product Master page 22...
+Received 150 product rows.
+Saved Product Master page 22. Total saved: 3300
+Fetching Product Master page 23...
+Received 150 product rows.
+Saved Product Master page 23. Total saved: 3450
+Fetching Product Master page 24...
+Received 150 product rows.
+Saved Product Master page 24. Total saved: 3600
+Fetching Product Master page 25...
+Received 150 product rows.
+Saved Product Master page 25. Total saved: 3750
+Fetching Product Master page 26...
+Received 150 product rows.
+Saved Product Master page 26. Total saved: 3900
+Fetching Product Master page 27...
+Received 150 product rows.
+Saved Product Master page 27. Total saved: 4050
+Fetching Product Master page 28...
+Received 150 product rows.
+Saved Product Master page 28. Total saved: 4200
+Fetching Product Master page 29...
+Received 150 product rows.
+Saved Product Master page 29. Total saved: 4350
+Fetching Product Master page 30...
+Received 150 product rows.
+Saved Product Master page 30. Total saved: 4500
+Fetching Product Master page 31...
+Received 150 product rows.
+Saved Product Master page 31. Total saved: 4650
+Fetching Product Master page 32...
+Received 150 product rows.
+Saved Product Master page 32. Total saved: 4800
+Fetching Product Master page 33...
+Received 150 product rows.
+Saved Product Master page 33. Total saved: 4950
+Fetching Product Master page 34...
+Received 150 product rows.
+Saved Product Master page 34. Total saved: 5100
+Fetching Product Master page 35...
+Received 23 product rows.
+Saved Product Master page 35. Total saved: 5123
+Finished Product Master Ingestion. Total: 5123 records.
+
+✅ SUCCESS: "Easyecom Fetch Product Master" completed in 233.37s
+
+📋 Running Task: Easyecom Fetch Purchase Orders
+💡 Description:  Fetches purchase orders from Easyecom API
+💻 Executing:    tsx src/easyecom/fetch-purchase-orders.ts
+
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Authenticating with EasyEcom...
+Authentication successful.
+Fetching Purchase Orders page 1...
+Received 10 PO rows.
+Saved page 1. Total saved: 10
+Fetching Purchase Orders page 2...
+Received 10 PO rows.
+Saved page 2. Total saved: 20
+Fetching Purchase Orders page 3...
+Received 10 PO rows.
+Saved page 3. Total saved: 30
+Fetching Purchase Orders page 4...
+Received 10 PO rows.
+Saved page 4. Total saved: 40
+Fetching Purchase Orders page 5...
+Received 10 PO rows.
+Saved page 5. Total saved: 50
+Fetching Purchase Orders page 6...
+Received 10 PO rows.
+Saved page 6. Total saved: 60
+Fetching Purchase Orders page 7...
+Received 10 PO rows.
+Saved page 7. Total saved: 70
+Fetching Purchase Orders page 8...
+Received 10 PO rows.
+Saved page 8. Total saved: 80
+Fetching Purchase Orders page 9...
+Received 10 PO rows.
+Saved page 9. Total saved: 90
+Fetching Purchase Orders page 10...
+Received 10 PO rows.
+Saved page 10. Total saved: 100
+Fetching Purchase Orders page 11...
+Received 10 PO rows.
+Saved page 11. Total saved: 110
+Fetching Purchase Orders page 12...
+Received 10 PO rows.
+Saved page 12. Total saved: 120
+Fetching Purchase Orders page 13...
+Received 10 PO rows.
+Saved page 13. Total saved: 130
+Fetching Purchase Orders page 14...
+Received 10 PO rows.
+Saved page 14. Total saved: 140
+Fetching Purchase Orders page 15...
+Received 10 PO rows.
+Saved page 15. Total saved: 150
+Fetching Purchase Orders page 16...
+Received 10 PO rows.
+Saved page 16. Total saved: 160
+Fetching Purchase Orders page 17...
+Received 10 PO rows.
+Saved page 17. Total saved: 170
+Fetching Purchase Orders page 18...
+Received 10 PO rows.
+Saved page 18. Total saved: 180
+Fetching Purchase Orders page 19...
+Received 10 PO rows.
+Saved page 19. Total saved: 190
+Fetching Purchase Orders page 20...
+Received 10 PO rows.
+Saved page 20. Total saved: 200
+Fetching Purchase Orders page 21...
+Received 10 PO rows.
+Saved page 21. Total saved: 210
+Fetching Purchase Orders page 22...
+Received 10 PO rows.
+Saved page 22. Total saved: 220
+Fetching Purchase Orders page 23...
+Received 10 PO rows.
+Saved page 23. Total saved: 230
+Fetching Purchase Orders page 24...
+Received 10 PO rows.
+Saved page 24. Total saved: 240
+Fetching Purchase Orders page 25...
+Received 10 PO rows.
+Saved page 25. Total saved: 250
+Fetching Purchase Orders page 26...
+Received 10 PO rows.
+Saved page 26. Total saved: 260
+Fetching Purchase Orders page 27...
+Received 10 PO rows.
+Saved page 27. Total saved: 270
+Fetching Purchase Orders page 28...
+Received 10 PO rows.
+Saved page 28. Total saved: 280
+Fetching Purchase Orders page 29...
+Received 10 PO rows.
+Saved page 29. Total saved: 290
+Fetching Purchase Orders page 30...
+Received 10 PO rows.
+Saved page 30. Total saved: 300
+Fetching Purchase Orders page 31...
+Received 10 PO rows.
+Saved page 31. Total saved: 310
+Fetching Purchase Orders page 32...
+Received 10 PO rows.
+Saved page 32. Total saved: 320
+Fetching Purchase Orders page 33...
+Received 10 PO rows.
+Saved page 33. Total saved: 330
+Fetching Purchase Orders page 34...
+Received 10 PO rows.
+Saved page 34. Total saved: 340
+Fetching Purchase Orders page 35...
+Received 10 PO rows.
+Saved page 35. Total saved: 350
+Fetching Purchase Orders page 36...
+Received 10 PO rows.
+Saved page 36. Total saved: 360
+Fetching Purchase Orders page 37...
+Received 10 PO rows.
+Saved page 37. Total saved: 370
+Fetching Purchase Orders page 38...
+Received 10 PO rows.
+Saved page 38. Total saved: 380
+Fetching Purchase Orders page 39...
+Received 10 PO rows.
+Saved page 39. Total saved: 390
+Fetching Purchase Orders page 40...
+Received 10 PO rows.
+Saved page 40. Total saved: 400
+Fetching Purchase Orders page 41...
+Received 10 PO rows.
+Saved page 41. Total saved: 410
+Fetching Purchase Orders page 42...
+Received 10 PO rows.
+Saved page 42. Total saved: 420
+Fetching Purchase Orders page 43...
+Received 10 PO rows.
+Saved page 43. Total saved: 430
+Fetching Purchase Orders page 44...
+Received 8 PO rows.
+Saved page 44. Total saved: 438
+Fetching Purchase Orders page 45...
+Received 10 PO rows.
+Saved page 45. Total saved: 448
+Fetching Purchase Orders page 46...
+Received 10 PO rows.
+Saved page 46. Total saved: 458
+Fetching Purchase Orders page 47...
+Received 10 PO rows.
+Saved page 47. Total saved: 468
+Fetching Purchase Orders page 48...
+Received 10 PO rows.
+Saved page 48. Total saved: 478
+Fetching Purchase Orders page 49...
+Received 10 PO rows.
+Saved page 49. Total saved: 488
+Fetching Purchase Orders page 50...
+Received 10 PO rows.
+Saved page 50. Total saved: 498
+Fetching Purchase Orders page 51...
+Received 10 PO rows.
+Saved page 51. Total saved: 508
+Fetching Purchase Orders page 52...
+Received 10 PO rows.
+Saved page 52. Total saved: 518
+Fetching Purchase Orders page 53...
+Received 10 PO rows.
+Saved page 53. Total saved: 528
+Fetching Purchase Orders page 54...
+Received 10 PO rows.
+Saved page 54. Total saved: 538
+Fetching Purchase Orders page 55...
+Received 10 PO rows.
+Saved page 55. Total saved: 548
+Fetching Purchase Orders page 56...
+Received 10 PO rows.
+Saved page 56. Total saved: 558
+Fetching Purchase Orders page 57...
+Received 10 PO rows.
+Saved page 57. Total saved: 568
+Fetching Purchase Orders page 58...
+Received 10 PO rows.
+Saved page 58. Total saved: 578
+Fetching Purchase Orders page 59...
+Received 10 PO rows.
+Saved page 59. Total saved: 588
+Fetching Purchase Orders page 60...
+Received 10 PO rows.
+Saved page 60. Total saved: 598
+Fetching Purchase Orders page 61...
+Received 10 PO rows.
+Saved page 61. Total saved: 608
+Fetching Purchase Orders page 62...
+Received 10 PO rows.
+Saved page 62. Total saved: 618
+Fetching Purchase Orders page 63...
+Received 10 PO rows.
+Saved page 63. Total saved: 628
+Fetching Purchase Orders page 64...
+Received 10 PO rows.
+Saved page 64. Total saved: 638
+Fetching Purchase Orders page 65...
+Received 4 PO rows.
+Saved page 65. Total saved: 642
+Finished Purchase Order Ingestion. Total: 642 records.
+
+✅ SUCCESS: "Easyecom Fetch Purchase Orders" completed in 101.85s
+
+📋 Running Task: Easyecom Fetch Production Orders
+💡 Description:  Fetches production orders from Easyecom API
+💻 Executing:    tsx src/easyecom/fetch-production-orders.ts
+
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Authenticating with EasyEcom...
+Authentication successful.
+--- Fetching orders from 2026-06-16 00:00:00 to 2026-06-23 23:59:59 ---
+Fetching orders page 1 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 12 for range 2026-06-16 00:00:00 to 2026-06-23 23:59:59...
+Received 90 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-06-09 00:00:00 to 2026-06-16 23:59:59 ---
+Fetching orders page 1 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 12 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 13 for range 2026-06-09 00:00:00 to 2026-06-16 23:59:59...
+Received 59 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-06-02 00:00:00 to 2026-06-09 23:59:59 ---
+Fetching orders page 1 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 12 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 13 for range 2026-06-02 00:00:00 to 2026-06-09 23:59:59...
+Received 59 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-05-26 00:00:00 to 2026-06-02 23:59:59 ---
+Fetching orders page 1 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 12 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 13 for range 2026-05-26 00:00:00 to 2026-06-02 23:59:59...
+Received 7 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-05-19 00:00:00 to 2026-05-26 23:59:59 ---
+Fetching orders page 1 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-05-19 00:00:00 to 2026-05-26 23:59:59...
+Received 44 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-05-12 00:00:00 to 2026-05-19 23:59:59 ---
+Fetching orders page 1 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-05-12 00:00:00 to 2026-05-19 23:59:59...
+Received 46 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-05-05 00:00:00 to 2026-05-12 23:59:59 ---
+Fetching orders page 1 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 12 for range 2026-05-05 00:00:00 to 2026-05-12 23:59:59...
+Received 30 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-04-28 00:00:00 to 2026-05-05 23:59:59 ---
+Fetching orders page 1 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 11 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 12 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 13 for range 2026-04-28 00:00:00 to 2026-05-05 23:59:59...
+Received 40 orders total. Filtered to 0 production orders.
+--- Fetching orders from 2026-04-21 00:00:00 to 2026-04-28 23:59:59 ---
+Fetching orders page 1 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 2 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 3 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 4 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 5 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 6 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 7 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 8 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 9 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 100 orders total. Filtered to 0 production orders.
+Fetching orders page 10 for range 2026-04-21 00:00:00 to 2026-04-28 23:59:59...
+Received 18 orders total. Filtered to 0 production orders.
+Finished Production Order Ingestion. Total: 0 records.
+
+✅ SUCCESS: "Easyecom Fetch Production Orders" completed in 326.57s
+
+📋 Running Task: Easyecom Fetch Marketplace Listings
+💡 Description:  Fetches marketplace listing mappings from Easyecom API
+💻 Executing:    tsx src/easyecom/fetch-marketplace-listings.ts
+
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Authenticating with EasyEcom...
+Authentication successful.
+Fetching active integrated marketplaces...
+Found 9 active marketplaces: Shopify (26), Amazon.in (8), Snapdeal (4), Flipkart (2), Firstcry (77), Reliance (155), Meesho-API (599), Shopify1 (111), Amazon Smart Connect (517)
+
+=== Syncing Listings for Shopify (26) ===
+Fetching page 1 for Shopify...
+Received 1000 listing rows.
+Saved page 1 for Shopify. Saved in this batch: 1000. Total for channel: 1000
+Fetching page 2 for Shopify...
+Received 1000 listing rows.
+Saved page 2 for Shopify. Saved in this batch: 1000. Total for channel: 2000
+Fetching page 3 for Shopify...
+Received 1000 listing rows.
+Saved page 3 for Shopify. Saved in this batch: 1000. Total for channel: 3000
+Fetching page 4 for Shopify...
+Received 1000 listing rows.
+Saved page 4 for Shopify. Saved in this batch: 1000. Total for channel: 4000
+Fetching page 5 for Shopify...
+Received 1000 listing rows.
+Saved page 5 for Shopify. Saved in this batch: 1000. Total for channel: 5000
+Fetching page 6 for Shopify...
+Received 659 listing rows.
+Saved page 6 for Shopify. Saved in this batch: 659. Total for channel: 5659
+Fetched page of size 659 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Amazon.in (8) ===
+Fetching page 1 for Amazon.in...
+Received 723 listing rows.
+Saved page 1 for Amazon.in. Saved in this batch: 723. Total for channel: 723
+Fetched page of size 723 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Snapdeal (4) ===
+Fetching page 1 for Snapdeal...
+Received 150 listing rows.
+Saved page 1 for Snapdeal. Saved in this batch: 150. Total for channel: 150
+Fetched page of size 150 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Flipkart (2) ===
+Fetching page 1 for Flipkart...
+Received 1000 listing rows.
+Saved page 1 for Flipkart. Saved in this batch: 1000. Total for channel: 1000
+Fetching page 2 for Flipkart...
+Received 744 listing rows.
+Saved page 2 for Flipkart. Saved in this batch: 744. Total for channel: 1744
+Fetched page of size 744 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Firstcry (77) ===
+Fetching page 1 for Firstcry...
+Received 70 listing rows.
+Saved page 1 for Firstcry. Saved in this batch: 70. Total for channel: 70
+Fetched page of size 70 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Reliance (155) ===
+Fetching page 1 for Reliance...
+No more listings for Reliance.
+
+=== Syncing Listings for Meesho-API (599) ===
+Fetching page 1 for Meesho-API...
+Received 111 listing rows.
+Saved page 1 for Meesho-API. Saved in this batch: 111. Total for channel: 111
+Fetched page of size 111 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Shopify1 (111) ===
+Fetching page 1 for Shopify1...
+Received 18 listing rows.
+Saved page 1 for Shopify1. Saved in this batch: 18. Total for channel: 18
+Fetched page of size 18 which is less than pageSize 1000. Finished pagination.
+
+=== Syncing Listings for Amazon Smart Connect (517) ===
+Fetching page 1 for Amazon Smart Connect...
+Received 247 listing rows.
+Saved page 1 for Amazon Smart Connect. Saved in this batch: 247. Total for channel: 247
+Fetched page of size 247 which is less than pageSize 1000. Finished pagination.
+
+=== Ingestion Completed successfully! Total Marketplace Listings Ingested: 8722 ===
+
+✅ SUCCESS: "Easyecom Fetch Marketplace Listings" completed in 254.06s
+
+📋 Running Task: Shopify Fetch Orders
+💡 Description:  Fetches orders data from Shopify Admin API
+💻 Executing:    tsx src/shopify/fetch-orders.ts
+
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Starting Shopify Orders Ingestion from domain: cubelelo-cube-store.myshopify.com (Rolling past 60 days since 2026-04-24T12:01:47.620Z)
+Fetching page 1...
+Received 250 orders. Processing and saving...
+Successfully page 1 saved.
+Fetching page 2...
+Received 250 orders. Processing and saving...
+Successfully page 2 saved.
+Fetching page 3...
+Received 250 orders. Processing and saving...
+Successfully page 3 saved.
+Fetching page 4...
+Received 250 orders. Processing and saving...
+Successfully page 4 saved.
+Fetching page 5...
+Received 250 orders. Processing and saving...
+Successfully page 5 saved.
+Fetching page 6...
+Received 250 orders. Processing and saving...
+Successfully page 6 saved.
+Fetching page 7...
+Received 250 orders. Processing and saving...
+Successfully page 7 saved.
+Fetching page 8...
+Received 250 orders. Processing and saving...
+Successfully page 8 saved.
+Fetching page 9...
+Received 250 orders. Processing and saving...
+Successfully page 9 saved.
+Fetching page 10...
+Received 250 orders. Processing and saving...
+Successfully page 10 saved.
+Fetching page 11...
+Received 250 orders. Processing and saving...
+Successfully page 11 saved.
+Fetching page 12...
+Received 250 orders. Processing and saving...
+Successfully page 12 saved.
+Fetching page 13...
+Received 250 orders. Processing and saving...
+Successfully page 13 saved.
+Fetching page 14...
+Received 250 orders. Processing and saving...
+Successfully page 14 saved.
+Fetching page 15...
+Received 250 orders. Processing and saving...
+Successfully page 15 saved.
+Fetching page 16...
+Received 250 orders. Processing and saving...
+Successfully page 16 saved.
+Fetching page 17...
+Received 250 orders. Processing and saving...
+Successfully page 17 saved.
+Fetching page 18...
+Received 250 orders. Processing and saving...
+Successfully page 18 saved.
+Fetching page 19...
+Received 250 orders. Processing and saving...
+Successfully page 19 saved.
+Fetching page 20...
+Received 250 orders. Processing and saving...
+Successfully page 20 saved.
+Fetching page 21...
+Received 250 orders. Processing and saving...
+Successfully page 21 saved.
+Fetching page 22...
+Received 250 orders. Processing and saving...
+Successfully page 22 saved.
+Fetching page 23...
+Received 250 orders. Processing and saving...
+Successfully page 23 saved.
+Fetching page 24...
+Received 250 orders. Processing and saving...
+Successfully page 24 saved.
+Fetching page 25...
+Received 250 orders. Processing and saving...
+Successfully page 25 saved.
+Fetching page 26...
+Received 102 orders. Processing and saving...
+Successfully page 26 saved.
+Shopify Orders Ingestion finished. Saved 6352 orders.
+
+✅ SUCCESS: "Shopify Fetch Orders" completed in 1224.77s
+
+📋 Running Task: Shopify Fetch Returns
+💡 Description:  Fetches returns data from Shopify Admin API
+💻 Executing:    tsx src/shopify/fetch-returns.ts
+
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Starting Shopify Returns Ingestion (via Orders) from domain: cubelelo-cube-store.myshopify.com (Rolling past 60 days since 2026-04-24)
+Fetching page 1...
+Received 28 orders. Checking for associated returns...
+Processing return #202000305932-R1 (gid://shopify/Return/15523512609)...
+Processing return #202000307314-R1 (gid://shopify/Return/15818457377)...
+Processing return #202000307314-R2 (gid://shopify/Return/15818490145)...
+Processing return #202000307314-R3 (gid://shopify/Return/15818522913)...
+Processing return #202000308006-R1 (gid://shopify/Return/16286220577)...
+Processing return #202000308991-R1 (gid://shopify/Return/16281174305)...
+Processing return #202000309397-R1 (gid://shopify/Return/16450027809)...
+Processing return #202000309545-R1 (gid://shopify/Return/16358539553)...
+Processing return #202000309640-R1 (gid://shopify/Return/16453009697)...
+Processing return #202000309678-R1 (gid://shopify/Return/16783343905)...
+Processing return #202000309678-R2 (gid://shopify/Return/16783376673)...
+Processing return #202000309829-R1 (gid://shopify/Return/16620814625)...
+Processing return #202000310000-R1 (gid://shopify/Return/17040015649)...
+Processing return #202000310132-R1 (gid://shopify/Return/16541876513)...
+Processing return #202000310185-R1 (gid://shopify/Return/16691003681)...
+Processing return #202000310217-R1 (gid://shopify/Return/16621437217)...
+Processing return #202000311077-R1 (gid://shopify/Return/16782328097)...
+Processing return #202000311293-R1 (gid://shopify/Return/17091952929)...
+Processing return #202000311638-R1 (gid://shopify/Return/17225646369)...
+Processing return #202000311849-R1 (gid://shopify/Return/17064624417)...
+Processing return #202000311849-R2 (gid://shopify/Return/17064657185)...
+Processing return #202000312060-R1 (gid://shopify/Return/17225941281)...
+Processing return #202000312262-R1 (gid://shopify/Return/17119936801)...
+Processing return #202000312262-R2 (gid://shopify/Return/17119969569)...
+Processing return #202000312802-R1 (gid://shopify/Return/17346396449)...
+Processing return #202000312891-R1 (gid://shopify/Return/17346527521)...
+Processing return #202000313108-R1 (gid://shopify/Return/17417568545)...
+Processing return #202000313121-R1 (gid://shopify/Return/17387815201)...
+Processing return #202000313350-R1 (gid://shopify/Return/17665327393)...
+Processing return #202000313842-R1 (gid://shopify/Return/17696850209)...
+Processing return #202000313845-R1 (gid://shopify/Return/17585078561)...
+Processing return #202000313917-R1 (gid://shopify/Return/17633870113)...
+Processing return #202000314032-R1 (gid://shopify/Return/17715724577)...
+Successfully page 1 saved.
+Shopify Returns Ingestion finished. Saved 33 returns.
+
+✅ SUCCESS: "Shopify Fetch Returns" completed in 5.26s
+
+📋 Running Task: Shopify Fetch Inventory
+💡 Description:  Fetches inventory data from Shopify Admin API
+💻 Executing:    tsx src/shopify/fetch-inventory.ts --snapshot Opening
+
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Starting inventory sync (Opening)
+Fetching page 1
+Received 250 inventory items
+PrismaClientUnknownRequestError: 
+Invalid `prisma.shopifyInventoryItem.upsert()` invocation in
+C:\Users\Vedan\OneDrive\Desktop\cdbms\src\shopify\fetch-inventory.ts:156:37
+
+  153   trackedEditable: item.trackedEditable ?? null,
+  154 };
+  155 
+→ 156 await prisma.shopifyInventoryItem.upsert(
+Error in connector: Error querying the database: FATAL: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at ei.handleRequestError (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\RequestHandler.ts:237:13)
+    at ei.handleAndLogRequestError (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\RequestHandler.ts:174:12)
+    at ei.request (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\RequestHandler.ts:143:12)
+    at async a (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:833:24)
+    at async saveInventoryItem (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\shopify\fetch-inventory.ts:156:3)
+    at async Promise.all (index 7)
+    at async main (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\shopify\fetch-inventory.ts:286:7) {
+  clientVersion: '6.19.3'
+}
+
+❌ FAILURE: "Shopify Fetch Inventory" exited with code 1 in 5.50s
+
+
+============================================================
+🚀 Execution Summary Table
+============================================================
+
+┌─────────┬───────────────────────────────────────┬──────────────┬────────────┐
+│ (index) │ Task                                  │ Status       │ Duration   │
+├─────────┼───────────────────────────────────────┼──────────────┼────────────┤
+│ 0       │ 'ReturnPrime Fetch Returns'           │ '✅ Success' │ '38.56s'   │
+│ 1       │ 'Shiprocket Fetch Orders'             │ '✅ Success' │ '1005.36s' │
+│ 2       │ 'Easyecom Fetch Inventory'            │ '✅ Success' │ '115.92s'  │
+│ 3       │ 'Easyecom Fetch Product Master'       │ '✅ Success' │ '233.37s'  │
+│ 4       │ 'Easyecom Fetch Purchase Orders'      │ '✅ Success' │ '101.85s'  │
+│ 5       │ 'Easyecom Fetch Production Orders'    │ '✅ Success' │ '326.57s'  │
+│ 6       │ 'Easyecom Fetch Marketplace Listings' │ '✅ Success' │ '254.06s'  │
+│ 7       │ 'Shopify Fetch Orders'                │ '✅ Success' │ '1224.77s' │
+│ 8       │ 'Shopify Fetch Returns'               │ '✅ Success' │ '5.26s'    │
+│ 9       │ 'Shopify Fetch Inventory'             │ '❌ Failed'  │ '5.50s'    │
+└─────────┴───────────────────────────────────────┴──────────────┴────────────┘
+⚠️ Some tasks failed during the run. Check the logs above.
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T12:22:22.243Z
+🚪 EXIT CODE: 1
+⏳ DURATION: 3311.88s
+============================================================

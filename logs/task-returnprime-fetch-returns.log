@@ -1,0 +1,239 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T11:05:13.437Z
+💻 COMMAND: tsx src/returnprime/fetch-returns.ts
+============================================================
+
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+
+Fetching page 1...
+Records Found On Page 1: 10
+Saved 10 records from page 1
+Total processed so far: 10
+
+Fetching page 2...
+Records Found On Page 2: 10
+Saved 10 records from page 2
+Total processed so far: 20
+
+Fetching page 3...
+Records Found On Page 3: 10
+Saved 10 records from page 3
+Total processed so far: 30
+
+Fetching page 4...
+Records Found On Page 4: 10
+Saved 10 records from page 4
+Total processed so far: 40
+
+Fetching page 5...
+Records Found On Page 5: 10
+Saved 10 records from page 5
+Total processed so far: 50
+
+Fetching page 6...
+Records Found On Page 6: 10
+Saved 10 records from page 6
+Total processed so far: 60
+
+Fetching page 7...
+Records Found On Page 7: 10
+Saved 10 records from page 7
+Total processed so far: 70
+
+Fetching page 8...
+Records Found On Page 8: 10
+Saved 10 records from page 8
+Total processed so far: 80
+
+Fetching page 9...
+Records Found On Page 9: 10
+Saved 10 records from page 9
+Total processed so far: 90
+
+Fetching page 10...
+Records Found On Page 10: 10
+Saved 10 records from page 10
+Total processed so far: 100
+
+Fetching page 11...
+Records Found On Page 11: 10
+Saved 10 records from page 11
+Total processed so far: 110
+
+Fetching page 12...
+Records Found On Page 12: 10
+Saved 10 records from page 12
+Total processed so far: 120
+
+Fetching page 13...
+Records Found On Page 13: 10
+Saved 10 records from page 13
+Total processed so far: 130
+
+Fetching page 14...
+Records Found On Page 14: 10
+Saved 10 records from page 14
+Total processed so far: 140
+
+Fetching page 15...
+Records Found On Page 15: 10
+Saved 10 records from page 15
+Total processed so far: 150
+
+Fetching page 16...
+Records Found On Page 16: 10
+Saved 10 records from page 16
+Total processed so far: 160
+
+Fetching page 17...
+Records Found On Page 17: 10
+Saved 10 records from page 17
+Total processed so far: 170
+
+Fetching page 18...
+Records Found On Page 18: 10
+Saved 10 records from page 18
+Total processed so far: 180
+
+Fetching page 19...
+Records Found On Page 19: 10
+Saved 10 records from page 19
+Total processed so far: 190
+
+Fetching page 20...
+Records Found On Page 20: 10
+Saved 10 records from page 20
+Total processed so far: 200
+
+Fetching page 21...
+Records Found On Page 21: 10
+Saved 10 records from page 21
+Total processed so far: 210
+
+Fetching page 22...
+Records Found On Page 22: 10
+Saved 10 records from page 22
+Total processed so far: 220
+
+Fetching page 23...
+Records Found On Page 23: 10
+Saved 10 records from page 23
+Total processed so far: 230
+
+Fetching page 24...
+Records Found On Page 24: 10
+Saved 10 records from page 24
+Total processed so far: 240
+
+Fetching page 25...
+Records Found On Page 25: 10
+Saved 10 records from page 25
+Total processed so far: 250
+
+Fetching page 26...
+Records Found On Page 26: 10
+Saved 10 records from page 26
+Total processed so far: 260
+
+Fetching page 27...
+Records Found On Page 27: 10
+Saved 10 records from page 27
+Total processed so far: 270
+
+Fetching page 28...
+Records Found On Page 28: 10
+Saved 10 records from page 28
+Total processed so far: 280
+
+Fetching page 29...
+Records Found On Page 29: 10
+Saved 10 records from page 29
+Total processed so far: 290
+
+Fetching page 30...
+Records Found On Page 30: 10
+Saved 10 records from page 30
+Total processed so far: 300
+
+Fetching page 31...
+Records Found On Page 31: 10
+Saved 10 records from page 31
+Total processed so far: 310
+
+Fetching page 32...
+Records Found On Page 32: 10
+Saved 10 records from page 32
+Total processed so far: 320
+
+Fetching page 33...
+Records Found On Page 33: 10
+Saved 10 records from page 33
+Total processed so far: 330
+
+Fetching page 34...
+Records Found On Page 34: 10
+Saved 10 records from page 34
+Total processed so far: 340
+
+Fetching page 35...
+Records Found On Page 35: 10
+Saved 10 records from page 35
+Total processed so far: 350
+
+Fetching page 36...
+Records Found On Page 36: 10
+Saved 10 records from page 36
+Total processed so far: 360
+
+Fetching page 37...
+Records Found On Page 37: 10
+Saved 10 records from page 37
+Total processed so far: 370
+
+Fetching page 38...
+Records Found On Page 38: 10
+Saved 10 records from page 38
+Total processed so far: 380
+
+Fetching page 39...
+Records Found On Page 39: 10
+Saved 10 records from page 39
+Total processed so far: 390
+
+Fetching page 40...
+Records Found On Page 40: 10
+Saved 10 records from page 40
+Total processed so far: 400
+
+Fetching page 41...
+Records Found On Page 41: 10
+Saved 10 records from page 41
+Total processed so far: 410
+
+Fetching page 42...
+Records Found On Page 42: 10
+Saved 10 records from page 42
+Total processed so far: 420
+
+Fetching page 43...
+Records Found On Page 43: 1
+Saved 1 records from page 43
+Total processed so far: 421
+
+Fetching page 44...
+Records Found On Page 44: 0
+No records found on page 44. Stopping pagination.
+
+================================
+Pages fetched: 43
+Total records saved: 421
+ReturnPrime sync completed
+================================
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T11:05:36.452Z
+🚪 EXIT CODE: 0
+⏳ DURATION: 23.02s
+============================================================

@@ -217,6 +217,43 @@ export async function downloadSpApiReport(
   const daysStr = getArgValue("--days");
   const days = daysStr ? parseInt(daysStr, 10) : 75;
 
+  if (reportTypeId === "GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2") {
+    const querySince = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * days,
+    ).toISOString();
+    console.log(
+      `Querying existing settlement reports created since: ${querySince}`,
+    );
+    const reportListResponse = await spApiRequest<{
+      reports: Array<{
+        reportId: string;
+        reportType: string;
+        processingStatus: string;
+        reportDocumentId?: string;
+        createdTime: string;
+      }>;
+    }>(
+      "GET",
+      `/reports/2021-06-30/reports?reportTypes=GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2&processingStatuses=DONE&createdSince=${querySince}`,
+    );
+
+    const reports = reportListResponse.reports || [];
+    const doneReport = reports.find(
+      (r) => r.processingStatus === "DONE" && r.reportDocumentId,
+    );
+
+    if (!doneReport || !doneReport.reportDocumentId) {
+      throw new Error(
+        `No completed Amazon settlement report found within the last ${days} days.`,
+      );
+    }
+
+    console.log(
+      `Found completed settlement report ${doneReport.reportId} (Created: ${doneReport.createdTime}). Downloading...`,
+    );
+    return downloadDocument(doneReport.reportDocumentId, fileExtension);
+  }
+
   const createResponse = await spApiRequest<{ reportId: string }>(
     "POST",
     "/reports/2021-06-30/reports",

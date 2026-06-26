@@ -155,110 +155,11 @@ async function requestReport(
   ]);
 
   // -----------------------------------------------------------------
-  // 3️⃣ All Statements – Cash On Delivery (COD)
-  // -----------------------------------------------------------------
-  await requestReport(page, 'All Statements (COD)', [
-    async () => {
-      await page
-        .locator('navigation-hamburger-menu')
-        .getByRole('button')
-        .filter({ hasText: /^$/ })
-        .click();
-    },
-    async () => {
-      await page.getByRole('link', { name: 'Reports Repository' }).click();
-    },
-    async () => {
-      await page.locator('#katal-id-13 > .label__inner').click();
-    },
-    async () => {
-      await page.locator('#katal-id-9').click();
-    },
-    async () => {
-      await page
-        .getByRole('listbox')
-        .getByText('Cash On Delivery Transactions')
-        .click();
-    },
-    async () => {
-      const { month, day } = tomorrowParts();
-      await page.getByRole('textbox', { name: 'From' }).click();
-      await page.getByRole('button', { name: month }).first().click();
-      await page.getByRole('button', { name: `${day} ${month}` }).click();
-    },
-    async () => {
-      const { month, day } = tomorrowParts();
-      await page.getByRole('textbox', { name: 'To' }).click();
-      await page
-        .getByRole('button', {
-          name: `${day} ${month} ${new Date().getFullYear()}`,
-          exact: true,
-        })
-        .click();
-    },
-    async () => {
-      await page.locator('#root').getByRole('button', { name: 'Search' }).click();
-    },
-  ]);
-
-  // -----------------------------------------------------------------
-  // 4️⃣ All Statements – Electronic Transactions
-  // -----------------------------------------------------------------
-  await requestReport(page, 'All Statements (Electronics)', [
-    async () => {
-      await page
-        .locator('navigation-hamburger-menu')
-        .getByRole('button')
-        .filter({ hasText: /^$/ })
-        .click();
-    },
-    async () => {
-      await page.getByRole('link', { name: 'Reports Repository' }).click();
-    },
-    async () => {
-      await page.getByText('All Statements').click();
-    },
-    async () => {
-      await page.getByTitle('Cash On Delivery Transactions').click();
-    },
-    async () => {
-      await page.getByText('Electronic Transactions (').click();
-    },
-    async () => {
-      const { month, day } = tomorrowParts();
-      await page.getByRole('textbox', { name: 'From' }).click();
-      await page.getByRole('button', { name: month }).first().click();
-      await page.getByRole('button', { name: `${day} ${month}` }).click();
-    },
-    async () => {
-      const { month, day } = tomorrowParts();
-      await page.getByRole('textbox', { name: 'To' }).click();
-      await page
-        .getByRole('button', {
-          name: `${day} ${month} ${new Date().getFullYear()}`,
-          exact: true,
-        })
-        .click();
-    },
-    async () => {
-      await page.locator('#root').getByRole('button', { name: 'Search' }).click();
-    },
-  ]);
-
-  // -----------------------------------------------------------------
-  // 5️⃣ After requests, attempt to download any report that is already ready.
-  //    (If you run the script the next day the “Download” buttons will be present.)
+  // 3️⃣ After request, attempt to download if the report is already ready.
   // -----------------------------------------------------------------
   console.log('\n🔎 Checking for ready‑to‑download reports...');
 
-  // All Unified – selector for the download button that appears after the report is ready
   await downloadIfReady(page, 'button#download-unified', 'unified-payment');
-
-  // COD – selector for its download button
-  await downloadIfReady(page, 'button#download-cod', 'cod-statement');
-
-  // Electronics – selector for its download button
-  await downloadIfReady(page, 'button#download-electronics', 'electronics-statement');
 
   console.log('\n✅ Script finished.');
   await context.close();

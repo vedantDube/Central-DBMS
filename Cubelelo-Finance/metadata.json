@@ -1,0 +1,6 @@
+{
+  "name": "Centralized Financial Dashboard",
+  "description": "Centralized profitability and reconciliation dashboard across Amazon, Flipkart, Shopify, and quick commerce platforms, with AI financial insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

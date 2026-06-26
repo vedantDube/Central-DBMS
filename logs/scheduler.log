@@ -1,0 +1,66 @@
+[2026-06-23T10:13:15.192Z] ============================================================
+[2026-06-23T10:13:15.195Z] ⏰ INITIALIZING CENTRAL DBMS CRON SCHEDULER
+[2026-06-23T10:13:15.196Z] 🌍 Configured Timezone: Asia/Kolkata
+[2026-06-23T10:13:15.197Z] ============================================================
+[2026-06-23T10:13:15.199Z] 📅 Scheduled: "Shiprocket Fetch Orders" -> "0 * * * *"
+[2026-06-23T10:13:15.261Z] 📅 Scheduled: "Shopify Fetch Orders" -> "30 * * * *"
+[2026-06-23T10:13:15.262Z] 📅 Scheduled: "Shopify Fetch Returns" -> "0 */2 * * *"
+[2026-06-23T10:13:15.264Z] 📅 Scheduled: "ReturnPrime Fetch Returns" -> "15 */2 * * *"
+[2026-06-23T10:13:15.265Z] 📅 Scheduled: "Shopify Fetch Inventory" -> "0 */3 * * *"
+[2026-06-23T10:13:15.267Z] 📅 Scheduled: "Easyecom Fetch Inventory" -> "15 */3 * * *"
+[2026-06-23T10:13:15.268Z] 📅 Scheduled: "Request Amazon Reports" -> "0 1 * * *"
+[2026-06-23T10:13:15.269Z] 📅 Scheduled: "Amazon Ingest (SP-API & Auto)" -> "0 2 * * *"
+[2026-06-23T10:13:15.270Z] 📅 Scheduled: "Easyecom Metadata Syncs" -> "0 3 * * *"
+[2026-06-23T10:13:15.271Z] 📅 Scheduled: "Amazon Map Cost Inventory" -> "0 4 * * *"
+[2026-06-23T10:13:15.272Z] 📅 Scheduled: "Amazon GST Sync" -> "0 5 * * *"
+[2026-06-23T10:13:15.273Z] ⏰ Scheduler is running in background. Press Ctrl+C to terminate.
+[2026-06-23T10:15:19.264Z] ============================================================
+[2026-06-23T10:15:19.266Z] ⏰ INITIALIZING CENTRAL DBMS CRON SCHEDULER
+[2026-06-23T10:15:19.267Z] 🌍 Configured Timezone: Asia/Kolkata
+[2026-06-23T10:15:19.268Z] ============================================================
+[2026-06-23T10:15:19.271Z] 📅 Scheduled: "Shiprocket Fetch Orders" -> "0 * * * *"
+[2026-06-23T10:15:19.290Z] 📅 Scheduled: "Shopify Fetch Orders" -> "30 * * * *"
+[2026-06-23T10:15:19.293Z] 📅 Scheduled: "Shopify Fetch Returns" -> "0 */2 * * *"
+[2026-06-23T10:15:19.295Z] 📅 Scheduled: "ReturnPrime Fetch Returns" -> "15 */2 * * *"
+[2026-06-23T10:15:19.297Z] 📅 Scheduled: "Shopify Fetch Inventory" -> "0 */3 * * *"
+[2026-06-23T10:15:19.298Z] 📅 Scheduled: "Easyecom Fetch Inventory" -> "15 */3 * * *"
+[2026-06-23T10:15:19.300Z] 📅 Scheduled: "Request Amazon Reports" -> "0 1 * * *"
+[2026-06-23T10:15:19.301Z] 📅 Scheduled: "Amazon Ingest (SP-API & Auto)" -> "0 2 * * *"
+[2026-06-23T10:15:19.302Z] 📅 Scheduled: "Easyecom Metadata Syncs" -> "0 3 * * *"
+[2026-06-23T10:15:19.304Z] 📅 Scheduled: "Amazon Map Cost Inventory" -> "0 4 * * *"
+[2026-06-23T10:15:19.305Z] 📅 Scheduled: "Amazon GST Sync" -> "0 5 * * *"
+[2026-06-23T10:15:19.306Z] ⏰ Scheduler is running in background. Press Ctrl+C to terminate.
+[2026-06-23T10:15:35.370Z] ============================================================
+[2026-06-23T10:15:35.372Z] ⏰ INITIALIZING CENTRAL DBMS CRON SCHEDULER
+[2026-06-23T10:15:35.373Z] 🌍 Configured Timezone: Asia/Kolkata
+[2026-06-23T10:15:35.374Z] ============================================================
+[2026-06-23T10:15:35.375Z] ⚡ '--run-now' flag detected. Running all tasks sequentially on startup...
+[2026-06-23T10:15:35.376Z] 🚀 [START] Task "Shiprocket Fetch Orders" started. Description: Fetches orders data from Shiprocket API
+[2026-06-23T10:15:36.278Z] ❌ [FAILURE] Task "Shiprocket Fetch Orders" failed with exit code 1 in 0.90s. Check logs/task-shiprocket-fetch-orders.log
+[2026-06-23T10:15:36.279Z] 🚀 [START] Task "Shopify Fetch Orders" started. Description: Fetches orders data from Shopify Admin API
+[2026-06-23T10:26:03.826Z] ============================================================
+[2026-06-23T10:26:03.829Z] ⏰ INITIALIZING CENTRAL DBMS CRON SCHEDULER
+[2026-06-23T10:26:03.830Z] 🌍 Configured Timezone: Asia/Kolkata
+[2026-06-23T10:26:03.832Z] ============================================================
+[2026-06-23T10:26:03.833Z] ⚡ '--run-now' flag detected. Running all tasks sequentially on startup...
+[2026-06-23T10:26:03.834Z] 🚀 [START] Task "Shiprocket Fetch Orders" started. Description: Fetches orders data from Shiprocket API
+[2026-06-23T10:42:33.692Z] ✅ [SUCCESS] Task "Shiprocket Fetch Orders" finished successfully in 989.86s.
+[2026-06-23T10:42:33.694Z] 🚀 [START] Task "Shopify Fetch Orders" started. Description: Fetches orders data from Shopify Admin API
+[2026-06-23T11:05:07.773Z] ✅ [SUCCESS] Task "Shopify Fetch Orders" finished successfully in 1354.08s.
+[2026-06-23T11:05:07.774Z] 🚀 [START] Task "Shopify Fetch Returns" started. Description: Fetches returns data from Shopify Admin API
+[2026-06-23T11:05:13.435Z] ✅ [SUCCESS] Task "Shopify Fetch Returns" finished successfully in 5.66s.
+[2026-06-23T11:05:13.436Z] 🚀 [START] Task "ReturnPrime Fetch Returns" started. Description: Fetches returns data from ReturnPrime API
+[2026-06-23T11:05:36.452Z] ✅ [SUCCESS] Task "ReturnPrime Fetch Returns" finished successfully in 23.02s.
+[2026-06-23T11:05:36.453Z] 🚀 [START] Task "Shopify Fetch Inventory" started. Description: Fetches opening inventory from Shopify Admin API
+[2026-06-23T11:05:39.730Z] ❌ [FAILURE] Task "Shopify Fetch Inventory" failed with exit code 1 in 3.28s. Check logs/task-shopify-fetch-inventory.log
+[2026-06-23T11:05:39.732Z] 🚀 [START] Task "Easyecom Fetch Inventory" started. Description: Fetches inventory snapshot from Easyecom API
+[2026-06-23T11:08:10.508Z] ✅ [SUCCESS] Task "Easyecom Fetch Inventory" finished successfully in 150.78s.
+[2026-06-23T11:08:10.511Z] 🚀 [START] Task "Request Amazon Reports" started. Description: Requests Unified, COD, and Electronic reports on Seller Central
+[2026-06-23T11:08:50.799Z] ❌ [FAILURE] Task "Request Amazon Reports" failed with exit code 1 in 40.29s. Check logs/task-request-amazon-reports.log
+[2026-06-23T11:08:50.801Z] 🚀 [START] Task "Amazon Ingest (SP-API & Auto)" started. Description: Downloads and ingests configured Amazon reports using SP-API and browser automation
+[2026-06-23T11:27:10.358Z] ✅ [SUCCESS] Task "Amazon Ingest (SP-API & Auto)" finished successfully in 1099.56s.
+[2026-06-23T11:27:10.363Z] 🚀 [START] Task "Easyecom Metadata Syncs" started. Description: Syncs Easyecom metadata (Product Master, POs, Production, Listings) sequentially
+[2026-06-23T12:22:22.243Z] ❌ [FAILURE] Task "Easyecom Metadata Syncs" failed with exit code 1 in 3311.88s. Check logs/task-easyecom-metadata-syncs.log
+[2026-06-23T12:22:22.248Z] 🚀 [START] Task "Amazon Map Cost Inventory" started. Description: Maps EasyEcom inventory costs to Amazon GST Master table
+[2026-06-23T14:22:46.674Z] ✅ [SUCCESS] Task "Amazon Map Cost Inventory" finished successfully in 7224.42s.
+[2026-06-23T14:22:46.853Z] 🚀 [START] Task "Amazon GST Sync" started. Description: Automates browser download for GST MTR and Monthly reports

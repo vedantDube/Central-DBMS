@@ -46,18 +46,17 @@ async function getEasyEcomToken(
   return token;
 }
 
+interface FetchInventoryResult {
+  inventoryData: any[];
+  nextUrl: string | null;
+}
+
 async function fetchInventoryPage(
   token: string,
   apiKey: string,
-  page: number
-): Promise<any[]> {
-  const limit = 150;
-
-  const url =
-    `https://api.easyecom.io/getInventoryDetailsV3` +
-    `?includeLocations=0&page=${page}&limit=${limit}`;
-
-  const res = await fetch(url, {
+  targetUrl: string
+): Promise<FetchInventoryResult> {
+  const res = await fetch(targetUrl, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -75,16 +74,17 @@ async function fetchInventoryPage(
   const json = await res.json() as any;
 
   const inventoryData = json?.data?.inventoryData;
+  const nextUrl = json?.data?.nextUrl ?? null;
 
   if (!Array.isArray(inventoryData)) {
     console.log(
       "Unexpected response:",
       JSON.stringify(json, null, 2)
     );
-    return [];
+    return { inventoryData: [], nextUrl: null };
   }
 
-  return inventoryData;
+  return { inventoryData, nextUrl };
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -160,14 +160,15 @@ async function main() {
   let page = 1;
   let totalSaved = 0;
   const seenSkus = new Set<string>();
+  let currentUrl = "https://api.easyecom.io/getInventoryDetailsV3?includeLocations=0&limit=150";
 
-  while (true) {
+  while (currentUrl) {
     console.log(`Fetching page ${page}...`);
 
-    const items = await fetchInventoryPage(
+    const { inventoryData: items, nextUrl } = await fetchInventoryPage(
       token,
       apiKey,
-      page
+      currentUrl
     );
 
     if (items.length === 0) {
@@ -220,11 +221,19 @@ async function main() {
       `Saved page ${page}. Total: ${totalSaved}`
     );
 
-    page++;
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, 500)
-    );
+    if (nextUrl) {
+      if (nextUrl.startsWith("http")) {
+        currentUrl = nextUrl;
+      } else {
+        currentUrl = `https://api.easyecom.io${nextUrl.startsWith("/") ? "" : "/"}${nextUrl}`;
+      }
+      page++;
+      await new Promise((resolve) =>
+        setTimeout(resolve, 500)
+      );
+    } else {
+      currentUrl = "";
+    }
   }
 
   console.log(

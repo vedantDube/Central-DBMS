@@ -15,7 +15,7 @@ model ReportArtifact {
   fileName    String
   contentType String
   source      String
-  rawContent  String   @db.Text
+  rawContent  String
   sha256      String
   createdAt   DateTime @default(now())
 
@@ -78,7 +78,7 @@ model ShiprocketOrder {
   orderItemSku      String?
   packageId         String?
   rawPayload        Json?
-  rawContent        String   @db.Text
+  rawContent        String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -448,4 +448,646 @@ model EasyEcomProductionOrder {
   
   suborders             Json     // Stores array of suborders
 }
+
+model EasyEcomMarketplaceListing {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  marketplaceId      Int
+  marketplaceName    String
+  
+  name               String?
+  sku                String
+  MasterSKU          String?
+  mrp                Float?
+  site_uid           String?
+  listing_ref_number String?
+  UID                String?
+  identifier         String?
+  title              String?
+
+  @@unique([marketplaceId, sku])
+  @@index([sku])
+  @@index([MasterSKU])
+}
+
+model AmazonMtrRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  itemname                     String?
+  itemdescription              String?
+  listingid                    String?
+  sellersku                    String   @default("")
+  price                        String?
+  quantity                     String?
+  opendate                     String?
+  imageurl                     String?
+  itemismarketplace            String?
+  productidtype                String?
+  zshopshippingfee             String?
+  itemnote                     String?
+  itemcondition                String?
+  zshopcategory1               String?
+  zshopbrowsepath              String?
+  zshopstorefrontfeature       String?
+  asin1                        String?
+  asin2                        String?
+  asin3                        String?
+  willshipinternationally      String?
+  expeditedshipping            String?
+  zshopboldface                String?
+  productid                    String?
+  bidforfeaturedplacement      String?
+  adddelete                    String?
+  pendingquantity              String?
+  fulfillmentchannel           String?
+  optionalpaymenttypeexclusion String?
+  merchantshippinggroup        String?
+  status                       String?
+  maximumretailprice           String?
+
+  @@index([reportKey, createdAt])
+  @@unique([sellersku])
+}
+
+model AmazonClaimsReimbursementsRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  approvaldate                String?
+  reimbursementid             String   @default("")
+  caseid                      String?
+  amazonorderid               String?
+  reason                      String?
+  sku                         String?
+  fnsku                       String?
+  asin                        String?
+  productname                 String?
+  condition                   String?
+  currencyunit                String?
+  amountperunit               String?
+  amounttotal                 String?
+  quantityreimbursedcash      String?
+  quantityreimbursedinventory String?
+  quantityreimbursedtotal     String?
+  originalreimbursementid     String?
+  originalreimbursementtype   String?
+
+  @@index([reportKey, createdAt])
+  @@unique([reimbursementid])
+}
+
+model AmazonReturnsB2bRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // TSV Columns
+  requestdate        String?
+  orderid            String   @default("")
+  shipmentdate       String?
+  sku                String   @default("")
+  fnsku              String   @default("")
+  disposition        String   @default("")
+  shippedquantity    String?
+  carrier            String?
+  trackingnumber     String?
+  shipmentstatus     String?
+  removalordertype   String?
+
+  @@index([reportKey, createdAt])
+  @@unique([orderid, sku, fnsku, disposition])
+}
+
+model AmazonReturnsB2cRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV/TSV Columns for FBA Customer Returns
+  returndate            String   @default("")
+  orderid               String   @default("")
+  sku                   String   @default("")
+  asin                  String?
+  fnsku                 String?
+  productname           String?
+  quantity              String?
+  fulfillmentcenterid   String?
+  detaileddisposition   String?
+  reason                String?
+  licenseplatenumber    String   @default("")
+  customercomments      String?
+
+  @@index([reportKey, createdAt])
+  @@unique([orderid, sku, returndate, licenseplatenumber])
+}
+
+model AmazonReturnsB2bOrderRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // TSV Columns
+  requestdate        String?
+  orderid            String   @default("")
+  ordersource        String?
+  ordertype          String?
+  servicespeed       String?
+  orderstatus        String?
+  lastupdateddate    String?
+  requestedquantity  String?
+  disposition        String   @default("")
+  fnsku              String   @default("")
+  sku                String   @default("")
+  cancelledquantity  String?
+  disposedquantity   String?
+  shippedquantity    String?
+  inprocessquantity  String?
+  removalfee         String?
+  currency           String?
+
+  @@index([reportKey, createdAt])
+  @@unique([orderid, sku, fnsku, disposition])
+}
+
+model AmazonSalesAndTrafficRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // Extracted JSON Columns
+  type                         String   @default("")  // "date" or "asin"
+  date                         String   @default("")
+  parentAsin                   String   @default("")
+  orderedProductSalesAmount    String?
+  orderedProductSalesCurrency  String?
+  unitsOrdered                 String?
+  pageViews                    String?
+  sessions                     String?
+
+  @@index([reportKey, createdAt])
+  @@unique([type, date, parentAsin])
+}
+
+model AmazonFlatFileOpenListingsDataRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  sku                        String   @default("")
+  asin                       String?
+  price                      String?
+  quantity                   String?
+  business_price             String?
+  quantity_price_type        String?
+  quantity_lower_bound_1     String?
+  quantity_price_1           String?
+  quantity_lower_bound_2     String?
+  quantity_price_2           String?
+  quantity_lower_bound_3     String?
+  quantity_price_3           String?
+  quantity_lower_bound_4     String?
+  quantity_price_4           String?
+  quantity_lower_bound_5     String?
+  quantity_price_5           String?
+  progressive_price_type     String?
+  progressive_lower_bound_1  String?
+  progressive_price_1        String?
+  progressive_lower_bound_2  String?
+  progressive_price_2        String?
+  progressive_lower_bound_3  String?
+  progressive_price_3        String?
+
+  @@index([reportKey, createdAt])
+  @@unique([sku])
+}
+
+model AmazonLedgerSummaryRow {
+  id                            String    @id @default(cuid())
+  reportKey                     String
+  createdAt                     DateTime  @default(now())
+
+  // TSV Columns
+  date                          String   @default("")
+  fnsku                         String   @default("")
+  asin                          String?
+  msku                          String?
+  title                         String?
+  disposition                   String   @default("")
+  starting_warehouse_balance    String?
+  in_transit_between_warehouses String?
+  receipts                      String?
+  customer_shipments            String?
+  customer_returns              String?
+  vendor_returns                String?
+  warehouse_transfer_in_out     String?
+  found                         String?
+  lost                          String?
+  damaged                       String?
+  disposed                      String?
+  other_events                  String?
+  ending_warehouse_balance      String?
+  unknown_events                String?
+  location                      String   @default("")
+
+  // Utility field for indexing and pruning
+  parsedDate                    DateTime?
+
+  @@index([reportKey, createdAt])
+  @@index([date])
+  @@index([parsedDate])
+  @@unique([date, fnsku, disposition, location])
+}
+
+model AmazonV2SellerPerformanceRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // Extracted JSON Columns
+  ahrStatus     String?
+  ahrScore      String?
+  status        String?
+  marketplaceId String   @default("")
+
+  @@index([reportKey, createdAt])
+  @@unique([marketplaceId])
+}
+
+model AmazonGstMonthlyB2bRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  seller_gstin                    String?
+  invoice_number                  String?
+  invoice_date                    String?
+  transaction_type                String   @default("")
+  order_id                        String   @default("")
+  shipment_id                     String?
+  shipment_date                   String?
+  order_date                      String?
+  shipment_item_id                String   @default("")
+  quantity                        String?
+  item_description                String?
+  asin                            String?
+  hsnsac                          String?
+  sku                             String   @default("")
+  product_tax_code                String?
+  ship_from_city                  String?
+  ship_from_state                 String?
+  ship_from_postal_code           String?
+  ship_to_city                    String?
+  ship_to_state                   String?
+  ship_to_postal_code             String?
+  invoice_amount                  String?
+  tax_exclusive_gross             String?
+  total_tax_amount                String?
+  cgst_rate                       String?
+  sgst_rate                       String?
+  utgst_rate                      String?
+  igst_rate                       String?
+  compensatory_cess_rate          String?
+  principal_amount                String?
+  principal_amount_basis          String?
+  cgst_tax                        String?
+  sgst_tax                        String?
+  utgst_tax                       String?
+  igst_tax                        String?
+  compensatory_cess_tax           String?
+  shipping_amount                 String?
+  shipping_amount_basis           String?
+  shipping_cgst_tax               String?
+  shipping_sgst_tax               String?
+  shipping_utgst_tax              String?
+  shipping_igst_tax               String?
+  shipping_cess_tax               String?
+  gift_wrap_amount                String?
+  gift_wrap_cgst_tax              String?
+  gift_wrap_sgst_tax              String?
+  gift_wrap_utgst_tax             String?
+  gift_wrap_igst_tax              String?
+  gift_wrap_compensatory_cess_tax String?
+  item_promo_discount             String?
+  item_promo_discount_basis       String?
+  item_promo_tax                  String?
+  shipping_promo_discount         String?
+  shipping_promo_discount_basis   String?
+  shipping_promo_tax              String?
+  gift_wrap_promo_discount        String?
+  gift_wrap_promo_discount_basis  String?
+  gift_wrap_promo_tax             String?
+  tcs_cgst_rate                   String?
+  tcs_cgst_amount                 String?
+  tcs_sgst_rate                   String?
+  tcs_sgst_amount                 String?
+  tcs_utgst_amount                String?
+  tcs_igst_rate                   String?
+  tcs_igst_amount                 String?
+  warehouse_id                    String?
+  fulfillment_channel             String?
+  customer_bill_to_gstid          String?
+  buyer_name                      String?
+  irn_number                      String?
+  irn_filing_status               String?
+  irn_date                        String?
+  irn_error_code                  String?
+
+  @@index([reportKey, createdAt])
+  @@unique([order_id, sku, shipment_item_id, transaction_type])
+}
+
+model AmazonGstMonthlyB2cRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  seller_gstin                    String?
+  invoice_number                  String?
+  invoice_date                    String?
+  transaction_type                String   @default("")
+  order_id                        String   @default("")
+  shipment_id                     String?
+  shipment_date                   String?
+  order_date                      String?
+  shipment_item_id                String   @default("")
+  quantity                        String?
+  item_description                String?
+  asin                            String?
+  hsnsac                          String?
+  sku                             String   @default("")
+  product_tax_code                String?
+  ship_from_city                  String?
+  ship_from_state                 String?
+  ship_from_postal_code           String?
+  ship_to_city                    String?
+  ship_to_state                   String?
+  ship_to_postal_code             String?
+  invoice_amount                  String?
+  tax_exclusive_gross             String?
+  total_tax_amount                String?
+  cgst_rate                       String?
+  sgst_rate                       String?
+  utgst_rate                      String?
+  igst_rate                       String?
+  compensatory_cess_rate          String?
+  principal_amount                String?
+  principal_amount_basis          String?
+  cgst_tax                        String?
+  sgst_tax                        String?
+  utgst_tax                       String?
+  igst_tax                        String?
+  compensatory_cess_tax           String?
+  shipping_amount                 String?
+  shipping_amount_basis           String?
+  shipping_cgst_tax               String?
+  shipping_sgst_tax               String?
+  shipping_utgst_tax              String?
+  shipping_igst_tax               String?
+  shipping_cess_tax_amount        String?
+  gift_wrap_amount                String?
+  gift_wrap_cgst_tax              String?
+  gift_wrap_sgst_tax              String?
+  gift_wrap_utgst_tax             String?
+  gift_wrap_igst_tax              String?
+  gift_wrap_compensatory_cess_tax String?
+  item_promo_discount             String?
+  item_promo_discount_basis       String?
+  item_promo_tax                  String?
+  shipping_promo_discount         String?
+  shipping_promo_discount_basis   String?
+  shipping_promo_tax              String?
+  gift_wrap_promo_discount        String?
+  gift_wrap_promo_discount_basis  String?
+  gift_wrap_promo_tax             String?
+  tcs_cgst_rate                   String?
+  tcs_cgst_amount                 String?
+  tcs_sgst_rate                   String?
+  tcs_sgst_amount                 String?
+  tcs_utgst_amount                String?
+  tcs_igst_rate                   String?
+  tcs_igst_amount                 String?
+  warehouse_id                    String?
+  fulfillment_channel             String?
+  credit_note_no                  String?
+  credit_note_date                String?
+
+  @@index([reportKey, createdAt])
+  @@unique([order_id, sku, shipment_item_id, transaction_type])
+}
+
+model AmazonGstMonthlyStrRow {
+  id         String   @id @default(cuid())
+  reportKey  String
+  createdAt  DateTime @default(now())
+
+  // CSV Columns
+  gstin_of_receiver        String?
+  transaction_type         String?
+  transaction_id           String   @default("")
+  order_id                 String?
+  ship_from_fc             String?
+  ship_from_city           String?
+  ship_from_state          String?
+  ship_from_country        String?
+  ship_from_postal_code    String?
+  ship_to_fc               String?
+  ship_to_city             String?
+  ship_to_state            String?
+  ship_to_country          String?
+  ship_to_postal_code      String?
+  invoice_number           String   @default("")
+  invoice_date             String?
+  invoice_value            String?
+  asin                     String?
+  sku                      String   @default("")
+  quantity                 String?
+  hsn_code                 String?
+  taxable_value            String?
+  igst_rate                String?
+  igst_amount              String?
+  sgst_rate                String?
+  sgst_amount              String?
+  utgst_rate               String?
+  utgst_amount             String?
+  cgst_rate                String?
+  cgst_amount              String?
+  compensatory_cess_rate   String?
+  compensatory_cess_amount String?
+  gstin_of_supplier        String?
+  irn_number               String?
+  irn_filing_status        String?
+  irn_date                 String?
+  irn_error_code           String?
+
+  @@index([reportKey, createdAt])
+  @@unique([invoice_number, transaction_id, sku])
+}
+
+model AmazonUnifiedTransactionRow {
+  id                      String   @id @default(cuid())
+  reportKey               String
+  createdAt               DateTime @default(now())
+
+  datetime                                        String   @default("")
+  settlement_id                                   String   @default("")
+  type                                            String   @default("")
+  order_id                                        String   @default("")
+  sku                                             String   @default("")
+  description                                     String?
+  quantity                                        String?
+  marketplace                                     String?
+  account_type                                    String   @default("")
+  fulfillment                                     String?
+  order_city                                      String?
+  order_state                                     String?
+  order_postal                                    String?
+  product_sales                                   String?
+  shipping_credits                                String?
+  gift_wrap_credits                               String?
+  promotional_rebates                             String?
+  total_sales_tax_liablegst_before_adjusting_tcs  String?
+  tcscgst                                         String?
+  tcssgst                                         String?
+  tcsigst                                         String?
+  tds_section_194o                                String?
+  selling_fees                                    String?
+  fba_fees                                        String?
+  other_transaction_fees                          String?
+  other                                           String?
+  total                                           String?
+  transaction_status                              String?
+  transaction_release_date                        String?
+
+  @@map("Amazon_Unified_Transactions")
+  @@index([reportKey, createdAt])
+  @@index([datetime])
+  @@index([order_id])
+  @@unique([datetime, order_id, sku, type, account_type], name: "unified_transaction_unique")
+}
+
+model AmazonGstMasterRow {
+  id                 String   @id @default(cuid())
+  reportKey          String
+  createdAt          DateTime @default(now())
+
+  flag                           String   // "B2B" or "B2C"
+  seller_gstin                   String?
+  transaction_type               String   @default("")
+  order_id                       String   @default("")
+  order_date                     String?
+  quantity                       String?
+  asin                           String?
+  hsnsac                         String?
+  sku                            String   @default("")
+  invoice_amount                 Float?
+  tax_exclusive_gross            Float?
+  total_tax_amount               Float?
+  shipping_amount                Float?
+  shipping_amount_basis          Float?
+  shipping_tax                   Float?   // sum of shipping cgst/sgst/utgst/igst/cess taxes
+  gift_wrap_amount               Float?
+  gift_wrap_tax                  Float?   // sum of gift wrap cgst/sgst/utgst/igst/cess taxes
+  gift_wrap_basis                Float?   // gift_wrap_amount - gift_wrap_tax
+  item_promo_discount            Float?
+  item_promo_discount_basis      Float?
+  item_promo_tax                 Float?
+  shipping_promo_discount        Float?
+  shipping_promo_discount_basis  Float?
+  shipping_promo_tax             Float?
+  gift_wrap_promo_discount       Float?
+  gift_wrap_promo_discount_basis Float?
+  gift_wrap_promo_tax            Float?
+  tcs_gst                        Float?   // sum of tcs cgst/sgst/utgst/igst amounts
+  warehouse_id                   String?
+  fulfillment_channel            String?
+  cost_inventory                 Float?
+  reconciled                     Boolean  @default(false)
+  gross_diff                     Float?
+  tax_diff                       Float?
+  invoice_diff                   Float?
+
+  @@map("Amazon_GST_Master")
+  @@index([reportKey, createdAt])
+  @@index([order_id])
+  @@unique([flag, order_id, sku, transaction_type])
+}
+
+model AmazonElectronicsSettlementRow {
+  id                          String   @id @default(cuid())
+  reportKey                   String
+  createdAt                   DateTime @default(now())
+
+  settlementid               String?
+  settlementstartdate       String?
+  settlementenddate         String?
+  depositdate                String?
+  totalamount                String?
+  currency                    String?
+  transactiontype            String?
+  orderid                    String?
+  merchantorderid           String?
+  adjustmentid               String?
+  shipmentid                 String?
+  marketplacename            String?
+  amounttype                 String?
+  amountdescription          String?
+  amount                      String?
+  fulfillmentid              String?
+  posteddate                 String?
+  posteddatetime            String?
+  orderitemcode             String?
+  merchantorderitemid      String?
+  merchantadjustmentitemid String?
+  sku                         String?
+  quantitypurchased          String?
+  promotionid                String?
+
+  @@map("Electronics_all_statements")
+  @@index([reportKey, createdAt])
+}
+
+model AmazonCODSettlementRow {
+  id                          String   @id @default(cuid())
+  reportKey                   String
+  createdAt                   DateTime @default(now())
+
+  settlementid               String?
+  settlementstartdate       String?
+  settlementenddate         String?
+  depositdate                String?
+  totalamount                String?
+  currency                    String?
+  transactiontype            String?
+  orderid                    String?
+  merchantorderid           String?
+  adjustmentid               String?
+  shipmentid                 String?
+  marketplacename            String?
+  amounttype                 String?
+  amountdescription          String?
+  amount                      String?
+  fulfillmentid              String?
+  posteddate                 String?
+  posteddatetime            String?
+  orderitemcode             String?
+  merchantorderitemid      String?
+  merchantadjustmentitemid String?
+  sku                         String?
+  quantitypurchased          String?
+  promotionid                String?
+
+  @@map("COD_ALL_Settlements")
+  @@index([reportKey, createdAt])
+}
+
 

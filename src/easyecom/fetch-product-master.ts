@@ -40,15 +40,17 @@ async function getEasyEcomToken(
   return token;
 }
 
+interface FetchProductsResult {
+  products: any[];
+  nextUrl: string | null;
+}
+
 async function fetchProductsPage(
   token: string,
   apiKey: string,
-  page: number
-): Promise<any[]> {
-  const limit = 150;
-  const url = `https://api.easyecom.io/Products/GetProductMaster?custom_fields=1&page=${page}&limit=${limit}`;
-
-  const res = await fetch(url, {
+  targetUrl: string
+): Promise<FetchProductsResult> {
+  const res = await fetch(targetUrl, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -65,16 +67,17 @@ async function fetchProductsPage(
 
   const json = await res.json() as any;
   const products = json?.data;
+  const nextUrl = json?.nextUrl ?? null;
 
   if (!Array.isArray(products)) {
     console.log(
       "Unexpected response structure or no products returned:",
       JSON.stringify(json, null, 2)
     );
-    return [];
+    return { products: [], nextUrl: null };
   }
 
-  return products;
+  return { products, nextUrl };
 }
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -118,10 +121,11 @@ async function main() {
   let page = 1;
   let totalSaved = 0;
   const seenCpIds = new Set<number>();
+  let currentUrl = "https://api.easyecom.io/Products/GetProductMaster?custom_fields=1&limit=150";
 
-  while (true) {
+  while (currentUrl) {
     console.log(`Fetching Product Master page ${page}...`);
-    const items = await fetchProductsPage(token, apiKey, page);
+    const { products: items, nextUrl } = await fetchProductsPage(token, apiKey, currentUrl);
 
     if (items.length === 0) {
       console.log("No more products found.");
@@ -193,8 +197,17 @@ async function main() {
     totalSaved += records.length;
     console.log(`Saved Product Master page ${page}. Total saved: ${totalSaved}`);
 
-    page++;
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (nextUrl) {
+      if (nextUrl.startsWith("http")) {
+        currentUrl = nextUrl;
+      } else {
+        currentUrl = `https://api.easyecom.io${nextUrl.startsWith("/") ? "" : "/"}${nextUrl}`;
+      }
+      page++;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } else {
+      currentUrl = "";
+    }
   }
 
   console.log(`Finished Product Master Ingestion. Total: ${totalSaved} records.`);

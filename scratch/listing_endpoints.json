@@ -1,0 +1,500 @@
+[
+  {
+    "name": "Get MarketPlace Listing",
+    "item": [
+      {
+        "name": "getMarketPlaceListing",
+        "protocolProfileBehavior": {
+          "disabledSystemHeaders": {
+            "connection": true,
+            "accept-encoding": true,
+            "accept": true,
+            "user-agent": true,
+            "host": true
+          }
+        },
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "x-api-key",
+              "value": "<x_api_key>",
+              "type": "text",
+              "description": "Mandatory"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer <Jwt_Token>",
+              "type": "text",
+              "description": "Mandatory"
+            }
+          ],
+          "url": {
+            "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?marketPlaceID=26",
+            "host": [
+              "{{BaseURL}}"
+            ],
+            "path": [
+              "Listings",
+              "getMarketPlaceListing"
+            ],
+            "query": [
+              {
+                "key": "marketPlaceID",
+                "value": "26"
+              }
+            ]
+          }
+        },
+        "response": [
+          {
+            "name": "200 Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?marketPlaceID=26",
+                "host": [
+                  "{{BaseURL}}"
+                ],
+                "path": [
+                  "Listings",
+                  "getMarketPlaceListing"
+                ],
+                "query": [
+                  {
+                    "key": "marketPlaceID",
+                    "value": "26"
+                  }
+                ]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [],
+            "cookie": [],
+            "body": "{\n    \"code\": 200,\n    \"message\": \"Listings Found\",\n    \"data\": [\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak1\",\n            \"MasterSKU\": \"ak1\",\n            \"mrp\": 999,\n            \"site_uid\": \"33659590180923\",\n            \"listing_ref_number\": \"35209609379899\",\n            \"UID\": null,\n            \"identifier\": \"33659590180923\",\n            \"title\": \"aurellia kurti - L / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak2\",\n            \"MasterSKU\": \"ak2\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590213691\",\n            \"listing_ref_number\": \"35209609412667\",\n            \"UID\": null,\n            \"identifier\": \"33659590213691\",\n            \"title\": \"aurellia kurti - L / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak3\",\n            \"MasterSKU\": \"ak3\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590246459\",\n            \"listing_ref_number\": \"35209609445435\",\n            \"UID\": null,\n            \"identifier\": \"33659590246459\",\n            \"title\": \"aurellia kurti - L / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak4\",\n            \"MasterSKU\": \"ak4\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590279227\",\n            \"listing_ref_number\": \"35209609478203\",\n            \"UID\": null,\n            \"identifier\": \"33659590279227\",\n            \"title\": \"aurellia kurti - L / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak5\",\n            \"MasterSKU\": \"ak5\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590311995\",\n            \"listing_ref_number\": \"35209609510971\",\n            \"UID\": null,\n            \"identifier\": \"33659590311995\",\n            \"title\": \"aurellia kurti - L / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak6\",\n            \"MasterSKU\": \"ak6\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590344763\",\n            \"listing_ref_number\": \"35209609543739\",\n            \"UID\": null,\n            \"identifier\": \"33659590344763\",\n            \"title\": \"aurellia kurti - L / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak7\",\n            \"MasterSKU\": \"ak7\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590377531\",\n            \"listing_ref_number\": \"35209609576507\",\n            \"UID\": null,\n            \"identifier\": \"33659590377531\",\n            \"title\": \"aurellia kurti - L / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak8\",\n            \"MasterSKU\": \"ak8\",\n            \"mrp\": 800,\n            \"site_uid\": \"33659590410299\",\n            \"listing_ref_number\": \"35209609609275\",\n            \"UID\": null,\n            \"identifier\": \"33659590410299\",\n            \"title\": \"aurellia kurti - L / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak9\",\n            \"MasterSKU\": \"ak9\",\n            \"mrp\": 900,\n            \"site_uid\": \"33659590443067\",\n            \"listing_ref_number\": \"35209609642043\",\n            \"UID\": null,\n            \"identifier\": \"33659590443067\",\n            \"title\": \"aurellia kurti - S / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak10\",\n            \"MasterSKU\": \"ak10\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590475835\",\n            \"listing_ref_number\": \"35209609674811\",\n            \"UID\": null,\n            \"identifier\": \"33659590475835\",\n            \"title\": \"aurellia kurti - S / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak11\",\n            \"MasterSKU\": \"ak11\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590508603\",\n            \"listing_ref_number\": \"35209609707579\",\n            \"UID\": null,\n            \"identifier\": \"33659590508603\",\n            \"title\": \"aurellia kurti - S / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak12\",\n            \"MasterSKU\": \"ak12\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590541371\",\n            \"listing_ref_number\": \"35209609740347\",\n            \"UID\": null,\n            \"identifier\": \"33659590541371\",\n            \"title\": \"aurellia kurti - S / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak13\",\n            \"MasterSKU\": \"ak13\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590574139\",\n            \"listing_ref_number\": \"35209609773115\",\n            \"UID\": null,\n            \"identifier\": \"33659590574139\",\n            \"title\": \"aurellia kurti - S / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak14\",\n            \"MasterSKU\": \"ak14\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590606907\",\n            \"listing_ref_number\": \"35209609805883\",\n            \"UID\": null,\n            \"identifier\": \"33659590606907\",\n            \"title\": \"aurellia kurti - S / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak15\",\n            \"MasterSKU\": \"ak15\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590639675\",\n            \"listing_ref_number\": \"35209609838651\",\n            \"UID\": null,\n            \"identifier\": \"33659590639675\",\n            \"title\": \"aurellia kurti - S / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak16\",\n            \"MasterSKU\": \"ak16\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590672443\",\n            \"listing_ref_number\": \"35209609871419\",\n            \"UID\": null,\n            \"identifier\": \"33659590672443\",\n            \"title\": \"aurellia kurti - S / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak17\",\n            \"MasterSKU\": \"ak17\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590705211\",\n            \"listing_ref_number\": \"35209609904187\",\n            \"UID\": null,\n            \"identifier\": \"33659590705211\",\n            \"title\": \"aurellia kurti - XS / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak18\",\n            \"MasterSKU\": \"ak18\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590737979\",\n            \"listing_ref_number\": \"35209609936955\",\n            \"UID\": null,\n            \"identifier\": \"33659590737979\",\n            \"title\": \"aurellia kurti - XS / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak19\",\n            \"MasterSKU\": \"ak19\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590770747\",\n            \"listing_ref_number\": \"35209609969723\",\n            \"UID\": null,\n            \"identifier\": \"33659590770747\",\n            \"title\": \"aurellia kurti - XS / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak20\",\n            \"MasterSKU\": \"ak20\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590803515\",\n            \"listing_ref_number\": \"35209610002491\",\n            \"UID\": null,\n            \"identifier\": \"33659590803515\",\n            \"title\": \"aurellia kurti - XS / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak21\",\n            \"MasterSKU\": \"ak21\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590836283\",\n            \"listing_ref_number\": \"35209610035259\",\n            \"UID\": null,\n            \"identifier\": \"33659590836283\",\n            \"title\": \"aurellia kurti - XS / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak22\",\n            \"MasterSKU\": \"ak22\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590869051\",\n            \"listing_ref_number\": \"35209610068027\",\n            \"UID\": null,\n            \"identifier\": \"33659590869051\",\n            \"title\": \"aurellia kurti - XS / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak23\",\n            \"MasterSKU\": \"ak23\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590901819\",\n            \"listing_ref_number\": \"35209610100795\",\n            \"UID\": null,\n            \"identifier\": \"33659590901819\",\n            \"title\": \"aurellia kurti - XS / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak24\",\n            \"MasterSKU\": \"ak24\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590934587\",\n            \"listing_ref_number\": \"35209610133563\",\n            \"UID\": null,\n            \"identifier\": \"33659590934587\",\n            \"title\": \"aurellia kurti - XS / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak25\",\n            \"MasterSKU\": \"ak25\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590967355\",\n            \"listing_ref_number\": \"35209610166331\",\n            \"UID\": null,\n            \"identifier\": \"33659590967355\",\n            \"title\": \"aurellia kurti - M / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak26\",\n            \"MasterSKU\": \"ak26\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591000123\",\n            \"listing_ref_number\": \"35209610199099\",\n            \"UID\": null,\n            \"identifier\": \"33659591000123\",\n            \"title\": \"aurellia kurti - M / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak27\",\n            \"MasterSKU\": \"ak27\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591032891\",\n            \"listing_ref_number\": \"35209610231867\",\n            \"UID\": null,\n            \"identifier\": \"33659591032891\",\n            \"title\": \"aurellia kurti - M / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak28\",\n            \"MasterSKU\": \"ak28\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591065659\",\n            \"listing_ref_number\": \"35209610264635\",\n            \"UID\": null,\n            \"identifier\": \"33659591065659\",\n            \"title\": \"aurellia kurti - M / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak29\",\n            \"MasterSKU\": \"ak29\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591098427\",\n            \"listing_ref_number\": \"35209610297403\",\n            \"UID\": null,\n            \"identifier\": \"33659591098427\",\n            \"title\": \"aurellia kurti - M / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak30\",\n            \"MasterSKU\": \"ak30\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591131195\",\n            \"listing_ref_number\": \"35209610330171\",\n            \"UID\": null,\n            \"identifier\": \"33659591131195\",\n            \"title\": \"aurellia kurti - M / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak31\",\n            \"MasterSKU\": \"ak31\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591163963\",\n            \"listing_ref_number\": \"35209610362939\",\n            \"UID\": null,\n            \"identifier\": \"33659591163963\",\n            \"title\": \"aurellia kurti - M / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak32\",\n            \"MasterSKU\": \"ak32\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591196731\",\n            \"listing_ref_number\": \"35209610395707\",\n            \"UID\": null,\n            \"identifier\": \"33659591196731\",\n            \"title\": \"aurellia kurti - M / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest2\",\n            \"MasterSKU\": \"eetest2\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020759142459\",\n            \"listing_ref_number\": \"35575769628731\",\n            \"UID\": null,\n            \"identifier\": \"34020759142459\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest3\",\n            \"MasterSKU\": \"eetest3\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020775166011\",\n            \"listing_ref_number\": \"35575785652283\",\n            \"UID\": null,\n            \"identifier\": \"34020775166011\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"RoadMap123\",\n            \"MasterSKU\": \"RoadMap123\",\n            \"mrp\": 1800,\n            \"site_uid\": \"34020602773563\",\n            \"listing_ref_number\": \"35575613259835\",\n            \"UID\": null,\n            \"identifier\": \"34020602773563\",\n            \"title\": \"ccsfs  RoadMap\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest12345\",\n            \"MasterSKU\": \"sptest12345\",\n            \"mrp\": 1620,\n            \"site_uid\": \"34020624138299\",\n            \"listing_ref_number\": \"35575634624571\",\n            \"UID\": null,\n            \"identifier\": \"34020624138299\",\n            \"title\": \"ccsfs  Robin\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest1\",\n            \"MasterSKU\": \"eetest1\",\n            \"mrp\": 1530,\n            \"site_uid\": \"34020655136827\",\n            \"listing_ref_number\": \"35575665623099\",\n            \"UID\": null,\n            \"identifier\": \"34020655136827\",\n            \"title\": \"ccsfs  yogurt\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest123\",\n            \"MasterSKU\": \"sptest123\",\n            \"mrp\": 1350,\n            \"site_uid\": \"34020587733051\",\n            \"listing_ref_number\": \"35575598219323\",\n            \"UID\": null,\n            \"identifier\": \"34020587733051\",\n            \"title\": \"ccsfs NA Batman\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"Dazel_COM2\",\n            \"MasterSKU\": \"Dazel_COM2\",\n            \"mrp\": 100,\n            \"site_uid\": \"33630337466427\",\n            \"listing_ref_number\": \"35179983732795\",\n            \"UID\": null,\n            \"identifier\": \"33630337466427\",\n            \"title\": \"Dazel_COM2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"test-a1\",\n            \"MasterSKU\": \"test-a1\",\n            \"mrp\": 0,\n            \"site_uid\": \"34250773463099\",\n            \"listing_ref_number\": \"35805802659899\",\n            \"UID\": null,\n            \"identifier\": \"34250773463099\",\n            \"title\": \"test\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"33226645241915\",\n            \"MasterSKU\": \"33226645241915\",\n            \"mrp\": 1200,\n            \"site_uid\": \"33226645241915\",\n            \"listing_ref_number\": \"34758454313019\",\n            \"UID\": null,\n            \"identifier\": \"33226645241915\",\n            \"title\": \"Test Product\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XB01\",\n            \"MasterSKU\": \"XB01\",\n            \"mrp\": 1000,\n            \"site_uid\": \"33328534847547\",\n            \"listing_ref_number\": \"34864404168763\",\n            \"UID\": null,\n            \"identifier\": \"33328534847547\",\n            \"title\": \"XBOX1\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX2\",\n            \"MasterSKU\": \"XBOX2\",\n            \"mrp\": 2000,\n            \"site_uid\": \"33328584458299\",\n            \"listing_ref_number\": \"34864455942203\",\n            \"UID\": null,\n            \"identifier\": \"33328584458299\",\n            \"title\": \"XBOX2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX3\",\n            \"MasterSKU\": \"XBOX3\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328619192379\",\n            \"listing_ref_number\": \"34864492314683\",\n            \"UID\": null,\n            \"identifier\": \"33328619192379\",\n            \"title\": \"XBOX3\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX4\",\n            \"MasterSKU\": \"XBOX4\",\n            \"mrp\": 4000,\n            \"site_uid\": \"33328634069051\",\n            \"listing_ref_number\": \"34864507486267\",\n            \"UID\": null,\n            \"identifier\": \"33328634069051\",\n            \"title\": \"XBOX4\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX5\",\n            \"MasterSKU\": \"XBOX5\",\n            \"mrp\": 5000,\n            \"site_uid\": \"33328636526651\",\n            \"listing_ref_number\": \"34864509943867\",\n            \"UID\": null,\n            \"identifier\": \"33328636526651\",\n            \"title\": \"XBOX5\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX6\",\n            \"MasterSKU\": \"XBOX6\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328646455355\",\n            \"listing_ref_number\": \"34864519872571\",\n            \"UID\": null,\n            \"identifier\": \"33328646455355\",\n            \"title\": \"XBOX6\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX7\",\n            \"MasterSKU\": \"XBOX7\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328647962683\",\n            \"listing_ref_number\": \"34864522297403\",\n            \"UID\": null,\n            \"identifier\": \"33328647962683\",\n            \"title\": \"XBOX7\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX8\",\n            \"MasterSKU\": \"XBOX8\",\n            \"mrp\": 8000,\n            \"site_uid\": \"33328658907195\",\n            \"listing_ref_number\": \"34864533962811\",\n            \"UID\": null,\n            \"identifier\": \"33328658907195\",\n            \"title\": \"XBOX8\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"TShirt001\",\n            \"MasterSKU\": \"TShirt001\",\n            \"mrp\": 1000,\n            \"site_uid\": \"39402688610363\",\n            \"listing_ref_number\": \"41496730042427\",\n            \"UID\": null,\n            \"identifier\": \"39402688610363\",\n            \"title\": \"TShirt001\"\n        }\n    ]\n}"
+          }
+        ]
+      }
+    ],
+    "description": "Returns the Marketplace listings. If MasterSKu is not present, then the listing is not mapped to any master. Keep increasing the page number till it gives an empty array to get all the listings. Page size increment is not recommended.\n\n| **Parameters** | **Data Type** | **Description** | **Mandatory** | **Remarks** |\n| --- | --- | --- | --- | --- |\n| marketPlaceID | Integer | Enter the marketplace ID, which can be obtained by the \"getmarketplacelist\" function | Yes | NA |\n| pageSize | Integer | Enter the Limit for the no. of data entries to be shown for a single page. | No | Default value: 50  <br>Maximum limit: 5000 |\n| pageNumber | Integer | Enter the page number | No | NA |\n| sku | Integer | Fetch listing based on sku. | No | NA |\n| identifier | Integer | Fetch listing based on specific identifier. | No | NA |"
+  },
+  {
+    "name": "getMarketPlaceListing",
+    "protocolProfileBehavior": {
+      "disabledSystemHeaders": {
+        "connection": true,
+        "accept-encoding": true,
+        "accept": true,
+        "user-agent": true,
+        "host": true
+      }
+    },
+    "request": {
+      "method": "GET",
+      "header": [
+        {
+          "key": "x-api-key",
+          "value": "<x_api_key>",
+          "type": "text",
+          "description": "Mandatory"
+        },
+        {
+          "key": "Authorization",
+          "value": "Bearer <Jwt_Token>",
+          "type": "text",
+          "description": "Mandatory"
+        }
+      ],
+      "url": {
+        "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?marketPlaceID=26",
+        "host": [
+          "{{BaseURL}}"
+        ],
+        "path": [
+          "Listings",
+          "getMarketPlaceListing"
+        ],
+        "query": [
+          {
+            "key": "marketPlaceID",
+            "value": "26"
+          }
+        ]
+      }
+    },
+    "response": [
+      {
+        "name": "200 Success",
+        "originalRequest": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?marketPlaceID=26",
+            "host": [
+              "{{BaseURL}}"
+            ],
+            "path": [
+              "Listings",
+              "getMarketPlaceListing"
+            ],
+            "query": [
+              {
+                "key": "marketPlaceID",
+                "value": "26"
+              }
+            ]
+          }
+        },
+        "status": "OK",
+        "code": 200,
+        "_postman_previewlanguage": "json",
+        "header": [],
+        "cookie": [],
+        "body": "{\n    \"code\": 200,\n    \"message\": \"Listings Found\",\n    \"data\": [\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak1\",\n            \"MasterSKU\": \"ak1\",\n            \"mrp\": 999,\n            \"site_uid\": \"33659590180923\",\n            \"listing_ref_number\": \"35209609379899\",\n            \"UID\": null,\n            \"identifier\": \"33659590180923\",\n            \"title\": \"aurellia kurti - L / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak2\",\n            \"MasterSKU\": \"ak2\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590213691\",\n            \"listing_ref_number\": \"35209609412667\",\n            \"UID\": null,\n            \"identifier\": \"33659590213691\",\n            \"title\": \"aurellia kurti - L / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak3\",\n            \"MasterSKU\": \"ak3\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590246459\",\n            \"listing_ref_number\": \"35209609445435\",\n            \"UID\": null,\n            \"identifier\": \"33659590246459\",\n            \"title\": \"aurellia kurti - L / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak4\",\n            \"MasterSKU\": \"ak4\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590279227\",\n            \"listing_ref_number\": \"35209609478203\",\n            \"UID\": null,\n            \"identifier\": \"33659590279227\",\n            \"title\": \"aurellia kurti - L / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak5\",\n            \"MasterSKU\": \"ak5\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590311995\",\n            \"listing_ref_number\": \"35209609510971\",\n            \"UID\": null,\n            \"identifier\": \"33659590311995\",\n            \"title\": \"aurellia kurti - L / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak6\",\n            \"MasterSKU\": \"ak6\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590344763\",\n            \"listing_ref_number\": \"35209609543739\",\n            \"UID\": null,\n            \"identifier\": \"33659590344763\",\n            \"title\": \"aurellia kurti - L / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak7\",\n            \"MasterSKU\": \"ak7\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590377531\",\n            \"listing_ref_number\": \"35209609576507\",\n            \"UID\": null,\n            \"identifier\": \"33659590377531\",\n            \"title\": \"aurellia kurti - L / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak8\",\n            \"MasterSKU\": \"ak8\",\n            \"mrp\": 800,\n            \"site_uid\": \"33659590410299\",\n            \"listing_ref_number\": \"35209609609275\",\n            \"UID\": null,\n            \"identifier\": \"33659590410299\",\n            \"title\": \"aurellia kurti - L / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak9\",\n            \"MasterSKU\": \"ak9\",\n            \"mrp\": 900,\n            \"site_uid\": \"33659590443067\",\n            \"listing_ref_number\": \"35209609642043\",\n            \"UID\": null,\n            \"identifier\": \"33659590443067\",\n            \"title\": \"aurellia kurti - S / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak10\",\n            \"MasterSKU\": \"ak10\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590475835\",\n            \"listing_ref_number\": \"35209609674811\",\n            \"UID\": null,\n            \"identifier\": \"33659590475835\",\n            \"title\": \"aurellia kurti - S / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak11\",\n            \"MasterSKU\": \"ak11\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590508603\",\n            \"listing_ref_number\": \"35209609707579\",\n            \"UID\": null,\n            \"identifier\": \"33659590508603\",\n            \"title\": \"aurellia kurti - S / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak12\",\n            \"MasterSKU\": \"ak12\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590541371\",\n            \"listing_ref_number\": \"35209609740347\",\n            \"UID\": null,\n            \"identifier\": \"33659590541371\",\n            \"title\": \"aurellia kurti - S / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak13\",\n            \"MasterSKU\": \"ak13\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590574139\",\n            \"listing_ref_number\": \"35209609773115\",\n            \"UID\": null,\n            \"identifier\": \"33659590574139\",\n            \"title\": \"aurellia kurti - S / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak14\",\n            \"MasterSKU\": \"ak14\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590606907\",\n            \"listing_ref_number\": \"35209609805883\",\n            \"UID\": null,\n            \"identifier\": \"33659590606907\",\n            \"title\": \"aurellia kurti - S / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak15\",\n            \"MasterSKU\": \"ak15\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590639675\",\n            \"listing_ref_number\": \"35209609838651\",\n            \"UID\": null,\n            \"identifier\": \"33659590639675\",\n            \"title\": \"aurellia kurti - S / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak16\",\n            \"MasterSKU\": \"ak16\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590672443\",\n            \"listing_ref_number\": \"35209609871419\",\n            \"UID\": null,\n            \"identifier\": \"33659590672443\",\n            \"title\": \"aurellia kurti - S / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak17\",\n            \"MasterSKU\": \"ak17\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590705211\",\n            \"listing_ref_number\": \"35209609904187\",\n            \"UID\": null,\n            \"identifier\": \"33659590705211\",\n            \"title\": \"aurellia kurti - XS / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak18\",\n            \"MasterSKU\": \"ak18\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590737979\",\n            \"listing_ref_number\": \"35209609936955\",\n            \"UID\": null,\n            \"identifier\": \"33659590737979\",\n            \"title\": \"aurellia kurti - XS / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak19\",\n            \"MasterSKU\": \"ak19\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590770747\",\n            \"listing_ref_number\": \"35209609969723\",\n            \"UID\": null,\n            \"identifier\": \"33659590770747\",\n            \"title\": \"aurellia kurti - XS / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak20\",\n            \"MasterSKU\": \"ak20\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590803515\",\n            \"listing_ref_number\": \"35209610002491\",\n            \"UID\": null,\n            \"identifier\": \"33659590803515\",\n            \"title\": \"aurellia kurti - XS / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak21\",\n            \"MasterSKU\": \"ak21\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590836283\",\n            \"listing_ref_number\": \"35209610035259\",\n            \"UID\": null,\n            \"identifier\": \"33659590836283\",\n            \"title\": \"aurellia kurti - XS / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak22\",\n            \"MasterSKU\": \"ak22\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590869051\",\n            \"listing_ref_number\": \"35209610068027\",\n            \"UID\": null,\n            \"identifier\": \"33659590869051\",\n            \"title\": \"aurellia kurti - XS / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak23\",\n            \"MasterSKU\": \"ak23\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590901819\",\n            \"listing_ref_number\": \"35209610100795\",\n            \"UID\": null,\n            \"identifier\": \"33659590901819\",\n            \"title\": \"aurellia kurti - XS / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak24\",\n            \"MasterSKU\": \"ak24\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590934587\",\n            \"listing_ref_number\": \"35209610133563\",\n            \"UID\": null,\n            \"identifier\": \"33659590934587\",\n            \"title\": \"aurellia kurti - XS / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak25\",\n            \"MasterSKU\": \"ak25\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590967355\",\n            \"listing_ref_number\": \"35209610166331\",\n            \"UID\": null,\n            \"identifier\": \"33659590967355\",\n            \"title\": \"aurellia kurti - M / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak26\",\n            \"MasterSKU\": \"ak26\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591000123\",\n            \"listing_ref_number\": \"35209610199099\",\n            \"UID\": null,\n            \"identifier\": \"33659591000123\",\n            \"title\": \"aurellia kurti - M / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak27\",\n            \"MasterSKU\": \"ak27\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591032891\",\n            \"listing_ref_number\": \"35209610231867\",\n            \"UID\": null,\n            \"identifier\": \"33659591032891\",\n            \"title\": \"aurellia kurti - M / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak28\",\n            \"MasterSKU\": \"ak28\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591065659\",\n            \"listing_ref_number\": \"35209610264635\",\n            \"UID\": null,\n            \"identifier\": \"33659591065659\",\n            \"title\": \"aurellia kurti - M / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak29\",\n            \"MasterSKU\": \"ak29\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591098427\",\n            \"listing_ref_number\": \"35209610297403\",\n            \"UID\": null,\n            \"identifier\": \"33659591098427\",\n            \"title\": \"aurellia kurti - M / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak30\",\n            \"MasterSKU\": \"ak30\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591131195\",\n            \"listing_ref_number\": \"35209610330171\",\n            \"UID\": null,\n            \"identifier\": \"33659591131195\",\n            \"title\": \"aurellia kurti - M / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak31\",\n            \"MasterSKU\": \"ak31\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591163963\",\n            \"listing_ref_number\": \"35209610362939\",\n            \"UID\": null,\n            \"identifier\": \"33659591163963\",\n            \"title\": \"aurellia kurti - M / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak32\",\n            \"MasterSKU\": \"ak32\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591196731\",\n            \"listing_ref_number\": \"35209610395707\",\n            \"UID\": null,\n            \"identifier\": \"33659591196731\",\n            \"title\": \"aurellia kurti - M / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest2\",\n            \"MasterSKU\": \"eetest2\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020759142459\",\n            \"listing_ref_number\": \"35575769628731\",\n            \"UID\": null,\n            \"identifier\": \"34020759142459\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest3\",\n            \"MasterSKU\": \"eetest3\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020775166011\",\n            \"listing_ref_number\": \"35575785652283\",\n            \"UID\": null,\n            \"identifier\": \"34020775166011\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"RoadMap123\",\n            \"MasterSKU\": \"RoadMap123\",\n            \"mrp\": 1800,\n            \"site_uid\": \"34020602773563\",\n            \"listing_ref_number\": \"35575613259835\",\n            \"UID\": null,\n            \"identifier\": \"34020602773563\",\n            \"title\": \"ccsfs  RoadMap\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest12345\",\n            \"MasterSKU\": \"sptest12345\",\n            \"mrp\": 1620,\n            \"site_uid\": \"34020624138299\",\n            \"listing_ref_number\": \"35575634624571\",\n            \"UID\": null,\n            \"identifier\": \"34020624138299\",\n            \"title\": \"ccsfs  Robin\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest1\",\n            \"MasterSKU\": \"eetest1\",\n            \"mrp\": 1530,\n            \"site_uid\": \"34020655136827\",\n            \"listing_ref_number\": \"35575665623099\",\n            \"UID\": null,\n            \"identifier\": \"34020655136827\",\n            \"title\": \"ccsfs  yogurt\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest123\",\n            \"MasterSKU\": \"sptest123\",\n            \"mrp\": 1350,\n            \"site_uid\": \"34020587733051\",\n            \"listing_ref_number\": \"35575598219323\",\n            \"UID\": null,\n            \"identifier\": \"34020587733051\",\n            \"title\": \"ccsfs NA Batman\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"Dazel_COM2\",\n            \"MasterSKU\": \"Dazel_COM2\",\n            \"mrp\": 100,\n            \"site_uid\": \"33630337466427\",\n            \"listing_ref_number\": \"35179983732795\",\n            \"UID\": null,\n            \"identifier\": \"33630337466427\",\n            \"title\": \"Dazel_COM2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"test-a1\",\n            \"MasterSKU\": \"test-a1\",\n            \"mrp\": 0,\n            \"site_uid\": \"34250773463099\",\n            \"listing_ref_number\": \"35805802659899\",\n            \"UID\": null,\n            \"identifier\": \"34250773463099\",\n            \"title\": \"test\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"33226645241915\",\n            \"MasterSKU\": \"33226645241915\",\n            \"mrp\": 1200,\n            \"site_uid\": \"33226645241915\",\n            \"listing_ref_number\": \"34758454313019\",\n            \"UID\": null,\n            \"identifier\": \"33226645241915\",\n            \"title\": \"Test Product\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XB01\",\n            \"MasterSKU\": \"XB01\",\n            \"mrp\": 1000,\n            \"site_uid\": \"33328534847547\",\n            \"listing_ref_number\": \"34864404168763\",\n            \"UID\": null,\n            \"identifier\": \"33328534847547\",\n            \"title\": \"XBOX1\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX2\",\n            \"MasterSKU\": \"XBOX2\",\n            \"mrp\": 2000,\n            \"site_uid\": \"33328584458299\",\n            \"listing_ref_number\": \"34864455942203\",\n            \"UID\": null,\n            \"identifier\": \"33328584458299\",\n            \"title\": \"XBOX2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX3\",\n            \"MasterSKU\": \"XBOX3\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328619192379\",\n            \"listing_ref_number\": \"34864492314683\",\n            \"UID\": null,\n            \"identifier\": \"33328619192379\",\n            \"title\": \"XBOX3\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX4\",\n            \"MasterSKU\": \"XBOX4\",\n            \"mrp\": 4000,\n            \"site_uid\": \"33328634069051\",\n            \"listing_ref_number\": \"34864507486267\",\n            \"UID\": null,\n            \"identifier\": \"33328634069051\",\n            \"title\": \"XBOX4\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX5\",\n            \"MasterSKU\": \"XBOX5\",\n            \"mrp\": 5000,\n            \"site_uid\": \"33328636526651\",\n            \"listing_ref_number\": \"34864509943867\",\n            \"UID\": null,\n            \"identifier\": \"33328636526651\",\n            \"title\": \"XBOX5\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX6\",\n            \"MasterSKU\": \"XBOX6\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328646455355\",\n            \"listing_ref_number\": \"34864519872571\",\n            \"UID\": null,\n            \"identifier\": \"33328646455355\",\n            \"title\": \"XBOX6\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX7\",\n            \"MasterSKU\": \"XBOX7\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328647962683\",\n            \"listing_ref_number\": \"34864522297403\",\n            \"UID\": null,\n            \"identifier\": \"33328647962683\",\n            \"title\": \"XBOX7\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX8\",\n            \"MasterSKU\": \"XBOX8\",\n            \"mrp\": 8000,\n            \"site_uid\": \"33328658907195\",\n            \"listing_ref_number\": \"34864533962811\",\n            \"UID\": null,\n            \"identifier\": \"33328658907195\",\n            \"title\": \"XBOX8\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"TShirt001\",\n            \"MasterSKU\": \"TShirt001\",\n            \"mrp\": 1000,\n            \"site_uid\": \"39402688610363\",\n            \"listing_ref_number\": \"41496730042427\",\n            \"UID\": null,\n            \"identifier\": \"39402688610363\",\n            \"title\": \"TShirt001\"\n        }\n    ]\n}"
+      }
+    ]
+  },
+  {
+    "name": "Get MarketPlace Listing",
+    "item": [
+      {
+        "name": "getMarketPlaceListing",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?api_token={{api_token}}&marketPlaceID=26",
+            "host": [
+              "{{BaseURL}}"
+            ],
+            "path": [
+              "Listings",
+              "getMarketPlaceListing"
+            ],
+            "query": [
+              {
+                "key": "api_token",
+                "value": "{{api_token}}"
+              },
+              {
+                "key": "marketPlaceID",
+                "value": "26"
+              }
+            ]
+          }
+        },
+        "response": [
+          {
+            "name": "200 Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?api_token={{api_token}}&marketPlaceID=26",
+                "host": [
+                  "{{BaseURL}}"
+                ],
+                "path": [
+                  "Listings",
+                  "getMarketPlaceListing"
+                ],
+                "query": [
+                  {
+                    "key": "api_token",
+                    "value": "{{api_token}}"
+                  },
+                  {
+                    "key": "marketPlaceID",
+                    "value": "26"
+                  }
+                ]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/html; charset=UTF-8"
+              },
+              {
+                "key": "Content-Length",
+                "value": "1647"
+              },
+              {
+                "key": "Connection",
+                "value": "keep-alive"
+              },
+              {
+                "key": "Date",
+                "value": "Thu, 24 Mar 2022 13:36:41 GMT"
+              },
+              {
+                "key": "x-amzn-RequestId",
+                "value": "25732945-017c-4e73-83e4-5988aba965fe"
+              },
+              {
+                "key": "X-XSS-Protection",
+                "value": "1; mode=block"
+              },
+              {
+                "key": "Content-Encoding",
+                "value": "gzip"
+              },
+              {
+                "key": "Strict-Transport-Security",
+                "value": "max-age=31536000; includeSubDomains; preload"
+              },
+              {
+                "key": "x-amzn-Remapped-Content-Length",
+                "value": "1647"
+              },
+              {
+                "key": "Access-Control-Allow-Headers",
+                "value": "Authorization, Content-Type"
+              },
+              {
+                "key": "x-amzn-Remapped-Connection",
+                "value": "keep-alive"
+              },
+              {
+                "key": "x-amz-apigw-id",
+                "value": "PfcMSGo5PHcF4rw="
+              },
+              {
+                "key": "Vary",
+                "value": "Accept-Encoding"
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-store, no-cache, must-revalidate, post-check=0, pre-check=0"
+              },
+              {
+                "key": "Cache-Control",
+                "value": "no-cache"
+              },
+              {
+                "key": "x-amzn-Remapped-Server",
+                "value": "Apache"
+              },
+              {
+                "key": "Expires",
+                "value": "Thu, 19 Nov 1981 08:52:00 GMT"
+              },
+              {
+                "key": "X-Content-Type-Options",
+                "value": "nosniff"
+              },
+              {
+                "key": "Access-Control-Allow-Methods",
+                "value": "GET,POST,OPTIONS,DELETE,PUT"
+              },
+              {
+                "key": "Pragma",
+                "value": "no-cache"
+              },
+              {
+                "key": "x-amzn-Remapped-Date",
+                "value": "Thu, 24 Mar 2022 13:36:41 GMT"
+              },
+              {
+                "key": "Access-Control-Allow-Credentials",
+                "value": "true"
+              },
+              {
+                "key": "X-Cache",
+                "value": "Miss from cloudfront"
+              },
+              {
+                "key": "Via",
+                "value": "1.1 a2bc696ee5c3bea07f5d64c35f5db098.cloudfront.net (CloudFront)"
+              },
+              {
+                "key": "X-Amz-Cf-Pop",
+                "value": "BOM52-C1"
+              },
+              {
+                "key": "X-Amz-Cf-Id",
+                "value": "Tv687vwjp4DV4K9JevDmJ1b4nDz1OON5UWg5g5i0AEPaO6ZXkUBI2A=="
+              }
+            ],
+            "cookie": [],
+            "body": "{\n    \"code\": 200,\n    \"message\": \"Listings Found\",\n    \"data\": [\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak1\",\n            \"MasterSKU\": \"ak1\",\n            \"mrp\": 999,\n            \"site_uid\": \"33659590180923\",\n            \"listing_ref_number\": \"35209609379899\",\n            \"UID\": null,\n            \"identifier\": \"33659590180923\",\n            \"title\": \"aurellia kurti - L / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak2\",\n            \"MasterSKU\": \"ak2\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590213691\",\n            \"listing_ref_number\": \"35209609412667\",\n            \"UID\": null,\n            \"identifier\": \"33659590213691\",\n            \"title\": \"aurellia kurti - L / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak3\",\n            \"MasterSKU\": \"ak3\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590246459\",\n            \"listing_ref_number\": \"35209609445435\",\n            \"UID\": null,\n            \"identifier\": \"33659590246459\",\n            \"title\": \"aurellia kurti - L / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak4\",\n            \"MasterSKU\": \"ak4\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590279227\",\n            \"listing_ref_number\": \"35209609478203\",\n            \"UID\": null,\n            \"identifier\": \"33659590279227\",\n            \"title\": \"aurellia kurti - L / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak5\",\n            \"MasterSKU\": \"ak5\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590311995\",\n            \"listing_ref_number\": \"35209609510971\",\n            \"UID\": null,\n            \"identifier\": \"33659590311995\",\n            \"title\": \"aurellia kurti - L / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak6\",\n            \"MasterSKU\": \"ak6\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590344763\",\n            \"listing_ref_number\": \"35209609543739\",\n            \"UID\": null,\n            \"identifier\": \"33659590344763\",\n            \"title\": \"aurellia kurti - L / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak7\",\n            \"MasterSKU\": \"ak7\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590377531\",\n            \"listing_ref_number\": \"35209609576507\",\n            \"UID\": null,\n            \"identifier\": \"33659590377531\",\n            \"title\": \"aurellia kurti - L / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak8\",\n            \"MasterSKU\": \"ak8\",\n            \"mrp\": 800,\n            \"site_uid\": \"33659590410299\",\n            \"listing_ref_number\": \"35209609609275\",\n            \"UID\": null,\n            \"identifier\": \"33659590410299\",\n            \"title\": \"aurellia kurti - L / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak9\",\n            \"MasterSKU\": \"ak9\",\n            \"mrp\": 900,\n            \"site_uid\": \"33659590443067\",\n            \"listing_ref_number\": \"35209609642043\",\n            \"UID\": null,\n            \"identifier\": \"33659590443067\",\n            \"title\": \"aurellia kurti - S / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak10\",\n            \"MasterSKU\": \"ak10\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590475835\",\n            \"listing_ref_number\": \"35209609674811\",\n            \"UID\": null,\n            \"identifier\": \"33659590475835\",\n            \"title\": \"aurellia kurti - S / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak11\",\n            \"MasterSKU\": \"ak11\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590508603\",\n            \"listing_ref_number\": \"35209609707579\",\n            \"UID\": null,\n            \"identifier\": \"33659590508603\",\n            \"title\": \"aurellia kurti - S / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak12\",\n            \"MasterSKU\": \"ak12\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590541371\",\n            \"listing_ref_number\": \"35209609740347\",\n            \"UID\": null,\n            \"identifier\": \"33659590541371\",\n            \"title\": \"aurellia kurti - S / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak13\",\n            \"MasterSKU\": \"ak13\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590574139\",\n            \"listing_ref_number\": \"35209609773115\",\n            \"UID\": null,\n            \"identifier\": \"33659590574139\",\n            \"title\": \"aurellia kurti - S / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak14\",\n            \"MasterSKU\": \"ak14\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590606907\",\n            \"listing_ref_number\": \"35209609805883\",\n            \"UID\": null,\n            \"identifier\": \"33659590606907\",\n            \"title\": \"aurellia kurti - S / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak15\",\n            \"MasterSKU\": \"ak15\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590639675\",\n            \"listing_ref_number\": \"35209609838651\",\n            \"UID\": null,\n            \"identifier\": \"33659590639675\",\n            \"title\": \"aurellia kurti - S / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak16\",\n            \"MasterSKU\": \"ak16\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590672443\",\n            \"listing_ref_number\": \"35209609871419\",\n            \"UID\": null,\n            \"identifier\": \"33659590672443\",\n            \"title\": \"aurellia kurti - S / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak17\",\n            \"MasterSKU\": \"ak17\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590705211\",\n            \"listing_ref_number\": \"35209609904187\",\n            \"UID\": null,\n            \"identifier\": \"33659590705211\",\n            \"title\": \"aurellia kurti - XS / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak18\",\n            \"MasterSKU\": \"ak18\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590737979\",\n            \"listing_ref_number\": \"35209609936955\",\n            \"UID\": null,\n            \"identifier\": \"33659590737979\",\n            \"title\": \"aurellia kurti - XS / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak19\",\n            \"MasterSKU\": \"ak19\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590770747\",\n            \"listing_ref_number\": \"35209609969723\",\n            \"UID\": null,\n            \"identifier\": \"33659590770747\",\n            \"title\": \"aurellia kurti - XS / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak20\",\n            \"MasterSKU\": \"ak20\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590803515\",\n            \"listing_ref_number\": \"35209610002491\",\n            \"UID\": null,\n            \"identifier\": \"33659590803515\",\n            \"title\": \"aurellia kurti - XS / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak21\",\n            \"MasterSKU\": \"ak21\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590836283\",\n            \"listing_ref_number\": \"35209610035259\",\n            \"UID\": null,\n            \"identifier\": \"33659590836283\",\n            \"title\": \"aurellia kurti - XS / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak22\",\n            \"MasterSKU\": \"ak22\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590869051\",\n            \"listing_ref_number\": \"35209610068027\",\n            \"UID\": null,\n            \"identifier\": \"33659590869051\",\n            \"title\": \"aurellia kurti - XS / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak23\",\n            \"MasterSKU\": \"ak23\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590901819\",\n            \"listing_ref_number\": \"35209610100795\",\n            \"UID\": null,\n            \"identifier\": \"33659590901819\",\n            \"title\": \"aurellia kurti - XS / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak24\",\n            \"MasterSKU\": \"ak24\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590934587\",\n            \"listing_ref_number\": \"35209610133563\",\n            \"UID\": null,\n            \"identifier\": \"33659590934587\",\n            \"title\": \"aurellia kurti - XS / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak25\",\n            \"MasterSKU\": \"ak25\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590967355\",\n            \"listing_ref_number\": \"35209610166331\",\n            \"UID\": null,\n            \"identifier\": \"33659590967355\",\n            \"title\": \"aurellia kurti - M / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak26\",\n            \"MasterSKU\": \"ak26\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591000123\",\n            \"listing_ref_number\": \"35209610199099\",\n            \"UID\": null,\n            \"identifier\": \"33659591000123\",\n            \"title\": \"aurellia kurti - M / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak27\",\n            \"MasterSKU\": \"ak27\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591032891\",\n            \"listing_ref_number\": \"35209610231867\",\n            \"UID\": null,\n            \"identifier\": \"33659591032891\",\n            \"title\": \"aurellia kurti - M / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak28\",\n            \"MasterSKU\": \"ak28\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591065659\",\n            \"listing_ref_number\": \"35209610264635\",\n            \"UID\": null,\n            \"identifier\": \"33659591065659\",\n            \"title\": \"aurellia kurti - M / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak29\",\n            \"MasterSKU\": \"ak29\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591098427\",\n            \"listing_ref_number\": \"35209610297403\",\n            \"UID\": null,\n            \"identifier\": \"33659591098427\",\n            \"title\": \"aurellia kurti - M / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak30\",\n            \"MasterSKU\": \"ak30\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591131195\",\n            \"listing_ref_number\": \"35209610330171\",\n            \"UID\": null,\n            \"identifier\": \"33659591131195\",\n            \"title\": \"aurellia kurti - M / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak31\",\n            \"MasterSKU\": \"ak31\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591163963\",\n            \"listing_ref_number\": \"35209610362939\",\n            \"UID\": null,\n            \"identifier\": \"33659591163963\",\n            \"title\": \"aurellia kurti - M / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak32\",\n            \"MasterSKU\": \"ak32\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591196731\",\n            \"listing_ref_number\": \"35209610395707\",\n            \"UID\": null,\n            \"identifier\": \"33659591196731\",\n            \"title\": \"aurellia kurti - M / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest2\",\n            \"MasterSKU\": \"eetest2\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020759142459\",\n            \"listing_ref_number\": \"35575769628731\",\n            \"UID\": null,\n            \"identifier\": \"34020759142459\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest3\",\n            \"MasterSKU\": \"eetest3\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020775166011\",\n            \"listing_ref_number\": \"35575785652283\",\n            \"UID\": null,\n            \"identifier\": \"34020775166011\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"RoadMap123\",\n            \"MasterSKU\": \"RoadMap123\",\n            \"mrp\": 1800,\n            \"site_uid\": \"34020602773563\",\n            \"listing_ref_number\": \"35575613259835\",\n            \"UID\": null,\n            \"identifier\": \"34020602773563\",\n            \"title\": \"ccsfs  RoadMap\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest12345\",\n            \"MasterSKU\": \"sptest12345\",\n            \"mrp\": 1620,\n            \"site_uid\": \"34020624138299\",\n            \"listing_ref_number\": \"35575634624571\",\n            \"UID\": null,\n            \"identifier\": \"34020624138299\",\n            \"title\": \"ccsfs  Robin\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest1\",\n            \"MasterSKU\": \"eetest1\",\n            \"mrp\": 1530,\n            \"site_uid\": \"34020655136827\",\n            \"listing_ref_number\": \"35575665623099\",\n            \"UID\": null,\n            \"identifier\": \"34020655136827\",\n            \"title\": \"ccsfs  yogurt\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest123\",\n            \"MasterSKU\": \"sptest123\",\n            \"mrp\": 1350,\n            \"site_uid\": \"34020587733051\",\n            \"listing_ref_number\": \"35575598219323\",\n            \"UID\": null,\n            \"identifier\": \"34020587733051\",\n            \"title\": \"ccsfs NA Batman\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"Dazel_COM2\",\n            \"MasterSKU\": \"Dazel_COM2\",\n            \"mrp\": 100,\n            \"site_uid\": \"33630337466427\",\n            \"listing_ref_number\": \"35179983732795\",\n            \"UID\": null,\n            \"identifier\": \"33630337466427\",\n            \"title\": \"Dazel_COM2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"test-a1\",\n            \"MasterSKU\": \"test-a1\",\n            \"mrp\": 0,\n            \"site_uid\": \"34250773463099\",\n            \"listing_ref_number\": \"35805802659899\",\n            \"UID\": null,\n            \"identifier\": \"34250773463099\",\n            \"title\": \"test\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"33226645241915\",\n            \"MasterSKU\": \"33226645241915\",\n            \"mrp\": 1200,\n            \"site_uid\": \"33226645241915\",\n            \"listing_ref_number\": \"34758454313019\",\n            \"UID\": null,\n            \"identifier\": \"33226645241915\",\n            \"title\": \"Test Product\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XB01\",\n            \"MasterSKU\": \"XB01\",\n            \"mrp\": 1000,\n            \"site_uid\": \"33328534847547\",\n            \"listing_ref_number\": \"34864404168763\",\n            \"UID\": null,\n            \"identifier\": \"33328534847547\",\n            \"title\": \"XBOX1\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX2\",\n            \"MasterSKU\": \"XBOX2\",\n            \"mrp\": 2000,\n            \"site_uid\": \"33328584458299\",\n            \"listing_ref_number\": \"34864455942203\",\n            \"UID\": null,\n            \"identifier\": \"33328584458299\",\n            \"title\": \"XBOX2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX3\",\n            \"MasterSKU\": \"XBOX3\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328619192379\",\n            \"listing_ref_number\": \"34864492314683\",\n            \"UID\": null,\n            \"identifier\": \"33328619192379\",\n            \"title\": \"XBOX3\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX4\",\n            \"MasterSKU\": \"XBOX4\",\n            \"mrp\": 4000,\n            \"site_uid\": \"33328634069051\",\n            \"listing_ref_number\": \"34864507486267\",\n            \"UID\": null,\n            \"identifier\": \"33328634069051\",\n            \"title\": \"XBOX4\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX5\",\n            \"MasterSKU\": \"XBOX5\",\n            \"mrp\": 5000,\n            \"site_uid\": \"33328636526651\",\n            \"listing_ref_number\": \"34864509943867\",\n            \"UID\": null,\n            \"identifier\": \"33328636526651\",\n            \"title\": \"XBOX5\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX6\",\n            \"MasterSKU\": \"XBOX6\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328646455355\",\n            \"listing_ref_number\": \"34864519872571\",\n            \"UID\": null,\n            \"identifier\": \"33328646455355\",\n            \"title\": \"XBOX6\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX7\",\n            \"MasterSKU\": \"XBOX7\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328647962683\",\n            \"listing_ref_number\": \"34864522297403\",\n            \"UID\": null,\n            \"identifier\": \"33328647962683\",\n            \"title\": \"XBOX7\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX8\",\n            \"MasterSKU\": \"XBOX8\",\n            \"mrp\": 8000,\n            \"site_uid\": \"33328658907195\",\n            \"listing_ref_number\": \"34864533962811\",\n            \"UID\": null,\n            \"identifier\": \"33328658907195\",\n            \"title\": \"XBOX8\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"TShirt001\",\n            \"MasterSKU\": \"TShirt001\",\n            \"mrp\": 1000,\n            \"site_uid\": \"39402688610363\",\n            \"listing_ref_number\": \"41496730042427\",\n            \"UID\": null,\n            \"identifier\": \"39402688610363\",\n            \"title\": \"TShirt001\"\n        }\n    ]\n}"
+          }
+        ]
+      }
+    ],
+    "description": "Returns the MarketPlace listings. If MasteSKu is not present then listing is not mapped to any master.Keep increase the page number till it gives empty array to get all the listings. page size increament is not recomendate.\n\n| **Parameters** | **Data Type** | **Description** | **Mandatory** | **Remarks** |\n| --- | --- | --- | --- | --- |\n| api_token | String | Authetication Token which will be get by \"Authorization\" function. | Yes | NA |\n| marketPlaceID | Integer | Enter marketplace id which will get by \"getmarketplacelist\" function | Yes | NA |"
+  },
+  {
+    "name": "getMarketPlaceListing",
+    "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+        "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?api_token={{api_token}}&marketPlaceID=26",
+        "host": [
+          "{{BaseURL}}"
+        ],
+        "path": [
+          "Listings",
+          "getMarketPlaceListing"
+        ],
+        "query": [
+          {
+            "key": "api_token",
+            "value": "{{api_token}}"
+          },
+          {
+            "key": "marketPlaceID",
+            "value": "26"
+          }
+        ]
+      }
+    },
+    "response": [
+      {
+        "name": "200 Success",
+        "originalRequest": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{BaseURL}}/Listings/getMarketPlaceListing?api_token={{api_token}}&marketPlaceID=26",
+            "host": [
+              "{{BaseURL}}"
+            ],
+            "path": [
+              "Listings",
+              "getMarketPlaceListing"
+            ],
+            "query": [
+              {
+                "key": "api_token",
+                "value": "{{api_token}}"
+              },
+              {
+                "key": "marketPlaceID",
+                "value": "26"
+              }
+            ]
+          }
+        },
+        "status": "OK",
+        "code": 200,
+        "_postman_previewlanguage": "json",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "text/html; charset=UTF-8"
+          },
+          {
+            "key": "Content-Length",
+            "value": "1647"
+          },
+          {
+            "key": "Connection",
+            "value": "keep-alive"
+          },
+          {
+            "key": "Date",
+            "value": "Thu, 24 Mar 2022 13:36:41 GMT"
+          },
+          {
+            "key": "x-amzn-RequestId",
+            "value": "25732945-017c-4e73-83e4-5988aba965fe"
+          },
+          {
+            "key": "X-XSS-Protection",
+            "value": "1; mode=block"
+          },
+          {
+            "key": "Content-Encoding",
+            "value": "gzip"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000; includeSubDomains; preload"
+          },
+          {
+            "key": "x-amzn-Remapped-Content-Length",
+            "value": "1647"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "Authorization, Content-Type"
+          },
+          {
+            "key": "x-amzn-Remapped-Connection",
+            "value": "keep-alive"
+          },
+          {
+            "key": "x-amz-apigw-id",
+            "value": "PfcMSGo5PHcF4rw="
+          },
+          {
+            "key": "Vary",
+            "value": "Accept-Encoding"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, must-revalidate, post-check=0, pre-check=0"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          },
+          {
+            "key": "x-amzn-Remapped-Server",
+            "value": "Apache"
+          },
+          {
+            "key": "Expires",
+            "value": "Thu, 19 Nov 1981 08:52:00 GMT"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET,POST,OPTIONS,DELETE,PUT"
+          },
+          {
+            "key": "Pragma",
+            "value": "no-cache"
+          },
+          {
+            "key": "x-amzn-Remapped-Date",
+            "value": "Thu, 24 Mar 2022 13:36:41 GMT"
+          },
+          {
+            "key": "Access-Control-Allow-Credentials",
+            "value": "true"
+          },
+          {
+            "key": "X-Cache",
+            "value": "Miss from cloudfront"
+          },
+          {
+            "key": "Via",
+            "value": "1.1 a2bc696ee5c3bea07f5d64c35f5db098.cloudfront.net (CloudFront)"
+          },
+          {
+            "key": "X-Amz-Cf-Pop",
+            "value": "BOM52-C1"
+          },
+          {
+            "key": "X-Amz-Cf-Id",
+            "value": "Tv687vwjp4DV4K9JevDmJ1b4nDz1OON5UWg5g5i0AEPaO6ZXkUBI2A=="
+          }
+        ],
+        "cookie": [],
+        "body": "{\n    \"code\": 200,\n    \"message\": \"Listings Found\",\n    \"data\": [\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak1\",\n            \"MasterSKU\": \"ak1\",\n            \"mrp\": 999,\n            \"site_uid\": \"33659590180923\",\n            \"listing_ref_number\": \"35209609379899\",\n            \"UID\": null,\n            \"identifier\": \"33659590180923\",\n            \"title\": \"aurellia kurti - L / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak2\",\n            \"MasterSKU\": \"ak2\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590213691\",\n            \"listing_ref_number\": \"35209609412667\",\n            \"UID\": null,\n            \"identifier\": \"33659590213691\",\n            \"title\": \"aurellia kurti - L / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak3\",\n            \"MasterSKU\": \"ak3\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590246459\",\n            \"listing_ref_number\": \"35209609445435\",\n            \"UID\": null,\n            \"identifier\": \"33659590246459\",\n            \"title\": \"aurellia kurti - L / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak4\",\n            \"MasterSKU\": \"ak4\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590279227\",\n            \"listing_ref_number\": \"35209609478203\",\n            \"UID\": null,\n            \"identifier\": \"33659590279227\",\n            \"title\": \"aurellia kurti - L / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak5\",\n            \"MasterSKU\": \"ak5\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590311995\",\n            \"listing_ref_number\": \"35209609510971\",\n            \"UID\": null,\n            \"identifier\": \"33659590311995\",\n            \"title\": \"aurellia kurti - L / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak6\",\n            \"MasterSKU\": \"ak6\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590344763\",\n            \"listing_ref_number\": \"35209609543739\",\n            \"UID\": null,\n            \"identifier\": \"33659590344763\",\n            \"title\": \"aurellia kurti - L / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak7\",\n            \"MasterSKU\": \"ak7\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590377531\",\n            \"listing_ref_number\": \"35209609576507\",\n            \"UID\": null,\n            \"identifier\": \"33659590377531\",\n            \"title\": \"aurellia kurti - L / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak8\",\n            \"MasterSKU\": \"ak8\",\n            \"mrp\": 800,\n            \"site_uid\": \"33659590410299\",\n            \"listing_ref_number\": \"35209609609275\",\n            \"UID\": null,\n            \"identifier\": \"33659590410299\",\n            \"title\": \"aurellia kurti - L / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak9\",\n            \"MasterSKU\": \"ak9\",\n            \"mrp\": 900,\n            \"site_uid\": \"33659590443067\",\n            \"listing_ref_number\": \"35209609642043\",\n            \"UID\": null,\n            \"identifier\": \"33659590443067\",\n            \"title\": \"aurellia kurti - S / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak10\",\n            \"MasterSKU\": \"ak10\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590475835\",\n            \"listing_ref_number\": \"35209609674811\",\n            \"UID\": null,\n            \"identifier\": \"33659590475835\",\n            \"title\": \"aurellia kurti - S / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak11\",\n            \"MasterSKU\": \"ak11\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590508603\",\n            \"listing_ref_number\": \"35209609707579\",\n            \"UID\": null,\n            \"identifier\": \"33659590508603\",\n            \"title\": \"aurellia kurti - S / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak12\",\n            \"MasterSKU\": \"ak12\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590541371\",\n            \"listing_ref_number\": \"35209609740347\",\n            \"UID\": null,\n            \"identifier\": \"33659590541371\",\n            \"title\": \"aurellia kurti - S / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak13\",\n            \"MasterSKU\": \"ak13\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590574139\",\n            \"listing_ref_number\": \"35209609773115\",\n            \"UID\": null,\n            \"identifier\": \"33659590574139\",\n            \"title\": \"aurellia kurti - S / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak14\",\n            \"MasterSKU\": \"ak14\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590606907\",\n            \"listing_ref_number\": \"35209609805883\",\n            \"UID\": null,\n            \"identifier\": \"33659590606907\",\n            \"title\": \"aurellia kurti - S / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak15\",\n            \"MasterSKU\": \"ak15\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590639675\",\n            \"listing_ref_number\": \"35209609838651\",\n            \"UID\": null,\n            \"identifier\": \"33659590639675\",\n            \"title\": \"aurellia kurti - S / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak16\",\n            \"MasterSKU\": \"ak16\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590672443\",\n            \"listing_ref_number\": \"35209609871419\",\n            \"UID\": null,\n            \"identifier\": \"33659590672443\",\n            \"title\": \"aurellia kurti - S / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak17\",\n            \"MasterSKU\": \"ak17\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590705211\",\n            \"listing_ref_number\": \"35209609904187\",\n            \"UID\": null,\n            \"identifier\": \"33659590705211\",\n            \"title\": \"aurellia kurti - XS / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak18\",\n            \"MasterSKU\": \"ak18\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590737979\",\n            \"listing_ref_number\": \"35209609936955\",\n            \"UID\": null,\n            \"identifier\": \"33659590737979\",\n            \"title\": \"aurellia kurti - XS / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak19\",\n            \"MasterSKU\": \"ak19\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590770747\",\n            \"listing_ref_number\": \"35209609969723\",\n            \"UID\": null,\n            \"identifier\": \"33659590770747\",\n            \"title\": \"aurellia kurti - XS / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak20\",\n            \"MasterSKU\": \"ak20\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590803515\",\n            \"listing_ref_number\": \"35209610002491\",\n            \"UID\": null,\n            \"identifier\": \"33659590803515\",\n            \"title\": \"aurellia kurti - XS / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak21\",\n            \"MasterSKU\": \"ak21\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590836283\",\n            \"listing_ref_number\": \"35209610035259\",\n            \"UID\": null,\n            \"identifier\": \"33659590836283\",\n            \"title\": \"aurellia kurti - XS / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak22\",\n            \"MasterSKU\": \"ak22\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590869051\",\n            \"listing_ref_number\": \"35209610068027\",\n            \"UID\": null,\n            \"identifier\": \"33659590869051\",\n            \"title\": \"aurellia kurti - XS / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak23\",\n            \"MasterSKU\": \"ak23\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590901819\",\n            \"listing_ref_number\": \"35209610100795\",\n            \"UID\": null,\n            \"identifier\": \"33659590901819\",\n            \"title\": \"aurellia kurti - XS / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak24\",\n            \"MasterSKU\": \"ak24\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590934587\",\n            \"listing_ref_number\": \"35209610133563\",\n            \"UID\": null,\n            \"identifier\": \"33659590934587\",\n            \"title\": \"aurellia kurti - XS / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak25\",\n            \"MasterSKU\": \"ak25\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659590967355\",\n            \"listing_ref_number\": \"35209610166331\",\n            \"UID\": null,\n            \"identifier\": \"33659590967355\",\n            \"title\": \"aurellia kurti - M / pink / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak26\",\n            \"MasterSKU\": \"ak26\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591000123\",\n            \"listing_ref_number\": \"35209610199099\",\n            \"UID\": null,\n            \"identifier\": \"33659591000123\",\n            \"title\": \"aurellia kurti - M / pink / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak27\",\n            \"MasterSKU\": \"ak27\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591032891\",\n            \"listing_ref_number\": \"35209610231867\",\n            \"UID\": null,\n            \"identifier\": \"33659591032891\",\n            \"title\": \"aurellia kurti - M / blue / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak28\",\n            \"MasterSKU\": \"ak28\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591065659\",\n            \"listing_ref_number\": \"35209610264635\",\n            \"UID\": null,\n            \"identifier\": \"33659591065659\",\n            \"title\": \"aurellia kurti - M / blue / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak29\",\n            \"MasterSKU\": \"ak29\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591098427\",\n            \"listing_ref_number\": \"35209610297403\",\n            \"UID\": null,\n            \"identifier\": \"33659591098427\",\n            \"title\": \"aurellia kurti - M / yellow / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak30\",\n            \"MasterSKU\": \"ak30\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591131195\",\n            \"listing_ref_number\": \"35209610330171\",\n            \"UID\": null,\n            \"identifier\": \"33659591131195\",\n            \"title\": \"aurellia kurti - M / yellow / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak31\",\n            \"MasterSKU\": \"ak31\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591163963\",\n            \"listing_ref_number\": \"35209610362939\",\n            \"UID\": null,\n            \"identifier\": \"33659591163963\",\n            \"title\": \"aurellia kurti - M / red / khadi\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"ak32\",\n            \"MasterSKU\": \"ak32\",\n            \"mrp\": 599,\n            \"site_uid\": \"33659591196731\",\n            \"listing_ref_number\": \"35209610395707\",\n            \"UID\": null,\n            \"identifier\": \"33659591196731\",\n            \"title\": \"aurellia kurti - M / red / cotton\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest2\",\n            \"MasterSKU\": \"eetest2\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020759142459\",\n            \"listing_ref_number\": \"35575769628731\",\n            \"UID\": null,\n            \"identifier\": \"34020759142459\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest3\",\n            \"MasterSKU\": \"eetest3\",\n            \"mrp\": 1890,\n            \"site_uid\": \"34020775166011\",\n            \"listing_ref_number\": \"35575785652283\",\n            \"UID\": null,\n            \"identifier\": \"34020775166011\",\n            \"title\": \"ccsfs  Bira\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"RoadMap123\",\n            \"MasterSKU\": \"RoadMap123\",\n            \"mrp\": 1800,\n            \"site_uid\": \"34020602773563\",\n            \"listing_ref_number\": \"35575613259835\",\n            \"UID\": null,\n            \"identifier\": \"34020602773563\",\n            \"title\": \"ccsfs  RoadMap\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest12345\",\n            \"MasterSKU\": \"sptest12345\",\n            \"mrp\": 1620,\n            \"site_uid\": \"34020624138299\",\n            \"listing_ref_number\": \"35575634624571\",\n            \"UID\": null,\n            \"identifier\": \"34020624138299\",\n            \"title\": \"ccsfs  Robin\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"eetest1\",\n            \"MasterSKU\": \"eetest1\",\n            \"mrp\": 1530,\n            \"site_uid\": \"34020655136827\",\n            \"listing_ref_number\": \"35575665623099\",\n            \"UID\": null,\n            \"identifier\": \"34020655136827\",\n            \"title\": \"ccsfs  yogurt\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"sptest123\",\n            \"MasterSKU\": \"sptest123\",\n            \"mrp\": 1350,\n            \"site_uid\": \"34020587733051\",\n            \"listing_ref_number\": \"35575598219323\",\n            \"UID\": null,\n            \"identifier\": \"34020587733051\",\n            \"title\": \"ccsfs NA Batman\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"Dazel_COM2\",\n            \"MasterSKU\": \"Dazel_COM2\",\n            \"mrp\": 100,\n            \"site_uid\": \"33630337466427\",\n            \"listing_ref_number\": \"35179983732795\",\n            \"UID\": null,\n            \"identifier\": \"33630337466427\",\n            \"title\": \"Dazel_COM2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"test-a1\",\n            \"MasterSKU\": \"test-a1\",\n            \"mrp\": 0,\n            \"site_uid\": \"34250773463099\",\n            \"listing_ref_number\": \"35805802659899\",\n            \"UID\": null,\n            \"identifier\": \"34250773463099\",\n            \"title\": \"test\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"33226645241915\",\n            \"MasterSKU\": \"33226645241915\",\n            \"mrp\": 1200,\n            \"site_uid\": \"33226645241915\",\n            \"listing_ref_number\": \"34758454313019\",\n            \"UID\": null,\n            \"identifier\": \"33226645241915\",\n            \"title\": \"Test Product\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XB01\",\n            \"MasterSKU\": \"XB01\",\n            \"mrp\": 1000,\n            \"site_uid\": \"33328534847547\",\n            \"listing_ref_number\": \"34864404168763\",\n            \"UID\": null,\n            \"identifier\": \"33328534847547\",\n            \"title\": \"XBOX1\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX2\",\n            \"MasterSKU\": \"XBOX2\",\n            \"mrp\": 2000,\n            \"site_uid\": \"33328584458299\",\n            \"listing_ref_number\": \"34864455942203\",\n            \"UID\": null,\n            \"identifier\": \"33328584458299\",\n            \"title\": \"XBOX2\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX3\",\n            \"MasterSKU\": \"XBOX3\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328619192379\",\n            \"listing_ref_number\": \"34864492314683\",\n            \"UID\": null,\n            \"identifier\": \"33328619192379\",\n            \"title\": \"XBOX3\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX4\",\n            \"MasterSKU\": \"XBOX4\",\n            \"mrp\": 4000,\n            \"site_uid\": \"33328634069051\",\n            \"listing_ref_number\": \"34864507486267\",\n            \"UID\": null,\n            \"identifier\": \"33328634069051\",\n            \"title\": \"XBOX4\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX5\",\n            \"MasterSKU\": \"XBOX5\",\n            \"mrp\": 5000,\n            \"site_uid\": \"33328636526651\",\n            \"listing_ref_number\": \"34864509943867\",\n            \"UID\": null,\n            \"identifier\": \"33328636526651\",\n            \"title\": \"XBOX5\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX6\",\n            \"MasterSKU\": \"XBOX6\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328646455355\",\n            \"listing_ref_number\": \"34864519872571\",\n            \"UID\": null,\n            \"identifier\": \"33328646455355\",\n            \"title\": \"XBOX6\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX7\",\n            \"MasterSKU\": \"XBOX7\",\n            \"mrp\": 3000,\n            \"site_uid\": \"33328647962683\",\n            \"listing_ref_number\": \"34864522297403\",\n            \"UID\": null,\n            \"identifier\": \"33328647962683\",\n            \"title\": \"XBOX7\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"XBOX8\",\n            \"MasterSKU\": \"XBOX8\",\n            \"mrp\": 8000,\n            \"site_uid\": \"33328658907195\",\n            \"listing_ref_number\": \"34864533962811\",\n            \"UID\": null,\n            \"identifier\": \"33328658907195\",\n            \"title\": \"XBOX8\"\n        },\n        {\n            \"name\": \"Shopify\",\n            \"sku\": \"TShirt001\",\n            \"MasterSKU\": \"TShirt001\",\n            \"mrp\": 1000,\n            \"site_uid\": \"39402688610363\",\n            \"listing_ref_number\": \"41496730042427\",\n            \"UID\": null,\n            \"identifier\": \"39402688610363\",\n            \"title\": \"TShirt001\"\n        }\n    ]\n}"
+      }
+    ]
+  }
+]

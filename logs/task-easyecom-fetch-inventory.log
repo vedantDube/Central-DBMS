@@ -1,0 +1,74 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T11:05:39.733Z
+💻 COMMAND: tsx src/easyecom/fetch-inventory.ts --snapshot Opening
+============================================================
+
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Authenticating...
+Authentication successful.
+Fetching page 1...
+Received 150 inventory rows
+Saved page 1. Total: 150
+Fetching page 2...
+Received 150 inventory rows
+Saved page 2. Total: 300
+Fetching page 3...
+Received 150 inventory rows
+Saved page 3. Total: 450
+Fetching page 4...
+Received 150 inventory rows
+Saved page 4. Total: 600
+Fetching page 5...
+Received 150 inventory rows
+Saved page 5. Total: 750
+Fetching page 6...
+Received 150 inventory rows
+Saved page 6. Total: 900
+Fetching page 7...
+Received 150 inventory rows
+Saved page 7. Total: 1050
+Fetching page 8...
+Received 150 inventory rows
+Saved page 8. Total: 1200
+Fetching page 9...
+Received 150 inventory rows
+Saved page 9. Total: 1350
+Fetching page 10...
+Received 150 inventory rows
+Saved page 10. Total: 1500
+Fetching page 11...
+Received 150 inventory rows
+Saved page 11. Total: 1650
+Fetching page 12...
+Received 150 inventory rows
+Saved page 12. Total: 1800
+Fetching page 13...
+Received 150 inventory rows
+Saved page 13. Total: 1950
+Fetching page 14...
+Received 150 inventory rows
+Saved page 14. Total: 2100
+Fetching page 15...
+Received 150 inventory rows
+Saved page 15. Total: 2250
+Fetching page 16...
+Received 150 inventory rows
+Saved page 16. Total: 2400
+Fetching page 17...
+Received 150 inventory rows
+Saved page 17. Total: 2550
+Fetching page 18...
+Received 150 inventory rows
+Saved page 18. Total: 2700
+Fetching page 19...
+Received 141 inventory rows
+Saved page 19. Total: 2841
+Finished. Saved 2841 inventory records.
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T11:08:10.507Z
+🚪 EXIT CODE: 0
+⏳ DURATION: 150.78s
+============================================================

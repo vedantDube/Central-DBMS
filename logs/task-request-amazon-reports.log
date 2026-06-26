@@ -1,0 +1,30 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T11:08:10.512Z
+💻 COMMAND: tsx src/reports/request_amazon_reports.ts
+============================================================
+
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+🚀 Requesting: All Unified Reports
+node:internal/process/promises:391
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('navigation-hamburger-menu').getByRole('button').filter({ hasText: /^$/ })[22m
+
+    at page.getByRole.name (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\reports\request_amazon_reports.ts:126:10)
+    at requestReport (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\reports\request_amazon_reports.ts:91:11)
+    at <anonymous> (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\reports\request_amazon_reports.ts:120:9) {
+  name: 'TimeoutError'
+}
+
+Node.js v20.18.0
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T11:08:50.799Z
+🚪 EXIT CODE: 1
+⏳ DURATION: 40.29s
+============================================================

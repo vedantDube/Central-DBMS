@@ -89,7 +89,7 @@ async function main() {
     }
   }
 
-  await ingestDownloadedReports();
+  await ingestDownloadedReports(reportKey?.replace(/-/g, "_"));
 }
 
 main().catch((error) => {

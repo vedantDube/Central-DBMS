@@ -66,6 +66,7 @@ export async function parseBuffer(
         const tryDelims = eext === ".tsv" ? ["\t"] : [",", "\t"];
         let records: any[] | null = null;
         let bestColCount = -1;
+        let usedDelim = eext === ".tsv" ? "\t" : ",";
         for (const d of tryDelims) {
           try {
             const recs = csvParse(text, {
@@ -77,6 +78,7 @@ export async function parseBuffer(
             if (recs.length === 0) {
               if (bestColCount === -1) {
                 records = recs;
+                usedDelim = d;
               }
               continue;
             }
@@ -87,12 +89,13 @@ export async function parseBuffer(
             if (ok && keys.length > bestColCount) {
               bestColCount = keys.length;
               records = recs;
+              usedDelim = d;
             }
           } catch (e) {
             // try next
           }
         }
-        if (!records) {
+        if (!records || (bestColCount === 1 && text.includes("\t"))) {
           // fallback: allow relaxed column counts with tab delimiter
           try {
             records = csvParse(text, {
@@ -102,13 +105,28 @@ export async function parseBuffer(
               relax_column_count: true,
               relax_quotes: true,
             });
+            usedDelim = "\t";
           } catch (e) {
             throw e;
           }
         }
         const parsedRecords = records ?? [];
-        const firstRecord = parsedRecords[0] ?? {};
-        const headers = Object.keys(firstRecord);
+        let headers: string[] = [];
+        if (parsedRecords.length > 0) {
+          const firstLine = text.split(/\r?\n/)[0] || "";
+          try {
+            const headerRows = csvParse(firstLine, {
+              columns: false,
+              delimiter: usedDelim,
+              relax_quotes: true,
+            });
+            if (headerRows && headerRows.length > 0) {
+              headers = headerRows[0];
+            }
+          } catch (e) {
+            headers = Object.keys(parsedRecords[0] ?? {});
+          }
+        }
         const rows = parsedRecords.map((r: any) =>
           headers.map((h) =>
             r[h] !== undefined && r[h] !== null ? String(r[h]) : "",
@@ -121,7 +139,22 @@ export async function parseBuffer(
   }
 
   if (ext === ".csv" || ext === ".tsv" || ext === ".txt") {
-    const text = buffer.toString("utf8");
+    let text = buffer.toString("utf8");
+    // Strip metadata preamble: if early lines are single-field quoted strings
+    // (e.g. Amazon unified transaction reports), skip to the real header row
+    const lines = text.split(/\r?\n/);
+    let preambleEnd = 0;
+    for (let i = 0; i < Math.min(20, lines.length); i++) {
+      const line = lines[i].trim();
+      if (!line) { preambleEnd = i + 1; continue; }
+      const commaCount = (line.match(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g) || []).length;
+      const tabCount = (line.match(/\t/g) || []).length;
+      if (commaCount >= 2 || tabCount >= 2) break;
+      preambleEnd = i + 1;
+    }
+    if (preambleEnd > 0) {
+      text = lines.slice(preambleEnd).join("\n");
+    }
     const tryDelims = (ext === ".tsv" || ext === ".txt") ? ["\t"] : [",", "\t"];
     let records: any[] | null = null;
     let usedDelim = ",";
@@ -154,7 +187,7 @@ export async function parseBuffer(
         // try next delimiter
       }
     }
-    if (!records) {
+    if (!records || (usedDelim === "," && bestColCount === 1 && text.includes("\t"))) {
       try {
         // fallback: try tab with relaxed column counts and relaxed quotes
         records = csvParse(text, {
@@ -171,8 +204,22 @@ export async function parseBuffer(
       }
     }
     const parsedRecords = records ?? [];
-    const firstRecord = parsedRecords[0] ?? {};
-    const headers = Object.keys(firstRecord);
+    let headers: string[] = [];
+    if (parsedRecords.length > 0) {
+      const firstLine = text.split(/\r?\n/)[0] || "";
+      try {
+        const headerRows = csvParse(firstLine, {
+          columns: false,
+          delimiter: usedDelim,
+          relax_quotes: true,
+        });
+        if (headerRows && headerRows.length > 0) {
+          headers = headerRows[0];
+        }
+      } catch (e) {
+        headers = Object.keys(parsedRecords[0] ?? {});
+      }
+    }
     const rows = parsedRecords.map((r: any) =>
       headers.map((h) =>
         r[h] !== undefined && r[h] !== null ? String(r[h]) : "",

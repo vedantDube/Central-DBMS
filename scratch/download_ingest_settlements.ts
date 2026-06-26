@@ -43,31 +43,46 @@ async function main() {
   ).toISOString();
   console.log(`Searching for settlement reports generated since: ${createdSince}`);
 
-  const reportsPath = `/reports/2021-06-30/reports?reportTypes=GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2,GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE&createdSince=${encodeURIComponent(createdSince)}`;
-  
-  const response = await spApiRequest<{
-    reports: Array<{
-      reportId: string;
-      reportType: string;
-      createdTime: string;
-      reportDocumentId?: string;
-    }>;
-  }>("GET", reportsPath);
+  const allReports: any[] = [];
+  let nextToken: string | undefined = undefined;
 
-  const reports = response.reports || [];
-  console.log(`Found ${reports.length} settlement reports.`);
+  do {
+    const url = nextToken 
+      ? `/reports/2021-06-30/reports?nextToken=${encodeURIComponent(nextToken)}`
+      : `/reports/2021-06-30/reports?reportTypes=GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2,GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE&createdSince=${encodeURIComponent(createdSince)}&pageSize=100`;
+
+    console.log(`Calling path: ${url}`);
+    const response = await spApiRequest<{
+      reports: Array<{
+        reportId: string;
+        reportType: string;
+        createdTime: string;
+        reportDocumentId?: string;
+      }>;
+      nextToken?: string;
+    }>("GET", url);
+
+    if (response.reports && response.reports.length > 0) {
+      allReports.push(...response.reports);
+    }
+    nextToken = response.nextToken;
+    // sleep 1s between pages to respect rate limits
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  } while (nextToken);
+
+  console.log(`Found ${allReports.length} settlement reports in total.`);
 
   const outDir = path.join(process.cwd(), "downloads", "amazon/payment-statements/v2");
   await fs.mkdir(outDir, { recursive: true });
 
-  for (const report of reports) {
+  for (const report of allReports) {
     if (!report.reportDocumentId) {
       console.log(`Skipping report ${report.reportId} (no document ID)`);
       continue;
     }
 
     try {
-      console.log(`Downloading report ${report.reportId} (type: ${report.reportType})...`);
+      console.log(`Downloading report ${report.reportId} (Created: ${report.createdTime})...`);
       const result = await downloadDocument(report.reportDocumentId, "csv");
       const filePath = path.join(outDir, `${report.reportId}.csv`);
       await fs.writeFile(filePath, result.body);
@@ -79,6 +94,9 @@ async function main() {
       console.log(`Ingesting ${report.reportId} into Supabase...`);
       const ingestResult = await ingestFileToTable(filePath, activeReportKey);
       console.log(`Ingested ${report.reportId}:`, ingestResult);
+      
+      // sleep 1s between reports to respect rate limits / db load
+      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (err) {
       console.error(`Failed to process report ${report.reportId}:`, err);
     }
@@ -87,7 +105,7 @@ async function main() {
   console.log("Settlement processing completed successfully!");
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error("Fatal error:", err);
   process.exitCode = 1;
 });

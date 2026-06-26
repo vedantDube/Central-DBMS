@@ -118,7 +118,8 @@ async function main() {
   const token = await getEasyEcomToken(email, password, locationKey, apiKey);
   console.log("Authentication successful.");
 
-  let currentUrl = "https://api.easyecom.io/wms/V2/getPurchaseOrderDetails?limit=10";
+  const createdAfter = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + " 00:00:00";
+  let currentUrl = `https://api.easyecom.io/wms/V2/getPurchaseOrderDetails?created_after=${encodeURIComponent(createdAfter)}&limit=10`;
   let totalSaved = 0;
   let page = 1;
 

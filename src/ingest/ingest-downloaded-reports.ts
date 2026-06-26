@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { ingestFileToTable } from "./runner.js";
+import { syncGstMaster } from "./sync-master.js";
+import { reconcilePayments } from "./reconcile.js";
 import { parseBuffer } from "./parser.js";
 
 type ReportFolder = {
@@ -41,6 +43,10 @@ const reportFolders: ReportFolder[] = [
   {
     folder: "amazon/tax/monthly-str",
     reportKey: "amazon_gst_monthly_str",
+  },
+  {
+    folder: "amazon/payments/transactions",
+    reportKey: "amazon_unified_transaction",
   },
   {
     folder: "amazon/payment-statements/v2",
@@ -94,10 +100,14 @@ async function classifySettlementFile(filePath: string): Promise<string> {
   return "amazon_v2_settlement_report_data_flat_file_v2_cod";
 }
 
-export async function ingestDownloadedReports() {
+export async function ingestDownloadedReports(targetReportKey?: string) {
   const downloadsRoot = path.join(process.cwd(), "downloads");
 
-  for (const { folder, reportKey } of reportFolders) {
+  const filteredFolders = targetReportKey
+    ? reportFolders.filter((rf) => rf.reportKey === targetReportKey)
+    : reportFolders;
+
+  for (const { folder, reportKey } of filteredFolders) {
     const folderPath = path.join(downloadsRoot, folder);
     try {
       await fs.access(folderPath);
@@ -134,6 +144,12 @@ export async function ingestDownloadedReports() {
       }
     }
   }
+  
+  // Update the master GST table after all reports are ingested
+  await syncGstMaster();
+
+  // Reconcile unified transaction payments against GST master
+  await reconcilePayments();
 }
 
 async function main() {

@@ -1,0 +1,19 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T14:22:46.979Z
+💻 COMMAND: tsx src/run-all.ts Amazon GST MTR Browser Sync Amazon GST Monthly Reports Sync
+============================================================
+
+
+============================================================
+🚀 Starting Ingestion Run (6 tasks scheduled, days=default)
+============================================================
+
+📋 Running Task: Amazon Ingest (SP-API & Auto)
+💡 Description:  Downloads and ingests configured Amazon reports using SP-API and browser automation
+💻 Executing:    tsx src/index.ts
+
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+^C
+
+============================================================

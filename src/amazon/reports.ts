@@ -233,6 +233,14 @@ export const amazonReports: AmazonReportDefinition[] = [
     preferredSource: "sp-api",
     fileExtension: "tsv",
   },
+  {
+    key: "amazon-unified-transaction",
+    label: "Unified Transaction Report",
+    storagePath: "amazon/payments/transactions",
+    reportTypeId: env.AMAZON_UNIFIED_TRANSACTION_REPORT_TYPE_ID,
+    preferredSource: "sp-api",
+    fileExtension: "csv",
+  },
 ];
 
 export function getAmazonReport(key: string): AmazonReportDefinition {

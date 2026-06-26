@@ -61,6 +61,12 @@ async function main() {
       const gstStr = await supabasePrisma.amazonGstMonthlyStrRow.count();
       console.log(`Amazon GST Monthly STR: ${gstStr}`);
 
+      const unifiedTransactions = await supabasePrisma.amazonUnifiedTransactionRow.count();
+      console.log(`Amazon Unified Transactions: ${unifiedTransactions}`);
+
+      const gstMaster = await supabasePrisma.amazonGstMasterRow.count();
+      console.log(`Amazon GST Master: ${gstMaster}`);
+
       const elecSettlement = await supabasePrisma.amazonElectronicsSettlementRow.count();
       console.log(`Amazon Electronics Settlements: ${elecSettlement}`);
 

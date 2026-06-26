@@ -1,0 +1,414 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-900 antialiased selection:bg-blue-500/10 selection:text-blue-900 font-sans;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full hover:bg-slate-400;
+  }
+}
+
+.chart-gradient-purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.02) 100%);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.2);
+}
+
+/* Dark theme */
+.dark-theme {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Top navbar */
+.dark-theme nav {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-theme nav * {
+  color: #cbd5e1;
+}
+
+.dark-theme nav .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.dark-theme nav button:hover {
+  background-color: #334155 !important;
+}
+
+/* Main content area */
+.dark-theme .bg-slate-100 {
+  background-color: #0f172a !important;
+}
+
+/* Cards, panels, modals */
+.dark-theme .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark-theme .bg-slate-50 {
+  background-color: #1e293b !important;
+}
+
+/* Text colors */
+.dark-theme .text-slate-900,
+.dark-theme .text-slate-800,
+.dark-theme .text-slate-750,
+.dark-theme .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+.dark-theme .text-slate-650,
+.dark-theme .text-slate-600,
+.dark-theme .text-slate-505,
+.dark-theme .text-slate-500,
+.dark-theme .text-slate-450,
+.dark-theme .text-slate-400,
+.dark-theme .text-slate-300 {
+  color: #94a3b8 !important;
+}
+
+/* Borders */
+.dark-theme .border-slate-200,
+.dark-theme .border-slate-150,
+.dark-theme .border-slate-100,
+.dark-theme .border-slate-200\/50,
+.dark-theme .border-slate-200\/30 {
+  border-color: #334155 !important;
+}
+
+.dark-theme .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+/* Background shades */
+.dark-theme .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+.dark-theme .bg-slate-300 {
+  background-color: #475569 !important;
+}
+
+/* Status badges - keep colored but darken backgrounds */
+.dark-theme .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+.dark-theme .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.dark-theme .bg-amber-50,
+.dark-theme .bg-amber-50\/50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.dark-theme .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+.dark-theme .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+}
+
+.dark-theme .border-emerald-100,
+.dark-theme .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark-theme .border-red-100,
+.dark-theme .border-red-200 {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.dark-theme .border-amber-100,
+.dark-theme .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark-theme .border-blue-100,
+.dark-theme .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Tables */
+.dark-theme table thead {
+  background-color: #0f172a !important;
+}
+
+.dark-theme table thead th {
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+}
+
+.dark-theme table tbody tr {
+  border-color: #334155 !important;
+}
+
+.dark-theme table tbody td {
+  border-color: #334155 !important;
+}
+
+.dark-theme table tbody tr:hover {
+  background-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+/* Form inputs */
+.dark-theme input,
+.dark-theme select,
+.dark-theme textarea {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-theme input::placeholder {
+  color: #64748b !important;
+}
+
+/* Buttons */
+.dark-theme button.bg-slate-50,
+.dark-theme button.bg-white {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-theme button.bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+/* Profit filter buttons */
+.dark-theme .bg-slate-50 button {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .bg-slate-50 button.bg-white {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Code blocks */
+.dark-theme code {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Charts - recharts */
+.dark-theme .recharts-cartesian-grid line {
+  stroke: #334155 !important;
+}
+
+.dark-theme .recharts-text {
+  fill: #94a3b8 !important;
+}
+
+.dark-theme .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+}
+
+/* Footer */
+.dark-theme footer {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+/* Sensitivity sliders */
+.dark-theme input[type="range"] {
+  background-color: #334155 !important;
+}
+
+/* Channel sidebar in channels tab */
+.dark-theme .divide-slate-100 > * + * {
+  border-color: #334155 !important;
+}
+
+/* Hover states */
+.dark-theme .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+.dark-theme .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+
+/* Avatar circle */
+.dark-theme .bg-slate-200.rounded-full {
+  background-color: #475569 !important;
+}
+
+/* Channel selector cards */
+.dark-theme .bg-slate-50\/50 {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+.dark-theme .bg-blue-600\/10 {
+  background-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+.dark-theme .text-blue-900 {
+  color: #93c5fd !important;
+}
+
+.dark-theme .border-blue-500\/30 {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Hover states for channel cards */
+.dark-theme .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+
+/* Recharts tooltip */
+.dark-theme .recharts-default-tooltip {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Various opacity backgrounds */
+.dark-theme .bg-slate-100\/80,
+.dark-theme .bg-slate-50\/80,
+.dark-theme .bg-slate-50\/50 {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+.dark-theme .bg-white\/40 {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+}
+
+/* SKU status badges — need enough contrast for text readability */
+.dark-theme .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.dark-theme .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+.dark-theme .bg-amber-100,
+.dark-theme .bg-amber-100\/30 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+.dark-theme .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Colored text in dark mode — lighten dark-on-light variants */
+.dark-theme .text-rose-800,
+.dark-theme .text-rose-805 {
+  color: #fb7185 !important;
+}
+
+.dark-theme .text-emerald-800,
+.dark-theme .text-emerald-805 {
+  color: #6ee7b7 !important;
+}
+
+.dark-theme .text-amber-800,
+.dark-theme .text-amber-805,
+.dark-theme .text-amber-900 {
+  color: #fbbf24 !important;
+}
+
+.dark-theme .text-blue-800,
+.dark-theme .text-blue-900 {
+  color: #93c5fd !important;
+}
+
+.dark-theme .text-red-900,
+.dark-theme .text-red-800 {
+  color: #fca5a5 !important;
+}
+
+/* CFO AI Assistant panel */
+.dark-theme .bg-emerald-50\/20 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+.dark-theme .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Rose borders */
+.dark-theme .border-rose-100,
+.dark-theme .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+.dark-theme .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.1) !important;
+}
+
+/* Indigo tint on net profit column */
+.dark-theme .bg-indigo-500\/5 {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Catalogue benchmark bar */
+.dark-theme .border-y {
+  border-color: #334155 !important;
+}
+
+/* Orange (for fee overcharge cards) */
+.dark-theme .border-orange-200 {
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.dark-theme .bg-orange-100 {
+  background-color: rgba(249, 115, 22, 0.15) !important;
+}
+
+.dark-theme .text-orange-700 {
+  color: #fb923c !important;
+}
+
+/* Scrollbar */
+.dark-theme ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+/* Shadow adjustments */
+.dark-theme .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Pie/Bar chart label texts */
+.dark-theme .recharts-pie-label-text {
+  fill: #e2e8f0 !important;
+}
+
+.dark-theme .recharts-legend-item-text {
+  color: #94a3b8 !important;
+}

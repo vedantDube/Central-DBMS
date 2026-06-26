@@ -1,0 +1,50 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T12:22:22.255Z
+💻 COMMAND: tsx src/amazon/map-cost-inventory.ts
+============================================================
+
+=== Beginning Parallel Cost Mapping Process ===
+Fetching EasyEcom Marketplace Listings...
+Loaded 5882 marketplace listings.
+Fetching EasyEcom Inventory...
+Loaded 5826 inventory records.
+Total rows in Amazon_GST_Master: 25727
+Processing and updating rows in parallel...
+Processed 2000 / 25727 rows... (Updated: 1978)
+Processed 4000 / 25727 rows... (Updated: 3933)
+Processed 6000 / 25727 rows... (Updated: 5864)
+Processed 8000 / 25727 rows... (Updated: 7802)
+Processed 10000 / 25727 rows... (Updated: 9740)
+Processed 12000 / 25727 rows... (Updated: 11695)
+Processed 14000 / 25727 rows... (Updated: 13625)
+Processed 16000 / 25727 rows... (Updated: 15583)
+Processed 18000 / 25727 rows... (Updated: 17546)
+Processed 20000 / 25727 rows... (Updated: 19516)
+Processed 22000 / 25727 rows... (Updated: 21470)
+Fatal mapping error: PrismaClientKnownRequestError: 
+Invalid `supabasePrisma!.amazonGstMasterRow.update()` invocation in
+C:\Users\Vedan\OneDrive\Desktop\cdbms\src\amazon\map-cost-inventory.ts:120:48
+
+  117 const chunk = updates.slice(i, i + writeConcurrencyLimit);
+  118 await Promise.all(
+  119   chunk.map(up =>
+→ 120     supabasePrisma!.amazonGstMasterRow.update(
+Server has closed the connection.
+    at ei.handleRequestError (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client-amazon\runtime\library.js:125:7268)
+    at ei.handleAndLogRequestError (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client-amazon\runtime\library.js:125:6593)
+    at ei.request (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client-amazon\runtime\library.js:125:6300)
+    at async a (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client-amazon\runtime\library.js:134:9551)
+    at async Promise.all (index 5)
+    at async main (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\amazon\map-cost-inventory.ts:118:9) {
+  code: 'P1017',
+  meta: { modelName: 'AmazonGstMasterRow' },
+  clientVersion: '6.19.3'
+}
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T14:22:46.674Z
+🚪 EXIT CODE: 0
+⏳ DURATION: 7224.42s
+============================================================

@@ -1,0 +1,269 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T11:08:50.803Z
+💻 COMMAND: tsx src/index.ts
+============================================================
+
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+Saved Amazon MTR Reports from sp-api to Supabase table as amazon/mtr/2026-06-23.csv
+Skipping GST MTR B2B Report: Browser download is not configured for GST MTR B2B Report
+Skipping GST MTR B2C Report: Browser download is not configured for GST MTR B2C Report
+Skipping GST MTR Stock Transfer Report: Browser download is not configured for GST MTR Stock Transfer Report
+Skipping GST Monthly B2B Report: Browser download is not configured for GST Monthly B2B Report
+Skipping GST Monthly B2C Report: Browser download is not configured for GST Monthly B2C Report
+Skipping GST Monthly STR Report: Browser download is not configured for GST Monthly STR Report
+Skipping Returns Report B2C: Missing SP-API report type id for Returns Report B2C
+Skipping Returns Report B2B: Missing SP-API report type id for Returns Report B2B
+Skipping Payment Report Transaction: SP-API request failed for /reports/2021-06-30/reports: 400  - {
+  "errors": [
+    {
+      "code": "InvalidInput",
+      "message": "Request for report type 1208 is not allowed at this time",
+      "details": ""
+    }
+  ]
+}
+Saved Claims and Reimbursements Report from sp-api to Supabase table as amazon/claims-reimbursements/2026-06-23.csv
+Saved FBA Customer Returns Report from sp-api to Supabase table as amazon/fba/customer-returns/2026-06-23.tsv
+Saved FBA Removal Shipment Detail Report from sp-api to Supabase table as amazon/fba/removal-shipment-detail/2026-06-23.tsv
+Saved FBA Removal Order Detail Report from sp-api to Supabase table as amazon/fba/removal-order-detail/2026-06-23.tsv
+Saved AFN Inventory Report from sp-api to Supabase table as amazon/fba/afn-inventory/2026-06-23.tsv
+Saved Sales and Traffic Report from sp-api to Supabase table as amazon/sales-and-traffic/2026-06-23.csv
+Skipping Brand Analytics Search Catalog Performance Report: Amazon report failed with status FATAL
+Skipping Brand Analytics Search Query Performance Report: Amazon report failed with status FATAL
+Skipping Brand Analytics Search Terms Report: Amazon report failed with status FATAL
+Skipping Brand Analytics Repeat Purchase Report: Amazon report failed with status FATAL
+Saved Flat File Open Listings Data from sp-api to Supabase table as amazon/listings/open-listings-data/2026-06-23.csv
+Saved V2 Seller Performance Report from sp-api to Supabase table as amazon/seller-performance/v2/2026-06-23.csv
+Skipping V2 Settlement Report Data Flat File: SP-API request failed for /reports/2021-06-30/reports: 400  - {
+  "errors": [
+    {
+      "code": "InvalidInput",
+      "message": "Request for report type 1118 is not allowed at this time",
+      "details": ""
+    }
+  ]
+}
+Skipping Day Level Inventory Report: SP-API request failed for /reports/2021-06-30/reports: 400  - {
+  "errors": [
+    {
+      "code": "InvalidInput",
+      "message": "Report type 86900 does not support account ID of type class com.amazon.partner.account.id.MerchantAccountId.",
+      "details": ""
+    }
+  ]
+}
+Skipping Ads and Campaign Report: SP-API request failed for /reports/2021-06-30/reports: 400  - {
+  "errors": [
+    {
+      "code": "InvalidInput",
+      "message": "Invalid Report Type _REPLACE_WITH_ADS_CAMPAIGN_REPORT_TYPE_ID_",
+      "details": ""
+    }
+  ]
+}
+Skipping LIS Data: Amazon report failed with status FATAL
+Skipping Payment All Statements Report: SP-API request failed for /reports/2021-06-30/reports: 400  - {
+  "errors": [
+    {
+      "code": "InvalidInput",
+      "message": "Request for report type 1117 is not allowed at this time",
+      "details": ""
+    }
+  ]
+}
+Saved Ledger Summary Report from sp-api to Supabase table as amazon/ledger/2026-06-23.tsv
+Ingesting downloads\amazon\mtr\2026-06-15.csv ...
+Syncing 875 rows to Supabase DB for amazon_mtr...
+Synced 875 rows to Supabase DB for amazon_mtr.
+Ingested downloads\amazon\mtr\2026-06-15.csv -> [ { tableName: 'AmazonMtrRow', inserted: 875 } ]
+Ingesting downloads\amazon\mtr\2026-06-23.csv ...
+Syncing 878 rows to Supabase DB for amazon_mtr...
+Synced 878 rows to Supabase DB for amazon_mtr.
+Ingested downloads\amazon\mtr\2026-06-23.csv -> [ { tableName: 'AmazonMtrRow', inserted: 878 } ]
+Ingesting downloads\amazon\claims-reimbursements\2026-06-15.csv ...
+Syncing 875 rows to Supabase DB for amazon_claims_reimbursements...
+Synced 875 rows to Supabase DB for amazon_claims_reimbursements.
+Ingested downloads\amazon\claims-reimbursements\2026-06-15.csv -> [ { tableName: 'AmazonClaimsReimbursementsRow', inserted: 875 } ]
+Ingesting downloads\amazon\claims-reimbursements\2026-06-23.csv ...
+Syncing 1092 rows to Supabase DB for amazon_claims_reimbursements...
+Synced 1092 rows to Supabase DB for amazon_claims_reimbursements.
+Ingested downloads\amazon\claims-reimbursements\2026-06-23.csv -> [ { tableName: 'AmazonClaimsReimbursementsRow', inserted: 1092 } ]
+Ingesting downloads\amazon\fba\removal-shipment-detail\2026-06-15.tsv ...
+Syncing 335 rows to Supabase DB for amazon_fba_removal_shipment_detail...
+Synced 335 rows to Supabase DB for amazon_fba_removal_shipment_detail.
+Ingested downloads\amazon\fba\removal-shipment-detail\2026-06-15.tsv -> [ { tableName: 'AmazonReturnsB2bRow', inserted: 335 } ]
+Ingesting downloads\amazon\fba\removal-shipment-detail\2026-06-23.tsv ...
+Syncing 500 rows to Supabase DB for amazon_fba_removal_shipment_detail...
+Synced 500 rows to Supabase DB for amazon_fba_removal_shipment_detail.
+Ingested downloads\amazon\fba\removal-shipment-detail\2026-06-23.tsv -> [ { tableName: 'AmazonReturnsB2bRow', inserted: 500 } ]
+Ingesting downloads\amazon\fba\customer-returns\2026-06-15.tsv ...
+Syncing 3000 rows to Supabase DB for amazon_fba_customer_returns...
+Synced 3000 rows to Supabase DB for amazon_fba_customer_returns.
+Ingested downloads\amazon\fba\customer-returns\2026-06-15.tsv -> [ { tableName: 'AmazonReturnsB2cRow', inserted: 3000 } ]
+Ingesting downloads\amazon\fba\customer-returns\2026-06-23.tsv ...
+Syncing 3755 rows to Supabase DB for amazon_fba_customer_returns...
+Synced 3755 rows to Supabase DB for amazon_fba_customer_returns.
+Ingested downloads\amazon\fba\customer-returns\2026-06-23.tsv -> [ { tableName: 'AmazonReturnsB2cRow', inserted: 3755 } ]
+Ingesting downloads\amazon\fba\removal-order-detail\2026-06-15.tsv ...
+Syncing 301 rows to Supabase DB for amazon_fba_removal_order_detail...
+Synced 301 rows to Supabase DB for amazon_fba_removal_order_detail.
+Ingested downloads\amazon\fba\removal-order-detail\2026-06-15.tsv -> [ { tableName: 'AmazonReturnsB2bOrderRow', inserted: 301 } ]
+Ingesting downloads\amazon\fba\removal-order-detail\2026-06-23.tsv ...
+Syncing 489 rows to Supabase DB for amazon_fba_removal_order_detail...
+Synced 489 rows to Supabase DB for amazon_fba_removal_order_detail.
+Ingested downloads\amazon\fba\removal-order-detail\2026-06-23.tsv -> [ { tableName: 'AmazonReturnsB2bOrderRow', inserted: 489 } ]
+Ingesting downloads\amazon\sales-and-traffic\1781523554227.csv ...
+Syncing 219 rows to Supabase DB for amazon_sales_and_traffic...
+Synced 219 rows to Supabase DB for amazon_sales_and_traffic.
+Ingested downloads\amazon\sales-and-traffic\1781523554227.csv -> [ { tableName: 'AmazonSalesAndTrafficRow', inserted: 219 } ]
+Ingesting downloads\amazon\sales-and-traffic\2026-06-15.csv ...
+Syncing 218 rows to Supabase DB for amazon_sales_and_traffic...
+Synced 218 rows to Supabase DB for amazon_sales_and_traffic.
+Ingested downloads\amazon\sales-and-traffic\2026-06-15.csv -> [ { tableName: 'AmazonSalesAndTrafficRow', inserted: 218 } ]
+Ingesting downloads\amazon\sales-and-traffic\2026-06-23.csv ...
+Syncing 220 rows to Supabase DB for amazon_sales_and_traffic...
+Synced 220 rows to Supabase DB for amazon_sales_and_traffic.
+Ingested downloads\amazon\sales-and-traffic\2026-06-23.csv -> [ { tableName: 'AmazonSalesAndTrafficRow', inserted: 220 } ]
+Ingesting downloads\amazon\listings\open-listings-data\1781523692320.csv ...
+Syncing 156 rows to Supabase DB for amazon_flat_file_open_listings_data...
+Synced 156 rows to Supabase DB for amazon_flat_file_open_listings_data.
+Ingested downloads\amazon\listings\open-listings-data\1781523692320.csv -> [ { tableName: 'AmazonFlatFileOpenListingsDataRow', inserted: 156 } ]
+Ingesting downloads\amazon\listings\open-listings-data\2026-06-15.csv ...
+Syncing 156 rows to Supabase DB for amazon_flat_file_open_listings_data...
+Synced 156 rows to Supabase DB for amazon_flat_file_open_listings_data.
+Ingested downloads\amazon\listings\open-listings-data\2026-06-15.csv -> [ { tableName: 'AmazonFlatFileOpenListingsDataRow', inserted: 156 } ]
+Ingesting downloads\amazon\listings\open-listings-data\2026-06-23.csv ...
+Syncing 160 rows to Supabase DB for amazon_flat_file_open_listings_data...
+Synced 160 rows to Supabase DB for amazon_flat_file_open_listings_data.
+Ingested downloads\amazon\listings\open-listings-data\2026-06-23.csv -> [ { tableName: 'AmazonFlatFileOpenListingsDataRow', inserted: 160 } ]
+Ingesting downloads\amazon\ledger\1781523719043.tsv ...
+Syncing 317 rows to Supabase DB for amazon_ledger_summary...
+Synced 317 rows to Supabase DB for amazon_ledger_summary.
+Pruned ledger records older than 60 days.
+Ingested downloads\amazon\ledger\1781523719043.tsv -> [ { tableName: 'AmazonLedgerSummaryRow', inserted: 317 } ]
+Ingesting downloads\amazon\ledger\2026-06-15.tsv ...
+Syncing 317 rows to Supabase DB for amazon_ledger_summary...
+Synced 317 rows to Supabase DB for amazon_ledger_summary.
+Pruned ledger records older than 60 days.
+Ingested downloads\amazon\ledger\2026-06-15.tsv -> [ { tableName: 'AmazonLedgerSummaryRow', inserted: 317 } ]
+Ingesting downloads\amazon\ledger\2026-06-23.tsv ...
+Syncing 317 rows to Supabase DB for amazon_ledger_summary...
+Synced 317 rows to Supabase DB for amazon_ledger_summary.
+Pruned ledger records older than 60 days.
+Ingested downloads\amazon\ledger\2026-06-23.tsv -> [ { tableName: 'AmazonLedgerSummaryRow', inserted: 317 } ]
+Ingesting downloads\amazon\seller-performance\v2\1781523739865.csv ...
+Syncing 1 rows to Supabase DB for amazon_v2_seller_performance...
+Synced 1 rows to Supabase DB for amazon_v2_seller_performance.
+Ingested downloads\amazon\seller-performance\v2\1781523739865.csv -> [ { tableName: 'AmazonV2SellerPerformanceRow', inserted: 1 } ]
+Ingesting downloads\amazon\seller-performance\v2\2026-06-15.csv ...
+Syncing 1 rows to Supabase DB for amazon_v2_seller_performance...
+Synced 1 rows to Supabase DB for amazon_v2_seller_performance.
+Ingested downloads\amazon\seller-performance\v2\2026-06-15.csv -> [ { tableName: 'AmazonV2SellerPerformanceRow', inserted: 1 } ]
+Ingesting downloads\amazon\seller-performance\v2\2026-06-23.csv ...
+Syncing 1 rows to Supabase DB for amazon_v2_seller_performance...
+Synced 1 rows to Supabase DB for amazon_v2_seller_performance.
+Ingested downloads\amazon\seller-performance\v2\2026-06-23.csv -> [ { tableName: 'AmazonV2SellerPerformanceRow', inserted: 1 } ]
+Ingesting downloads\amazon\tax\monthly-b2b\MTR_B2B-MAY-2026-A2579AA9223CFN.csv ...
+Syncing 402 rows to Supabase DB for amazon_gst_monthly_b2b...
+Synced 402 rows to Supabase DB for amazon_gst_monthly_b2b.
+Ingested downloads\amazon\tax\monthly-b2b\MTR_B2B-MAY-2026-A2579AA9223CFN.csv -> [ { tableName: 'AmazonGstMonthlyB2bRow', inserted: 402 } ]
+Ingesting downloads\amazon\tax\monthly-b2c\MTR_B2C-MAY-2026-A2579AA9223CFN.csv ...
+Syncing 25436 rows to Supabase DB for amazon_gst_monthly_b2c...
+Synced 25436 rows to Supabase DB for amazon_gst_monthly_b2c.
+Ingested downloads\amazon\tax\monthly-b2c\MTR_B2C-MAY-2026-A2579AA9223CFN.csv -> [ { tableName: 'AmazonGstMonthlyB2cRow', inserted: 25436 } ]
+Ingesting downloads\amazon\tax\monthly-str\MTR_STOCK_TRANSFER-MAY-2026-A2579AA9223CFN.csv ...
+Syncing 6759 rows to Supabase DB for amazon_gst_monthly_str...
+Synced 6759 rows to Supabase DB for amazon_gst_monthly_str.
+Ingested downloads\amazon\tax\monthly-str\MTR_STOCK_TRANSFER-MAY-2026-A2579AA9223CFN.csv -> [ { tableName: 'AmazonGstMonthlyStrRow', inserted: 6759 } ]
+Classified 893157020617.csv as amazon_v2_settlement_report_data_flat_file_v2_cod
+Ingesting downloads\amazon\payment-statements\v2\893157020617.csv ...
+Syncing 7241 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod...
+Synced 7241 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod.
+Ingested downloads\amazon\payment-statements\v2\893157020617.csv -> [ { tableName: 'AmazonCODSettlementRow', inserted: 7241 } ]
+Classified 893158020617.csv as amazon_v2_settlement_report_data_flat_file_v2_cod
+Ingesting downloads\amazon\payment-statements\v2\893158020617.csv ...
+Syncing 7725 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod...
+Synced 7725 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod.
+Ingested downloads\amazon\payment-statements\v2\893158020617.csv -> [ { tableName: 'AmazonCODSettlementRow', inserted: 7725 } ]
+Classified 893385020618.csv as amazon_v2_settlement_report_data_flat_file_v2_cod
+Ingesting downloads\amazon\payment-statements\v2\893385020618.csv ...
+Syncing 7737 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod...
+Synced 7737 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod.
+Ingested downloads\amazon\payment-statements\v2\893385020618.csv -> [ { tableName: 'AmazonCODSettlementRow', inserted: 7737 } ]
+Classified 893386020618.csv as amazon_v2_settlement_report_data_flat_file_v2_cod
+Ingesting downloads\amazon\payment-statements\v2\893386020618.csv ...
+Syncing 8257 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod...
+Synced 8257 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod.
+Ingested downloads\amazon\payment-statements\v2\893386020618.csv -> [ { tableName: 'AmazonCODSettlementRow', inserted: 8257 } ]
+Classified 893389020618.csv as amazon_v2_settlement_report_data_flat_file_v2_electronics
+Ingesting downloads\amazon\payment-statements\v2\893389020618.csv ...
+Syncing 3506 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics...
+Synced 3506 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics.
+Ingested downloads\amazon\payment-statements\v2\893389020618.csv -> [ { tableName: 'AmazonElectronicsSettlementRow', inserted: 3506 } ]
+Classified 893391020618.csv as amazon_v2_settlement_report_data_flat_file_v2_electronics
+Ingesting downloads\amazon\payment-statements\v2\893391020618.csv ...
+Syncing 3315 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics...
+Synced 3315 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics.
+Ingested downloads\amazon\payment-statements\v2\893391020618.csv -> [ { tableName: 'AmazonElectronicsSettlementRow', inserted: 3315 } ]
+Classified 893615020619.csv as amazon_v2_settlement_report_data_flat_file_v2_cod
+Ingesting downloads\amazon\payment-statements\v2\893615020619.csv ...
+Syncing 8109 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod...
+Synced 8109 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod.
+Ingested downloads\amazon\payment-statements\v2\893615020619.csv -> [ { tableName: 'AmazonCODSettlementRow', inserted: 8109 } ]
+Classified 893616020619.csv as amazon_v2_settlement_report_data_flat_file_v2_cod
+Ingesting downloads\amazon\payment-statements\v2\893616020619.csv ...
+Syncing 7596 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod...
+Synced 7596 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_cod.
+Ingested downloads\amazon\payment-statements\v2\893616020619.csv -> [ { tableName: 'AmazonCODSettlementRow', inserted: 7596 } ]
+Classified 893618020619.csv as amazon_v2_settlement_report_data_flat_file_v2_electronics
+Ingesting downloads\amazon\payment-statements\v2\893618020619.csv ...
+Syncing 2748 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics...
+Synced 2748 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics.
+Ingested downloads\amazon\payment-statements\v2\893618020619.csv -> [ { tableName: 'AmazonElectronicsSettlementRow', inserted: 2748 } ]
+Classified 893619020619.csv as amazon_v2_settlement_report_data_flat_file_v2_electronics
+Ingesting downloads\amazon\payment-statements\v2\893619020619.csv ...
+Syncing 2915 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics...
+Synced 2915 rows to Supabase DB for amazon_v2_settlement_report_data_flat_file_v2_electronics.
+Ingested downloads\amazon\payment-statements\v2\893619020619.csv -> [ { tableName: 'AmazonElectronicsSettlementRow', inserted: 2915 } ]
+=== Syncing Amazon GST Master Table ===
+Proceeding with incremental sync for AmazonGstMasterRow...
+Fetching B2B GST records...
+Found 402 B2B records to map.
+Fetching B2C GST records...
+Found 25435 B2C records to map.
+Inserting/merging 25837 records into Master table...
+Synced batch 1 of 26
+Synced batch 2 of 26
+Synced batch 3 of 26
+Synced batch 4 of 26
+Synced batch 5 of 26
+Synced batch 6 of 26
+Synced batch 7 of 26
+Synced batch 8 of 26
+Synced batch 9 of 26
+Synced batch 10 of 26
+Synced batch 11 of 26
+Synced batch 12 of 26
+Synced batch 13 of 26
+Synced batch 14 of 26
+Synced batch 15 of 26
+Synced batch 16 of 26
+Synced batch 17 of 26
+Synced batch 18 of 26
+Synced batch 19 of 26
+Synced batch 20 of 26
+Synced batch 21 of 26
+Synced batch 22 of 26
+Synced batch 23 of 26
+Synced batch 24 of 26
+Synced batch 25 of 26
+Synced batch 26 of 26
+✅ Master table sync completed successfully.
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T11:27:10.358Z
+🚪 EXIT CODE: 0
+⏳ DURATION: 1099.56s
+============================================================

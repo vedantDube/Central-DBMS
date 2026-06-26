@@ -64,6 +64,12 @@ const ALL_TASKS: ScriptTask[] = [
     description: "Fetches production orders from Easyecom API"
   },
   {
+    name: "Easyecom Fetch Marketplace Listings",
+    command: "tsx",
+    args: ["src/easyecom/fetch-marketplace-listings.ts"],
+    description: "Fetches marketplace listing mappings from Easyecom API"
+  },
+  {
     name: "Shopify Fetch Orders",
     command: "tsx",
     args: ["src/shopify/fetch-orders.ts"],
@@ -92,6 +98,12 @@ const ALL_TASKS: ScriptTask[] = [
     command: "tsx",
     args: ["src/reports/download-report.ts"],
     description: "Playwright automation template to download portal reports"
+  },
+  {
+    name: "Amazon Map Cost Inventory",
+    command: "tsx",
+    args: ["src/amazon/map-cost-inventory.ts"],
+    description: "Maps EasyEcom inventory costs to Amazon GST Master table"
   }
 ];
 

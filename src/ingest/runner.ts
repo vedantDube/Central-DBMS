@@ -66,6 +66,7 @@ type AmazonReportTableConfig = {
     | "amazonGstMonthlyB2bRow"
     | "amazonGstMonthlyB2cRow"
     | "amazonGstMonthlyStrRow"
+    | "amazonUnifiedTransactionRow"
     | "amazonCODSettlementRow"
     | "amazonElectronicsSettlementRow";
 };
@@ -118,6 +119,10 @@ const amazonReportTableConfigs: Record<string, AmazonReportTableConfig> = {
   amazon_gst_monthly_str: {
     tableName: "AmazonGstMonthlyStrRow",
     delegateName: "amazonGstMonthlyStrRow",
+  },
+  amazon_unified_transaction: {
+    tableName: "AmazonUnifiedTransactionRow",
+    delegateName: "amazonUnifiedTransactionRow",
   },
   amazon_v2_settlement_report_data_flat_file_v2_cod: {
     tableName: "AmazonCODSettlementRow",
@@ -478,6 +483,37 @@ const amazonReportFields: Record<string, string[]> = {
     "irn_date",
     "irn_error_code",
   ],
+  amazon_unified_transaction: [
+    "datetime",
+    "settlement_id",
+    "type",
+    "order_id",
+    "sku",
+    "description",
+    "quantity",
+    "marketplace",
+    "account_type",
+    "fulfillment",
+    "order_city",
+    "order_state",
+    "order_postal",
+    "product_sales",
+    "shipping_credits",
+    "gift_wrap_credits",
+    "promotional_rebates",
+    "total_sales_tax_liablegst_before_adjusting_tcs",
+    "tcscgst",
+    "tcssgst",
+    "tcsigst",
+    "tds_section_194o",
+    "selling_fees",
+    "fba_fees",
+    "other_transaction_fees",
+    "other",
+    "total",
+    "transaction_status",
+    "transaction_release_date",
+  ],
   amazon_v2_settlement_report_data_flat_file_v2_cod: [
     "settlementid",
     "settlementstartdate",
@@ -600,6 +636,34 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
     const sourceName = table.sourceName ?? fileName;
 
     const items = table.jsonRows || table.rows;
+
+    function normalizeIdentifyingFields(rowObj: Record<string, any>, reportKey: string) {
+      const fieldsToNormalize: Record<string, string[]> = {
+        amazon_mtr: ["sellersku"],
+        amazon_claims_reimbursements: ["reimbursementid"],
+        amazon_fba_removal_shipment_detail: ["orderid", "sku", "fnsku", "disposition"],
+        amazon_fba_customer_returns: ["orderid", "sku", "returndate", "licenseplatenumber"],
+        amazon_fba_removal_order_detail: ["orderid", "sku", "fnsku", "disposition"],
+        amazon_sales_and_traffic: ["type", "date", "parentAsin"],
+        amazon_flat_file_open_listings_data: ["sku"],
+        amazon_ledger_summary: ["date", "fnsku", "disposition", "location"],
+        amazon_v2_seller_performance: ["marketplaceId"],
+        amazon_gst_monthly_b2b: ["order_id", "sku", "shipment_item_id", "transaction_type"],
+        amazon_gst_monthly_b2c: ["order_id", "sku", "shipment_item_id", "transaction_type"],
+        amazon_gst_monthly_str: ["invoice_number", "transaction_id", "sku"],
+        amazon_unified_transaction: ["datetime", "order_id", "sku", "type", "account_type"],
+      };
+
+      const cols = fieldsToNormalize[reportKey];
+      if (cols) {
+        for (const col of cols) {
+          if (rowObj[col] === null || rowObj[col] === undefined) {
+            rowObj[col] = "";
+          }
+        }
+      }
+    }
+
     const rowsToInsert = items.map((row: any, rowIndex: number) => {
       let data: any;
       if (table.jsonRows) {
@@ -642,6 +706,8 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
         rowObj.parsedDate = parseLedgerDate(rowObj.date);
       }
 
+      normalizeIdentifyingFields(rowObj, reportKey);
+
       return rowObj;
     });
 
@@ -655,61 +721,67 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
       deleteMany: (args: any) => Promise<unknown>;
       createMany: (args: {
         data: any[];
+        skipDuplicates?: boolean;
       }) => Promise<unknown>;
     };
 
     console.log(`Syncing ${rowsToInsert.length} rows to Supabase DB for ${reportKey}...`);
 
-    if (reportKey === "amazon_ledger_summary") {
-      const uniqueDates = Array.from(
-        new Set(
-          rowsToInsert
-            .map((r) => r.date)
-            .filter((d): d is string => typeof d === "string" && d.length > 0)
-        )
-      );
-      if (uniqueDates.length > 0) {
-        await supabaseDelegate.deleteMany({
-          where: {
-            reportKey,
-            date: { in: uniqueDates },
-          },
-        });
-      }
-    } else if (
-      reportKey === "amazon_v2_settlement_report_data_flat_file_v2_cod" ||
-      reportKey === "amazon_v2_settlement_report_data_flat_file_v2_electronics"
-    ) {
-      const uniqueSettlements = Array.from(
-        new Set(
-          rowsToInsert
-            .map((r) => r.settlementid)
-            .filter((s): s is string => typeof s === "string" && s.length > 0)
-        )
-      );
-      if (uniqueSettlements.length > 0) {
-        await supabaseDelegate.deleteMany({
-          where: {
-            reportKey,
-            settlementid: { in: uniqueSettlements },
-          },
-        });
-      }
-    } else {
-      await supabaseDelegate.deleteMany({
-        where: {
-          reportKey,
-        },
-      });
-    }
-
     if (rowsToInsert.length > 0) {
-      const batchSize = 1000;
-      for (let i = 0; i < rowsToInsert.length; i += batchSize) {
-        const batch = rowsToInsert.slice(i, i + batchSize);
-        await supabaseDelegate.createMany({
-          data: batch,
-        });
+      if (
+        reportKey === "amazon_v2_settlement_report_data_flat_file_v2_cod" ||
+        reportKey === "amazon_v2_settlement_report_data_flat_file_v2_electronics"
+      ) {
+        const uniqueSettlements = Array.from(
+          new Set(
+            rowsToInsert
+              .map((r) => r.settlementid)
+              .filter((s): s is string => typeof s === "string" && s.length > 0)
+          )
+        );
+        if (uniqueSettlements.length > 0) {
+          await supabaseDelegate.deleteMany({
+            where: {
+              reportKey,
+              settlementid: { in: uniqueSettlements },
+            },
+          });
+        }
+      }
+
+      if (reportKey === "amazon_mtr") {
+        for (const row of rowsToInsert) {
+          await (supabasePrisma as any).amazonMtrRow.upsert({
+            where: { sellersku: row.sellersku },
+            update: row,
+            create: row,
+          });
+        }
+      } else if (reportKey === "amazon_flat_file_open_listings_data") {
+        for (const row of rowsToInsert) {
+          await (supabasePrisma as any).amazonFlatFileOpenListingsDataRow.upsert({
+            where: { sku: row.sku },
+            update: row,
+            create: row,
+          });
+        }
+      } else if (reportKey === "amazon_v2_seller_performance") {
+        for (const row of rowsToInsert) {
+          await (supabasePrisma as any).amazonV2SellerPerformanceRow.upsert({
+            where: { marketplaceId: row.marketplaceId },
+            update: row,
+            create: row,
+          });
+        }
+      } else {
+        const batchSize = 1000;
+        for (let i = 0; i < rowsToInsert.length; i += batchSize) {
+          const batch = rowsToInsert.slice(i, i + batchSize);
+          await supabaseDelegate.createMany({
+            data: batch,
+            skipDuplicates: true,
+          });
+        }
       }
     }
     console.log(`Synced ${rowsToInsert.length} rows to Supabase DB for ${reportKey}.`);

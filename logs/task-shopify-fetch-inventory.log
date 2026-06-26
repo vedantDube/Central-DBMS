@@ -1,0 +1,36 @@
+
+============================================================
+⏰ RUN STARTED AT: 2026-06-23T11:05:36.453Z
+💻 COMMAND: tsx src/shopify/fetch-inventory.ts --snapshot Opening
+============================================================
+
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Starting inventory sync (Opening)
+Fetching page 1
+Received 250 inventory items
+PrismaClientUnknownRequestError: 
+Invalid `prisma.shopifyInventoryItem.upsert()` invocation in
+C:\Users\Vedan\OneDrive\Desktop\cdbms\src\shopify\fetch-inventory.ts:156:37
+
+  153   trackedEditable: item.trackedEditable ?? null,
+  154 };
+  155 
+→ 156 await prisma.shopifyInventoryItem.upsert(
+Error in connector: Error querying the database: FATAL: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at ei.handleRequestError (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\RequestHandler.ts:237:13)
+    at ei.handleAndLogRequestError (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\RequestHandler.ts:174:12)
+    at ei.request (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\RequestHandler.ts:143:12)
+    at async a (C:\Users\Vedan\OneDrive\Desktop\cdbms\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:833:24)
+    at async saveInventoryItem (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\shopify\fetch-inventory.ts:156:3)
+    at async Promise.all (index 16)
+    at async main (C:\Users\Vedan\OneDrive\Desktop\cdbms\src\shopify\fetch-inventory.ts:286:7) {
+  clientVersion: '6.19.3'
+}
+
+
+============================================================
+✅ RUN FINISHED AT: 2026-06-23T11:05:39.730Z
+🚪 EXIT CODE: 1
+⏳ DURATION: 3.28s
+============================================================

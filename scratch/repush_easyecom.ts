@@ -40,6 +40,10 @@ async function main() {
   const delProdOrder = await prisma.easyEcomProductionOrder.deleteMany();
   console.log(`Deleted ${delProdOrder.count} records.`);
 
+  console.log("Deleting all records from EasyEcomMarketplaceListing...");
+  const delListing = await prisma.easyEcomMarketplaceListing.deleteMany();
+  console.log(`Deleted ${delListing.count} records.`);
+
   console.log("\n=== Fetching and pushing fresh data ===");
 
   console.log("1. Ingesting Product Master...");
@@ -53,6 +57,9 @@ async function main() {
 
   console.log("\n4. Ingesting Inventory...");
   await runCommand("npx", ["tsx", "src/easyecom/fetch-inventory.ts", "--snapshot", "Opening"]);
+
+  console.log("\n5. Ingesting Marketplace Listings...");
+  await runCommand("npx", ["tsx", "src/easyecom/fetch-marketplace-listings.ts"]);
 
   console.log("\n=== EasyEcom Fresh Ingestion Completed successfully! ===");
 }
