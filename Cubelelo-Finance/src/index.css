@@ -295,6 +295,14 @@
   background-color: rgba(30, 41, 59, 0.6) !important;
 }
 
+.dark-theme .bg-blue-50\/80 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+.dark-theme .hover\:bg-slate-100\/60:hover {
+  background-color: rgba(51, 65, 85, 0.6) !important;
+}
+
 .dark-theme .bg-white\/40 {
   background-color: rgba(30, 41, 59, 0.4) !important;
 }

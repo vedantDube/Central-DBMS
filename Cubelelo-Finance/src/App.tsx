@@ -100,6 +100,15 @@ export default function App() {
   // Amazon live financials state
   const [isLoadingAmazonData, setIsLoadingAmazonData] = useState<boolean>(false);
 
+  // Indirect expense breakdown state
+  const [showIndirectBreakdown, setShowIndirectBreakdown] = useState<boolean>(false);
+  const [indirectSummaryData, setIndirectSummaryData] = useState<{description: string, amount: number}[]>([]);
+  const [indirectSettlementData, setIndirectSettlementData] = useState<{description: string, amount: number}[]>([]);
+  const [indirectTotal, setIndirectTotal] = useState<number>(0);
+  const [indirectSettlementTotal, setIndirectSettlementTotal] = useState<number>(0);
+  const [isLoadingBreakdown, setIsLoadingBreakdown] = useState<boolean>(false);
+  const [breakdownFetched, setBreakdownFetched] = useState<boolean>(false);
+
   // Database integration state
   const [dbStatus, setDbStatus] = useState<any>(null);
   const [b2cSchemaData, setB2cSchemaData] = useState<any>(null);
@@ -151,6 +160,7 @@ export default function App() {
             cogs: data.data.cogs,
             cm1: data.data.cm1,
             indirectExpAndPeople: data.data.indirectExpenses,
+            advertisingSpend: data.data.advertisingSpend ?? 0,
             cm2: cm2,
             netProfit: cm2,
             lastUpdated: new Date().toISOString(),
@@ -190,6 +200,82 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch Amazon operational metrics:", err);
+    }
+  };
+
+  const fetchShopifyFinancials = async (start: string, end: string) => {
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const res = await fetch(`/api/shopify/financials?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setChannels(prev => prev.map(ch => {
+          if (ch.id !== "shopify") return ch;
+          const cm2 = data.data.cm2;
+          return {
+            ...ch,
+            revenue: data.data.revenue,
+            cogs: data.data.cogs,
+            cm1: data.data.cm1,
+            indirectExpAndPeople: data.data.indirectExpenses,
+            advertisingSpend: data.data.advertisingSpend ?? 0,
+            cm2: cm2,
+            netProfit: cm2,
+            lastUpdated: new Date().toISOString(),
+          };
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify financials:", err);
+    }
+  };
+
+  const fetchShopifyOperationalMetrics = async (start: string, end: string) => {
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const res = await fetch(`/api/shopify/operational-metrics?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setChannels(prev => prev.map(ch => {
+          if (ch.id !== "shopify") return ch;
+          return {
+            ...ch,
+            aov: data.data.aov ?? 0,
+            ordersPerDay: data.data.ordersPerDay ?? 0,
+            listingsCount: data.data.listingsCount ?? 0,
+            activeListingCount: data.data.activeListingCount ?? 0,
+            revenuePerSku: data.data.revenuePerSku ?? 0,
+            returnPct: data.data.returnPct ?? 0,
+            claimPct: data.data.claimPct ?? 0,
+            reimbursementPct: data.data.reimbursementPct ?? 0,
+            outOfStockDays: data.data.outOfStockDays ?? 0,
+            ageingInventoryPct: data.data.ageingInventoryPct ?? 0,
+            deadStockPct: data.data.deadStockPct ?? 0,
+          };
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify operational metrics:", err);
+    }
+  };
+
+  const fetchExpenseBreakdown = async (start: string, end: string) => {
+    setIsLoadingBreakdown(true);
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setIndirectSummaryData(data.data.summary);
+        setIndirectSettlementData(data.data.settlementBreakdown);
+        setIndirectTotal(data.data.total);
+        setIndirectSettlementTotal(data.data.settlementTotal);
+        setBreakdownFetched(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch expense breakdown:", err);
+    } finally {
+      setIsLoadingBreakdown(false);
     }
   };
 
@@ -297,6 +383,10 @@ export default function App() {
     fetchAmazonOperationalMetrics(startDateStr, endDateStr);
     fetchSkuProfitability(startDateStr, endDateStr);
     fetchAnomalies(startDateStr, endDateStr);
+    fetchShopifyFinancials(startDateStr, endDateStr);
+    fetchShopifyOperationalMetrics(startDateStr, endDateStr);
+    setBreakdownFetched(false);
+    setShowIndirectBreakdown(false);
   }, [startDateStr, endDateStr]);
 
   // Deterministic noise generator for 90-day historical timeseries data
@@ -1703,16 +1793,91 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Row 4: Indirect Exp & People Cost */}
-                    <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
-                      <div className="flex flex-col">
-                        <span className="font-sans text-slate-700">Indirect Exp + People Cost Allocation</span>
-                        <span className="text-[10px] font-sans text-slate-400">Attributed staffing, dark store rents, corporate overheads</span>
+                    {/* Row 4: Indirect Exp & People Cost (Clickable Dropdown) */}
+                    <div>
+                      <div
+                        className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700 cursor-pointer select-none"
+                        onClick={() => {
+                          if (selectedChannelId === "amazon") {
+                            const next = !showIndirectBreakdown;
+                            setShowIndirectBreakdown(next);
+                            if (next && !breakdownFetched) {
+                              fetchExpenseBreakdown(startDateStr, endDateStr);
+                            }
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          {selectedChannelId === "amazon" && (
+                            <ChevronRight
+                              size={14}
+                              className={`text-slate-400 transition-transform duration-200 ${showIndirectBreakdown ? "rotate-90" : ""}`}
+                            />
+                          )}
+                          <div className="flex flex-col">
+                            <span className="font-sans text-slate-700">Indirect Exp + People Cost Allocation</span>
+                            <span className="text-[10px] font-sans text-slate-400">
+                              {selectedChannelId === "amazon" ? "Click to view fee breakdown — FBA fees, commissions, closing fees" : "Attributed staffing, dark store rents, corporate overheads"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {renderComparisonBadge(activeSimulatedChannel.indirectExpAndPeople, activeChannelComparativeMetrics?.indirectExpAndPeople, true)}
+                          <span className="text-slate-700">-{formatCurrency(activeSimulatedChannel.indirectExpAndPeople)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {renderComparisonBadge(activeSimulatedChannel.indirectExpAndPeople, activeChannelComparativeMetrics?.indirectExpAndPeople, true)}
-                        <span className="text-slate-700">-{formatCurrency(activeSimulatedChannel.indirectExpAndPeople)}</span>
-                      </div>
+
+                      {/* Expense Breakdown Dropdown */}
+                      {selectedChannelId === "amazon" && showIndirectBreakdown && (
+                        <div className="bg-slate-50/80 border-l-2 border-slate-300 ml-4 mb-1 rounded-b overflow-hidden">
+                          {isLoadingBreakdown ? (
+                            <div className="flex items-center justify-center py-4 gap-2 text-xs text-slate-400">
+                              <RefreshCw size={12} className="animate-spin" />
+                              <span>Loading breakdown...</span>
+                            </div>
+                          ) : (
+                            <div>
+                              {/* High-level summary from Unified Transactions (matches outer total) */}
+                              <div className="px-3 pt-2 pb-1">
+                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Fee Summary (from Transactions Report)</span>
+                              </div>
+                              <div className="divide-y divide-slate-100">
+                                {indirectSummaryData.map((item, idx) => (
+                                  <div key={`s-${idx}`} className="flex items-center justify-between py-2 px-3 hover:bg-slate-100/60 text-xs font-mono">
+                                    <span className="text-slate-700 font-sans font-medium">{item.description}</span>
+                                    <span className="text-slate-800 font-semibold">{formatCurrency(item.amount)}</span>
+                                  </div>
+                                ))}
+                                <div className="flex items-center justify-between py-2 px-3 bg-blue-50/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                  <span className="text-blue-800 font-sans">Total Indirect Expenses</span>
+                                  <span className="text-blue-900">{formatCurrency(indirectTotal)}</span>
+                                </div>
+                              </div>
+
+                              {/* Detailed breakdown from settlement tables */}
+                              {indirectSettlementData.length > 0 && (
+                                <>
+                                  <div className="px-3 pt-3 pb-1 border-t border-slate-200">
+                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Detailed Breakdown (from Settlement Reports)</span>
+                                  </div>
+                                  <div className="divide-y divide-slate-100">
+                                    {indirectSettlementData.map((item, idx) => (
+                                      <div key={`d-${idx}`} className="flex items-center justify-between py-1.5 px-3 hover:bg-slate-100/60 text-xs font-mono">
+                                        <span className="text-slate-600 font-sans">{item.description}</span>
+                                        <span className="text-slate-700">{formatCurrency(item.amount)}</span>
+                                      </div>
+                                    ))}
+                                    <div className="flex items-center justify-between py-2 px-3 bg-slate-100/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                      <span className="text-slate-600 font-sans">Settlement Total</span>
+                                      <span className="text-slate-700">{formatCurrency(indirectSettlementTotal)}</span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Added Row: Performance Ad Spend */}

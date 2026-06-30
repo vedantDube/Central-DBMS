@@ -825,7 +825,7 @@ async function startServer() {
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
-      const [gstResult, feesResult] = await Promise.all([
+      const [gstResult, feesResult, adsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN tax_exclusive_gross ELSE 0 END), 0) AS revenue,
@@ -841,7 +841,12 @@ async function startServer() {
             COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(other_transaction_fees, ',', ''), '') AS numeric))), 0) AS other_fees_total
           FROM "Amazon_Unified_Transactions"
           WHERE 1=1 ${utDateFilter}
-        `, params)
+        `, params),
+        client.query(`
+          SELECT COALESCE(SUM(CAST(NULLIF(spend, '') AS numeric)), 0) AS total_ad_spend
+          FROM "AmazonAdsCampaignRow"
+          WHERE currency_code = 'INR'
+        `)
       ]);
 
       const revenue = parseFloat(gstResult.rows[0].revenue);
@@ -854,7 +859,9 @@ async function startServer() {
       const sellingFees = parseFloat(feesResult.rows[0].selling_fees_total);
       const otherFees = parseFloat(feesResult.rows[0].other_fees_total);
       const indirectExpenses = fbaFees + sellingFees + otherFees;
-      const cm2 = cm1 - indirectExpenses;
+
+      const advertisingSpend = parseFloat(adsResult.rows[0].total_ad_spend);
+      const cm2 = cm1 - indirectExpenses - advertisingSpend;
 
       res.json({
         success: true,
@@ -868,11 +875,259 @@ async function startServer() {
           sellingFees,
           otherFees,
           indirectExpenses,
+          advertisingSpend,
           cm2,
         },
       });
     } catch (err: any) {
       console.error("Amazon financials query failed:", err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  });
+
+  // Amazon Expense Breakdown Endpoint
+  app.get("/api/amazon/expense-breakdown", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+
+      let utDateFilter = "";
+      let settlementDateFilter = "";
+      const params: string[] = [];
+
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
+        settlementDateFilter = `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date`;
+      }
+
+      const [utResult, settlementResult] = await Promise.all([
+        client.query(`
+          SELECT
+            COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(fba_fees, ',', ''), '') AS numeric))), 0) AS fba_fees_total,
+            COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(selling_fees, ',', ''), '') AS numeric))), 0) AS selling_fees_total,
+            COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(other_transaction_fees, ',', ''), '') AS numeric))), 0) AS other_fees_total
+          FROM "Amazon_Unified_Transactions"
+          WHERE 1=1 ${utDateFilter}
+        `, params),
+        client.query(`
+          SELECT
+            amountdescription AS description,
+            COALESCE(SUM(ABS(CAST(NULLIF(REPLACE(amount, ',', ''), '') AS numeric))), 0) AS amount
+          FROM (
+            SELECT amountdescription, amount FROM "Electronics_all_statements"
+            WHERE amounttype = 'ItemFees' AND amountdescription IS NOT NULL AND amountdescription != '' ${settlementDateFilter}
+            UNION ALL
+            SELECT amountdescription, amount FROM "COD_ALL_Settlements"
+            WHERE amounttype = 'ItemFees' AND amountdescription IS NOT NULL AND amountdescription != '' ${settlementDateFilter}
+          ) combined
+          GROUP BY amountdescription
+          ORDER BY amount DESC
+        `, params),
+      ]);
+
+      const fbaFees = parseFloat(utResult.rows[0].fba_fees_total);
+      const sellingFees = parseFloat(utResult.rows[0].selling_fees_total);
+      const otherFees = parseFloat(utResult.rows[0].other_fees_total);
+
+      const settlementBreakdown = settlementResult.rows.map((r: any) => ({
+        description: r.description,
+        amount: parseFloat(r.amount),
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          summary: [
+            { description: "FBA Fees (Pick & Pack + Weight Handling)", amount: fbaFees },
+            { description: "Selling / Commission Fees", amount: sellingFees },
+            { description: "Other Transaction Fees (Closing, Shipping, etc.)", amount: otherFees },
+          ],
+          total: fbaFees + sellingFees + otherFees,
+          settlementBreakdown,
+          settlementTotal: settlementBreakdown.reduce((s: number, i: any) => s + i.amount, 0),
+        },
+      });
+    } catch (err: any) {
+      console.error("Amazon expense breakdown query failed:", err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  });
+
+  // Shopify Financials Aggregation Endpoint
+  app.get("/api/shopify/financials", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+
+      let dateFilter = "";
+      const params: string[] = [];
+
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
+      }
+
+      const [revenueResult, cogsResult] = await Promise.all([
+        client.query(`
+          SELECT
+            COALESCE(SUM("totalPrice"), 0) AS revenue,
+            COALESCE(SUM("totalDiscounts"), 0) AS discounts,
+            COALESCE(SUM("totalTax"), 0) AS tax
+          FROM "ShopifyOrder" o
+          WHERE "cancelledAt" IS NULL
+            AND "financialStatus" NOT IN ('voided', 'refunded')
+            ${dateFilter}
+        `, params),
+        client.query(`
+          SELECT COALESCE(SUM(li."quantity" * inv."unitCost"), 0) AS cogs
+          FROM "ShopifyOrderLineItem" li
+          JOIN "ShopifyOrder" o ON o."id" = li."orderId"
+          LEFT JOIN "ShopifyInventoryItem" inv ON inv."sku" = li."sku" AND inv."sku" IS NOT NULL AND inv."sku" != ''
+          WHERE o."cancelledAt" IS NULL
+            AND o."financialStatus" NOT IN ('voided', 'refunded')
+            ${dateFilter}
+        `, params),
+      ]);
+
+      const revenue = parseFloat(revenueResult.rows[0].revenue);
+      const cogs = parseFloat(cogsResult.rows[0].cogs);
+      const cm1 = revenue - cogs;
+      const indirectExpenses = 0;
+      const advertisingSpend = 0;
+      const cm2 = cm1 - indirectExpenses - advertisingSpend;
+
+      res.json({
+        success: true,
+        data: {
+          revenue,
+          cogs,
+          cm1,
+          indirectExpenses,
+          advertisingSpend,
+          cm2,
+        },
+      });
+    } catch (err: any) {
+      console.error("Shopify financials query failed:", err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  });
+
+  // Shopify Operational Metrics Endpoint
+  app.get("/api/shopify/operational-metrics", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+
+      let dateFilter = "";
+      let returnDateFilter = "";
+      const params: string[] = [];
+
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
+        returnDateFilter = `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')`;
+      }
+
+      const [ordersResult, listingsResult, returnsResult] = await Promise.all([
+        client.query(`
+          SELECT
+            COALESCE(SUM("totalPrice"), 0) AS total_revenue,
+            COUNT(*) AS total_orders,
+            COALESCE(SUM(
+              (SELECT COALESCE(SUM(li."quantity"), 0) FROM "ShopifyOrderLineItem" li WHERE li."orderId" = o."id")
+            ), 0) AS total_qty
+          FROM "ShopifyOrder" o
+          WHERE "cancelledAt" IS NULL
+            AND "financialStatus" NOT IN ('voided', 'refunded')
+            ${dateFilter}
+        `, params),
+        client.query(`
+          SELECT
+            COUNT(*) AS total_items,
+            COUNT(CASE WHEN "tracked" = true THEN 1 END) AS active_items
+          FROM "ShopifyInventoryItem"
+        `),
+        client.query(`
+          SELECT
+            COALESCE(SUM(r."totalQuantity"), 0) AS returned_qty
+          FROM "ShopifyReturn" r
+          WHERE r."status" != 'DECLINED'
+            ${returnDateFilter}
+        `, params),
+      ]);
+
+      const totalRevenue = parseFloat(ordersResult.rows[0].total_revenue);
+      const totalOrders = parseInt(ordersResult.rows[0].total_orders);
+      const totalQty = parseInt(ordersResult.rows[0].total_qty);
+
+      const totalListings = parseInt(listingsResult.rows[0].total_items);
+      const activeListings = parseInt(listingsResult.rows[0].active_items);
+
+      const returnedQty = parseInt(returnsResult.rows[0].returned_qty);
+
+      const dayCount = startDate && endDate
+        ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        : 30;
+
+      const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      const ordersPerDay = Math.round(totalOrders / dayCount);
+      const revenuePerSku = activeListings > 0 ? Math.round(totalRevenue / activeListings) : 0;
+      const returnPct = totalQty > 0 ? (returnedQty / totalQty) * 100 : 0;
+
+      res.json({
+        success: true,
+        data: {
+          aov: Math.round(aov * 100) / 100,
+          ordersPerDay,
+          totalOrders,
+          listingsCount: totalListings,
+          activeListingCount: activeListings,
+          revenuePerSku,
+          returnPct: Math.round(returnPct * 100) / 100,
+          claimPct: 0,
+          reimbursementPct: 0,
+          outOfStockDays: null,
+          ageingInventoryPct: null,
+          deadStockPct: null,
+        },
+      });
+    } catch (err: any) {
+      console.error("Shopify operational metrics query failed:", err);
       res.status(500).json({
         success: false,
         error: err?.message || String(err),

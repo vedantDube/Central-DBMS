@@ -68,7 +68,8 @@ type AmazonReportTableConfig = {
     | "amazonGstMonthlyStrRow"
     | "amazonUnifiedTransactionRow"
     | "amazonCODSettlementRow"
-    | "amazonElectronicsSettlementRow";
+    | "amazonElectronicsSettlementRow"
+    | "amazonAdsCampaignRow";
 };
 
 const amazonReportTableConfigs: Record<string, AmazonReportTableConfig> = {
@@ -131,6 +132,10 @@ const amazonReportTableConfigs: Record<string, AmazonReportTableConfig> = {
   amazon_v2_settlement_report_data_flat_file_v2_electronics: {
     tableName: "AmazonElectronicsSettlementRow",
     delegateName: "amazonElectronicsSettlementRow",
+  },
+  amazon_ads_campaign: {
+    tableName: "AmazonAdsCampaignRow",
+    delegateName: "amazonAdsCampaignRow",
   },
 };
 
@@ -566,6 +571,21 @@ const amazonReportFields: Record<string, string[]> = {
     "quantitypurchased",
     "promotionid",
   ],
+  amazon_ads_campaign: [
+    "accounts",
+    "account_id",
+    "country_name",
+    "currency_code",
+    "type",
+    "spend",
+    "impressions",
+    "clicks",
+    "ctr",
+    "cpc",
+    "sales",
+    "acos",
+    "roas",
+  ],
 };
 
 export function getJsonFieldVal(row: any, reportKey: string, field: string): string | null {
@@ -652,6 +672,7 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
         amazon_gst_monthly_b2c: ["order_id", "sku", "shipment_item_id", "transaction_type"],
         amazon_gst_monthly_str: ["invoice_number", "transaction_id", "sku"],
         amazon_unified_transaction: ["datetime", "order_id", "sku", "type", "account_type"],
+        amazon_ads_campaign: ["account_id"],
       };
 
       const cols = fieldsToNormalize[reportKey];
@@ -753,6 +774,14 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
         for (const row of rowsToInsert) {
           await (supabasePrisma as any).amazonMtrRow.upsert({
             where: { sellersku: row.sellersku },
+            update: row,
+            create: row,
+          });
+        }
+      } else if (reportKey === "amazon_ads_campaign") {
+        for (const row of rowsToInsert) {
+          await (supabasePrisma as any).amazonAdsCampaignRow.upsert({
+            where: { account_id: row.account_id },
             update: row,
             create: row,
           });

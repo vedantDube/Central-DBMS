@@ -1022,6 +1022,29 @@ model AmazonGstMasterRow {
   @@unique([flag, order_id, sku, transaction_type])
 }
 
+model AmazonAdsCampaignRow {
+  id           String   @id @default(cuid())
+  reportKey    String
+  createdAt    DateTime @default(now())
+
+  accounts     String?
+  account_id   String   @default("")
+  country_name String?
+  currency_code String?
+  type         String?
+  spend        String?
+  impressions  String?
+  clicks       String?
+  ctr          String?
+  cpc          String?
+  sales        String?
+  acos         String?
+  roas         String?
+
+  @@index([reportKey, createdAt])
+  @@unique([account_id])
+}
+
 model AmazonElectronicsSettlementRow {
   id                          String   @id @default(cuid())
   reportKey                   String

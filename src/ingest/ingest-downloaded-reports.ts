@@ -52,6 +52,10 @@ const reportFolders: ReportFolder[] = [
     folder: "amazon/payment-statements/v2",
     reportKey: "amazon_v2_settlement_report_data_flat_file_v2",
   },
+  {
+    folder: "amazon/ads-campaign",
+    reportKey: "amazon_ads_campaign",
+  },
 ];
 
 async function listReportFiles(rootDir: string): Promise<string[]> {
