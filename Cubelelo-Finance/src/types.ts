@@ -52,6 +52,9 @@ export interface SKUProfitability {
   contributionMargin1: number; // Revenue - COGS - Marketplace fees - shipping - packaging
   contributionMargin2: number; // CM1 - Ads
   status: "Profitable" | "Borderline" | "Loss Making";
+  glanceViews: number | null; // real data from Sales & Traffic report, lifetime total (not period-filterable)
+  conversionRate: number | null; // unitsOrdered / sessions, as a percentage
+  moverShaker: boolean; // logic undefined -- always false until a real definition is confirmed
 }
 
 export interface OrderReconciliation {

@@ -639,6 +639,108 @@ export function getJsonFieldVal(row: any, reportKey: string, field: string): str
   return null;
 }
 
+// Normalize a posteddate value from ISO timestamp ("2026-05-29T04:21:28+00:00")
+// to the DD.MM.YYYY format that the dashboard query expects.
+function normalizeSettlementPostedDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = raw.trim();
+  // Already DD.MM.YYYY
+  if (/^\d{2}\.\d{2}\.\d{4}/.test(s)) return s.substring(0, 10);
+  // ISO timestamp or YYYY-MM-DD
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+// The new 36-col Amazon settlement format stores fees across multiple typed columns
+// instead of the canonical amounttype/amountdescription/amount triplet.
+// This function explodes one new-format row into 0-N canonical rows.
+function explodeNewFormatSettlementRow(
+  rawRow: string[],
+  headers: string[], // normalized headers
+  reportKey: string,
+): Record<string, any>[] {
+  const get = (field: string): string | null => {
+    const idx = headers.indexOf(field);
+    return idx !== -1 && rawRow[idx] != null && rawRow[idx] !== "" ? rawRow[idx] : null;
+  };
+
+  // Fields shared by every exploded row
+  const base: Record<string, any> = {
+    reportKey,
+    settlementid: get("settlementid"),
+    settlementstartdate: get("settlementstartdate"),
+    settlementenddate: get("settlementenddate"),
+    depositdate: get("depositdate"),
+    totalamount: get("totalamount"),
+    currency: get("currency"),
+    transactiontype: get("transactiontype"),
+    orderid: get("orderid"),
+    merchantorderid: get("merchantorderid"),
+    adjustmentid: get("adjustmentid"),
+    shipmentid: get("shipmentid"),
+    marketplacename: get("marketplacename"),
+    fulfillmentid: get("fulfillmentid"),
+    posteddate: normalizeSettlementPostedDate(get("posteddate")),
+    posteddatetime: get("posteddatetime"),
+    orderitemcode: get("orderitemcode"),
+    merchantorderitemid: get("merchantorderitemid"),
+    merchantadjustmentitemid: get("merchantadjustmentitemid"),
+    sku: get("sku"),
+    quantitypurchased: get("quantitypurchased"),
+    promotionid: get("promotionid"),
+  };
+
+  // Fee column pairs in new format → map to amounttype + amountdescription + amount
+  const feePairs: { typeField: string; amountField: string; amountType: string }[] = [
+    { typeField: "pricetype", amountField: "priceamount", amountType: "ItemPrice" },
+    { typeField: "shipmentfeetype", amountField: "shipmentfeeamount", amountType: "ItemFees" },
+    { typeField: "orderfeetype", amountField: "orderfeeamount", amountType: "ItemFees" },
+    { typeField: "itemrelatedfeetype", amountField: "itemrelatedfeeamount", amountType: "ItemFees" },
+    { typeField: "promotionttype", amountField: "promotionamount", amountType: "Promotion" },
+    { typeField: "directpaymenttype", amountField: "directpaymentamount", amountType: "DirectPayment" },
+  ];
+
+  // Standalone amount columns with no paired type field
+  const standaloneAmounts: { field: string; amountType: string; description: string }[] = [
+    { field: "miscfeeamount", amountType: "ItemFees", description: "Miscellaneous Fee" },
+    { field: "otherfeeamount", amountType: "ItemFees", description: get("otherfeereasondescription") || "Other Fee" },
+    { field: "otheramount", amountType: "Other", description: "Other" },
+  ];
+
+  const exploded: Record<string, any>[] = [];
+
+  for (const { typeField, amountField, amountType } of feePairs) {
+    const desc = get(typeField);
+    const amt = get(amountField);
+    if (amt !== null && amt !== "0" && amt !== "0.00") {
+      exploded.push({ ...base, amounttype: amountType, amountdescription: desc, amount: amt });
+    }
+  }
+
+  for (const { field, amountType, description } of standaloneAmounts) {
+    const amt = get(field);
+    if (amt !== null && amt !== "0" && amt !== "0.00") {
+      exploded.push({ ...base, amounttype: amountType, amountdescription: description, amount: amt });
+    }
+  }
+
+  // If nothing exploded (e.g. summary/header rows), emit one base row with nulls
+  if (exploded.length === 0) {
+    exploded.push({ ...base, amounttype: null, amountdescription: null, amount: null });
+  }
+
+  return exploded;
+}
+
+const SETTLEMENT_REPORT_KEYS = new Set([
+  "amazon_v2_settlement_report_data_flat_file_v2_cod",
+  "amazon_v2_settlement_report_data_flat_file_v2_electronics",
+]);
+
 export async function ingestFileToTable(filePath: string, reportKey: string) {
   if (!supabasePrisma) {
     throw new Error(`SUPABASE_DB_URL is not configured. Cannot ingest Amazon report ${reportKey} without a valid Supabase database URL.`);
@@ -654,6 +756,10 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
 
     const fileName = path.basename(filePath);
     const sourceName = table.sourceName ?? fileName;
+
+    // Detect new 36-col settlement format by presence of the new fee columns
+    const isNewSettlementFormat =
+      SETTLEMENT_REPORT_KEYS.has(reportKey) && headers.includes("shipmentfeetype");
 
     const items = table.jsonRows || table.rows;
 
@@ -685,52 +791,66 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
       }
     }
 
-    const rowsToInsert = items.map((row: any, rowIndex: number) => {
-      let data: any;
-      if (table.jsonRows) {
-        data = row;
-      } else {
-        data = headers.reduce<Record<string, string | null>>(
-          (accumulator, header, columnIndex) => {
-            accumulator[header] =
-              row[columnIndex] !== undefined && row[columnIndex] !== null
-                ? String(row[columnIndex])
-                : null;
-            return accumulator;
-          },
-          {},
-        );
-      }
+    let rowsToInsert: Record<string, any>[];
 
-      const rowObj: Record<string, any> = {
-        reportKey,
-      };
-
-      const allowedFields = amazonReportFields[reportKey] || [];
-      allowedFields.forEach((field) => {
+    if (isNewSettlementFormat) {
+      // New 36-col format: explode each source row into multiple canonical rows
+      rowsToInsert = (items as string[][]).flatMap((row) =>
+        explodeNewFormatSettlementRow(row, headers, reportKey)
+      );
+    } else {
+      rowsToInsert = items.map((row: any, rowIndex: number) => {
+        let data: any;
         if (table.jsonRows) {
-          rowObj[field] = getJsonFieldVal(row, reportKey, field);
+          data = row;
         } else {
-          const colIdx = headers.indexOf(field);
-          if (colIdx !== -1) {
-            rowObj[field] =
-              row[colIdx] !== undefined && row[colIdx] !== null
-                ? String(row[colIdx])
-                : null;
-          } else {
-            rowObj[field] = null;
-          }
+          data = headers.reduce<Record<string, string | null>>(
+            (accumulator, header, columnIndex) => {
+              accumulator[header] =
+                row[columnIndex] !== undefined && row[columnIndex] !== null
+                  ? String(row[columnIndex])
+                  : null;
+              return accumulator;
+            },
+            {},
+          );
         }
+
+        const rowObj: Record<string, any> = {
+          reportKey,
+        };
+
+        const allowedFields = amazonReportFields[reportKey] || [];
+        allowedFields.forEach((field) => {
+          if (table.jsonRows) {
+            rowObj[field] = getJsonFieldVal(row, reportKey, field);
+          } else {
+            const colIdx = headers.indexOf(field);
+            if (colIdx !== -1) {
+              rowObj[field] =
+                row[colIdx] !== undefined && row[colIdx] !== null
+                  ? String(row[colIdx])
+                  : null;
+            } else {
+              rowObj[field] = null;
+            }
+          }
+        });
+
+        // Normalize posteddate to DD.MM.YYYY for old-format settlement files too
+        if (SETTLEMENT_REPORT_KEYS.has(reportKey) && rowObj.posteddate) {
+          rowObj.posteddate = normalizeSettlementPostedDate(rowObj.posteddate);
+        }
+
+        if (reportKey === "amazon_ledger_summary") {
+          rowObj.parsedDate = parseLedgerDate(rowObj.date);
+        }
+
+        normalizeIdentifyingFields(rowObj, reportKey);
+
+        return rowObj;
       });
-
-      if (reportKey === "amazon_ledger_summary") {
-        rowObj.parsedDate = parseLedgerDate(rowObj.date);
-      }
-
-      normalizeIdentifyingFields(rowObj, reportKey);
-
-      return rowObj;
-    });
+    }
 
     const tableConfig = amazonReportTableConfigs[reportKey];
 

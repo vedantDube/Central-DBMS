@@ -100,6 +100,25 @@ export default function App() {
   // Amazon live financials state
   const [isLoadingAmazonData, setIsLoadingAmazonData] = useState<boolean>(false);
 
+  // GST inclusive/exclusive toggle -- applies to Amazon revenue-derived metrics across Channel + SKU views
+  const [gstMode, setGstMode] = useState<"inclusive" | "exclusive">("exclusive");
+
+  // Amazon real (non-simulated) financials -- Revenue 3-way split + Indirect Expense 5-way split
+  const [amazonFinancials, setAmazonFinancials] = useState<any>(null);
+  const [amazonFinancialsComparative, setAmazonFinancialsComparative] = useState<any>(null);
+
+  // Amazon real (non-simulated) operational metrics, incl. Return-Tool-sourced Supply Chain metrics
+  const [amazonOperationalMetrics, setAmazonOperationalMetrics] = useState<any>(null);
+  const [comparativeOperationalMetrics, setComparativeOperationalMetrics] = useState<any>(null);
+
+  // Real trend view (daily / weekly / monthly) -- separate from the synthetic rolling60DaysData simulator
+  const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [realTrendData, setRealTrendData] = useState<any[]>([]);
+  const [isLoadingTrend, setIsLoadingTrend] = useState<boolean>(false);
+  const [skuTrendSku, setSkuTrendSku] = useState<string | null>(null);
+  const [skuTrendData, setSkuTrendData] = useState<any[]>([]);
+  const [isLoadingSkuTrend, setIsLoadingSkuTrend] = useState<boolean>(false);
+
   // Indirect expense breakdown state
   const [showIndirectBreakdown, setShowIndirectBreakdown] = useState<boolean>(false);
   const [indirectSummaryData, setIndirectSummaryData] = useState<{description: string, amount: number}[]>([]);
@@ -108,6 +127,13 @@ export default function App() {
   const [indirectSettlementTotal, setIndirectSettlementTotal] = useState<number>(0);
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState<boolean>(false);
   const [breakdownFetched, setBreakdownFetched] = useState<boolean>(false);
+
+  // Advertisement Cost L2 breakdown state (Amazon Ads campaign-level + Beyond Ads estimate)
+  const [showAdvertisementL2, setShowAdvertisementL2] = useState<boolean>(false);
+  const [advertisementL2Data, setAdvertisementL2Data] = useState<{description: string, amount: number}[]>([]);
+  const [advertisementL2Total, setAdvertisementL2Total] = useState<number>(0);
+  const [isLoadingAdvertisementL2, setIsLoadingAdvertisementL2] = useState<boolean>(false);
+  const [advertisementL2Fetched, setAdvertisementL2Fetched] = useState<boolean>(false);
 
   // Database integration state
   const [dbStatus, setDbStatus] = useState<any>(null);
@@ -144,16 +170,21 @@ export default function App() {
     }
   };
 
-  const fetchAmazonFinancials = async (start: string, end: string) => {
-    setIsLoadingAmazonData(true);
+  const fetchAmazonFinancials = async (start: string, end: string, mode: "inclusive" | "exclusive", compare = false) => {
+    if (!compare) setIsLoadingAmazonData(true);
     try {
-      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const params = new URLSearchParams({ startDate: start, endDate: end, gstMode: mode });
       const res = await fetch(`/api/amazon/financials?${params}`);
       const data = await res.json();
       if (data.success) {
+        if (compare) {
+          setAmazonFinancialsComparative(data.data);
+          return;
+        }
+        setAmazonFinancials(data.data);
+        const cm2 = data.data.cm2;
         setChannels(prev => prev.map(ch => {
           if (ch.id !== "amazon") return ch;
-          const cm2 = data.data.cm2;
           return {
             ...ch,
             revenue: data.data.netRevenue,
@@ -170,16 +201,21 @@ export default function App() {
     } catch (err) {
       console.error("Failed to fetch Amazon financials:", err);
     } finally {
-      setIsLoadingAmazonData(false);
+      if (!compare) setIsLoadingAmazonData(false);
     }
   };
 
-  const fetchAmazonOperationalMetrics = async (start: string, end: string) => {
+  const fetchAmazonOperationalMetrics = async (start: string, end: string, mode: "inclusive" | "exclusive", compare = false) => {
     try {
-      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const params = new URLSearchParams({ startDate: start, endDate: end, gstMode: mode });
       const res = await fetch(`/api/amazon/operational-metrics?${params}`);
       const data = await res.json();
       if (data.success) {
+        if (compare) {
+          setComparativeOperationalMetrics(data.data);
+          return;
+        }
+        setAmazonOperationalMetrics(data.data);
         setChannels(prev => prev.map(ch => {
           if (ch.id !== "amazon") return ch;
           return {
@@ -190,8 +226,8 @@ export default function App() {
             activeListingCount: data.data.activeListingCount ?? 0,
             revenuePerSku: data.data.revenuePerSku ?? 0,
             returnPct: data.data.returnPct ?? 0,
-            claimPct: data.data.claimPct ?? 0,
-            reimbursementPct: data.data.reimbursementAmount ?? 0,
+            claimPct: data.data.claimSuccessPct ?? 0,
+            reimbursementPct: data.data.reimbursementPct ?? 0,
             outOfStockDays: data.data.outOfStockDays ?? 0,
             ageingInventoryPct: data.data.ageingInventoryPct ?? 0,
             deadStockPct: data.data.deadStockPct ?? 0,
@@ -259,10 +295,10 @@ export default function App() {
     }
   };
 
-  const fetchExpenseBreakdown = async (start: string, end: string) => {
+  const fetchExpenseBreakdown = async (start: string, end: string, mode: "inclusive" | "exclusive") => {
     setIsLoadingBreakdown(true);
     try {
-      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const params = new URLSearchParams({ startDate: start, endDate: end, section: "amazonCharges", gstMode: mode });
       const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
       const data = await res.json();
       if (data.success) {
@@ -276,6 +312,24 @@ export default function App() {
       console.error("Failed to fetch expense breakdown:", err);
     } finally {
       setIsLoadingBreakdown(false);
+    }
+  };
+
+  const fetchAdvertisementL2 = async (start: string, end: string) => {
+    setIsLoadingAdvertisementL2(true);
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end, section: "advertisement" });
+      const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setAdvertisementL2Data(data.data.summary);
+        setAdvertisementL2Total(data.data.total);
+        setAdvertisementL2Fetched(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch advertisement L2 breakdown:", err);
+    } finally {
+      setIsLoadingAdvertisementL2(false);
     }
   };
 
@@ -294,9 +348,9 @@ export default function App() {
     }
   };
 
-  const fetchSkuProfitability = async (start: string, end: string) => {
+  const fetchSkuProfitability = async (start: string, end: string, mode: "inclusive" | "exclusive") => {
     try {
-      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const params = new URLSearchParams({ startDate: start, endDate: end, gstMode: mode });
       const res = await fetch(`/api/amazon/sku-profitability?${params}`);
       const data = await res.json();
       if (data.success) {
@@ -304,6 +358,38 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch SKU profitability:", err);
+    }
+  };
+
+  const fetchAmazonTrend = async (start: string, end: string, granularity: "daily" | "weekly" | "monthly", mode: "inclusive" | "exclusive") => {
+    setIsLoadingTrend(true);
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end, granularity, gstMode: mode });
+      const res = await fetch(`/api/amazon/trend?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setRealTrendData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Amazon trend:", err);
+    } finally {
+      setIsLoadingTrend(false);
+    }
+  };
+
+  const fetchSkuTrend = async (sku: string, start: string, end: string, granularity: "daily" | "weekly" | "monthly", mode: "inclusive" | "exclusive") => {
+    setIsLoadingSkuTrend(true);
+    try {
+      const params = new URLSearchParams({ sku, startDate: start, endDate: end, granularity, gstMode: mode });
+      const res = await fetch(`/api/amazon/sku-trend?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setSkuTrendData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch SKU trend:", err);
+    } finally {
+      setIsLoadingSkuTrend(false);
     }
   };
 
@@ -377,17 +463,25 @@ export default function App() {
     setEndDateStr(val);
   };
 
-  // Re-fetch Amazon data when date range changes
+  // Re-fetch Amazon data when date range or GST mode changes
   useEffect(() => {
-    fetchAmazonFinancials(startDateStr, endDateStr);
-    fetchAmazonOperationalMetrics(startDateStr, endDateStr);
-    fetchSkuProfitability(startDateStr, endDateStr);
+    fetchAmazonFinancials(startDateStr, endDateStr, gstMode);
+    fetchAmazonOperationalMetrics(startDateStr, endDateStr, gstMode);
+    fetchSkuProfitability(startDateStr, endDateStr, gstMode);
     fetchAnomalies(startDateStr, endDateStr);
     fetchShopifyFinancials(startDateStr, endDateStr);
     fetchShopifyOperationalMetrics(startDateStr, endDateStr);
+    fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
     setBreakdownFetched(false);
     setShowIndirectBreakdown(false);
-  }, [startDateStr, endDateStr]);
+    setAdvertisementL2Fetched(false);
+    setShowAdvertisementL2(false);
+  }, [startDateStr, endDateStr, gstMode]);
+
+  // Re-fetch the real trend view when granularity changes (independent of full date-range refetch)
+  useEffect(() => {
+    fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+  }, [trendGranularity]);
 
   // Deterministic noise generator for 90-day historical timeseries data
   const getDeterministicNoise = (dateStr: string, channelId: string, idx: number) => {
@@ -501,6 +595,14 @@ export default function App() {
     
     return { compStartStr: compStart, compEndStr: compEnd };
   }, [startDateStr, endDateStr, comparisonType]);
+
+  // Fetch comparative Amazon operational metrics + financials for the comparison window
+  // (real live-endpoint data, not derived from the synthetic rolling60DaysData generator)
+  useEffect(() => {
+    if (!compStartStr || !compEndStr) return;
+    fetchAmazonOperationalMetrics(compStartStr, compEndStr, gstMode, true);
+    fetchAmazonFinancials(compStartStr, compEndStr, gstMode, true);
+  }, [compStartStr, compEndStr, gstMode]);
 
   // Active filter context
   const selectedChannel = useMemo(() => {
@@ -773,6 +875,15 @@ export default function App() {
 
   const formatPercent = (val: number) => {
     return `${val.toFixed(1)}%`;
+  };
+
+  // Renders a "Definition Pending" / "Not Available" badge for metrics that are null (not yet formulated or
+  // permanently unavailable), instead of calling formatPercent/formatCurrency on null (which would throw).
+  const renderMetricOrPending = (val: number | null | undefined, formatter: (v: number) => string, label = "Definition Pending") => {
+    if (val === null || val === undefined) {
+      return <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono block mt-1">{label}</span>;
+    }
+    return <span className="font-mono text-lg font-extrabold block mt-1">{formatter(val)}</span>;
   };
 
   // Helper to render WoW comparison badges
@@ -1317,6 +1428,31 @@ export default function App() {
                       <option value="previous_month">vs Previous Month (30d prior)</option>
                     </select>
                   </div>
+
+                  {/* GST inclusive/exclusive toggle -- affects Amazon revenue-derived metrics */}
+                  {selectedChannelId === "amazon" && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">GST basis:</label>
+                      <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
+                        <button
+                          onClick={() => setGstMode("exclusive")}
+                          className={`text-xs px-3 py-1 rounded-lg font-sans font-medium transition-all ${
+                            gstMode === "exclusive" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          Excl. GST
+                        </button>
+                        <button
+                          onClick={() => setGstMode("inclusive")}
+                          className={`text-xs px-3 py-1 rounded-lg font-sans font-medium transition-all ${
+                            gstMode === "inclusive" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          Incl. GST
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -1682,42 +1818,11 @@ export default function App() {
 
         {/* TAB 2: CHANNEL-WISE PROFILTABILITY DRILLDOWN (Spreadsheet compliant) */}
         {activeTab === "channels" && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            
-            {/* Left Channel Sidebar Selection */}
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col gap-2 h-fit lg:sticky lg:top-24 shadow-sm">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Business Channel Selector</h3>
-              <div className="flex flex-col gap-1 overflow-y-auto max-h-[460px] pr-1">
-                {channels.map(chan => {
-                  const isSelected = chan.id === selectedChannelId;
-                  const estimatedSimProfit = simulatedChannelsObj.find(sc => sc.id === chan.id)?.netProfit || 0;
-                  return (
-                    <button
-                      key={chan.id}
-                      id={`channel-btn-${chan.id}`}
-                      onClick={() => setSelectedChannelId(chan.id)}
-                      className={`w-full text-left p-3 rounded-xl flex items-center justify-between text-xs transition-all border ${
-                        isSelected 
-                          ? "bg-blue-600/10 border-blue-500/30 text-blue-900 shadow font-semibold" 
-                          : "bg-slate-50/50 border-slate-200 hover:bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-semibold">{chan.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono mt-0.5">{chan.category}</span>
-                      </div>
-                      <span className={`font-mono font-semibold text-[10px] ${estimatedSimProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                        {formatCurrency(estimatedSimProfit)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          <div className="grid grid-cols-1 gap-6">
 
-            {/* Right Complete Detailed Profitability Ledger */}
-            <div className="lg:col-span-3 flex flex-col gap-6">
-              
+            {/* Complete Detailed Profitability Ledger -- channel switching happens via the sidebar's Active Channels list */}
+            <div className="flex flex-col gap-6">
+
               {/* Channel Head info */}
               <div className="bg-white border border-slate-200 p-6 rounded-2xl relative shadow-sm overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1754,17 +1859,54 @@ export default function App() {
 
                 {/* Sub-Table 1: Financial Rows */}
                 <div className="px-6 py-4 bg-white">
-                  <div className="space-y-1">                    {/* Row 1: Revenue */}
-                    <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
-                      <div className="flex flex-col">
-                        <span className="font-sans font-semibold text-slate-805">Revenue</span>
-                        <span className="text-[10px] font-sans text-slate-400">Gross marketplace sale receipt base</span>
+                  <div className="space-y-1">                    {/* Row 1: Revenue (3-way split for Amazon, single row for other channels) */}
+                    {selectedChannelId === "amazon" && amazonFinancials ? (
+                      <>
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
+                          <div className="flex flex-col">
+                            <span className="font-sans font-semibold text-slate-805">Gross Revenue</span>
+                            <span className="text-[10px] font-sans text-slate-400">Revenue inclusive of returns ({gstMode === "inclusive" ? "GST incl." : "GST excl."})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {renderComparisonBadge(amazonFinancials.grossRevenue, amazonFinancialsComparative?.grossRevenue)}
+                            <span className="font-bold text-slate-900">{formatCurrency(amazonFinancials.grossRevenue)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
+                          <div className="flex flex-col">
+                            <span className="font-sans text-slate-700">Sale Returns</span>
+                            <span className="text-[10px] font-sans text-slate-400">Total invoice value of returns</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {renderComparisonBadge(amazonFinancials.saleReturns, amazonFinancialsComparative?.saleReturns, true)}
+                            <span className="text-rose-600 font-semibold">-{formatCurrency(amazonFinancials.saleReturns)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
+                          <div className="flex flex-col">
+                            <span className="font-sans font-semibold text-slate-805">Net Revenue</span>
+                            <span className="text-[10px] font-sans text-slate-400">Revenue exclusive of returns</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {renderComparisonBadge(amazonFinancials.netRevenue, amazonFinancialsComparative?.netRevenue)}
+                            <span className="font-bold text-slate-900">{formatCurrency(amazonFinancials.netRevenue)}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-sans font-semibold text-slate-805">Revenue</span>
+                          <span className="text-[10px] font-sans text-slate-400">Gross marketplace sale receipt base</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {renderComparisonBadge(activeSimulatedChannel.revenue, activeChannelComparativeMetrics?.revenue)}
+                          <span className="font-bold text-slate-900">{formatCurrency(activeSimulatedChannel.revenue)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {renderComparisonBadge(activeSimulatedChannel.revenue, activeChannelComparativeMetrics?.revenue)}
-                        <span className="font-bold text-slate-900">{formatCurrency(activeSimulatedChannel.revenue)}</span>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Row 2: COGS */}
                     <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
@@ -1793,104 +1935,200 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Row 4: Indirect Exp & People Cost (Clickable Dropdown) */}
-                    <div>
-                      <div
-                        className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700 cursor-pointer select-none"
-                        onClick={() => {
-                          if (selectedChannelId === "amazon") {
-                            const next = !showIndirectBreakdown;
-                            setShowIndirectBreakdown(next);
-                            if (next && !breakdownFetched) {
-                              fetchExpenseBreakdown(startDateStr, endDateStr);
-                            }
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          {selectedChannelId === "amazon" && (
-                            <ChevronRight
-                              size={14}
-                              className={`text-slate-400 transition-transform duration-200 ${showIndirectBreakdown ? "rotate-90" : ""}`}
-                            />
-                          )}
-                          <div className="flex flex-col">
-                            <span className="font-sans text-slate-700">Indirect Exp + People Cost Allocation</span>
-                            <span className="text-[10px] font-sans text-slate-400">
-                              {selectedChannelId === "amazon" ? "Click to view fee breakdown — FBA fees, commissions, closing fees" : "Attributed staffing, dark store rents, corporate overheads"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {renderComparisonBadge(activeSimulatedChannel.indirectExpAndPeople, activeChannelComparativeMetrics?.indirectExpAndPeople, true)}
-                          <span className="text-slate-700">-{formatCurrency(activeSimulatedChannel.indirectExpAndPeople)}</span>
-                        </div>
-                      </div>
-
-                      {/* Expense Breakdown Dropdown */}
-                      {selectedChannelId === "amazon" && showIndirectBreakdown && (
-                        <div className="bg-slate-50/80 border-l-2 border-slate-300 ml-4 mb-1 rounded-b overflow-hidden">
-                          {isLoadingBreakdown ? (
-                            <div className="flex items-center justify-center py-4 gap-2 text-xs text-slate-400">
-                              <RefreshCw size={12} className="animate-spin" />
-                              <span>Loading breakdown...</span>
+                    {/* Row 4: Indirect Expense breakdown -- 5-way split for Amazon, single row for other channels */}
+                    {selectedChannelId === "amazon" && amazonFinancials ? (
+                      <>
+                        {/* 4.1 Amazon Charges (Clickable Dropdown, L2 split) */}
+                        <div>
+                          <div
+                            className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700 cursor-pointer select-none"
+                            onClick={() => {
+                              const next = !showIndirectBreakdown;
+                              setShowIndirectBreakdown(next);
+                              if (next && !breakdownFetched) {
+                                fetchExpenseBreakdown(startDateStr, endDateStr, gstMode);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <ChevronRight size={14} className={`text-slate-400 transition-transform duration-200 ${showIndirectBreakdown ? "rotate-90" : ""}`} />
+                              <div className="flex flex-col">
+                                <span className="font-sans text-slate-700">Amazon Charges</span>
+                                <span className="text-[10px] font-sans text-slate-400">Click to view fee breakdown — FBA fees, commissions, closing fees (excl. TCS/TDS)</span>
+                              </div>
                             </div>
-                          ) : (
-                            <div>
-                              {/* High-level summary from Unified Transactions (matches outer total) */}
-                              <div className="px-3 pt-2 pb-1">
-                                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Fee Summary (from Transactions Report)</span>
-                              </div>
-                              <div className="divide-y divide-slate-100">
-                                {indirectSummaryData.map((item, idx) => (
-                                  <div key={`s-${idx}`} className="flex items-center justify-between py-2 px-3 hover:bg-slate-100/60 text-xs font-mono">
-                                    <span className="text-slate-700 font-sans font-medium">{item.description}</span>
-                                    <span className="text-slate-800 font-semibold">{formatCurrency(item.amount)}</span>
-                                  </div>
-                                ))}
-                                <div className="flex items-center justify-between py-2 px-3 bg-blue-50/80 font-semibold text-xs font-mono border-t border-slate-200">
-                                  <span className="text-blue-800 font-sans">Total Indirect Expenses</span>
-                                  <span className="text-blue-900">{formatCurrency(indirectTotal)}</span>
-                                </div>
-                              </div>
+                            <div className="flex items-center gap-2">
+                              {renderComparisonBadge(amazonFinancials.amazonCharges, amazonFinancialsComparative?.amazonCharges, true)}
+                              <span className="text-slate-700">-{formatCurrency(amazonFinancials.amazonCharges)}</span>
+                            </div>
+                          </div>
 
-                              {/* Detailed breakdown from settlement tables */}
-                              {indirectSettlementData.length > 0 && (
-                                <>
-                                  <div className="px-3 pt-3 pb-1 border-t border-slate-200">
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Detailed Breakdown (from Settlement Reports)</span>
+                          {showIndirectBreakdown && (
+                            <div className="bg-slate-50/80 border-l-2 border-slate-300 ml-4 mb-1 rounded-b overflow-hidden">
+                              {isLoadingBreakdown ? (
+                                <div className="flex items-center justify-center py-4 gap-2 text-xs text-slate-400">
+                                  <RefreshCw size={12} className="animate-spin" />
+                                  <span>Loading breakdown...</span>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="px-3 pt-2 pb-1">
+                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Fee Summary (from Transactions Report)</span>
                                   </div>
                                   <div className="divide-y divide-slate-100">
-                                    {indirectSettlementData.map((item, idx) => (
-                                      <div key={`d-${idx}`} className="flex items-center justify-between py-1.5 px-3 hover:bg-slate-100/60 text-xs font-mono">
-                                        <span className="text-slate-600 font-sans">{item.description}</span>
-                                        <span className="text-slate-700">{formatCurrency(item.amount)}</span>
+                                    {indirectSummaryData.map((item, idx) => (
+                                      <div key={`s-${idx}`} className="flex items-center justify-between py-2 px-3 hover:bg-slate-100/60 text-xs font-mono">
+                                        <span className="text-slate-700 font-sans font-medium">{item.description}</span>
+                                        <span className="text-slate-800 font-semibold">{formatCurrency(item.amount)}</span>
                                       </div>
                                     ))}
-                                    <div className="flex items-center justify-between py-2 px-3 bg-slate-100/80 font-semibold text-xs font-mono border-t border-slate-200">
-                                      <span className="text-slate-600 font-sans">Settlement Total</span>
-                                      <span className="text-slate-700">{formatCurrency(indirectSettlementTotal)}</span>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-blue-50/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                      <span className="text-blue-800 font-sans">Total Amazon Charges</span>
+                                      <span className="text-blue-900">{formatCurrency(indirectTotal)}</span>
                                     </div>
                                   </div>
-                                </>
+
+                                  {indirectSettlementData.length > 0 && (
+                                    <>
+                                      <div className="px-3 pt-3 pb-1 border-t border-slate-200">
+                                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Detailed Breakdown (from Settlement Reports)</span>
+                                      </div>
+                                      <div className="divide-y divide-slate-100">
+                                        {indirectSettlementData.map((item, idx) => (
+                                          <div key={`d-${idx}`} className="flex items-center justify-between py-1.5 px-3 hover:bg-slate-100/60 text-xs font-mono">
+                                            <span className="text-slate-600 font-sans">{item.description}</span>
+                                            <span className="text-slate-700">{formatCurrency(item.amount)}</span>
+                                          </div>
+                                        ))}
+                                        <div className="flex items-center justify-between py-2 px-3 bg-slate-100/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                          <span className="text-slate-600 font-sans">Settlement Total</span>
+                                          <span className="text-slate-700">{formatCurrency(indirectSettlementTotal)}</span>
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Added Row: Performance Ad Spend */}
-                    <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
-                      <div className="flex flex-col">
-                        <span className="font-sans text-slate-700">Platform Sponsored Advertising Spend</span>
-                        <span className="text-[10px] font-sans text-slate-400">CPC bids, sponsored brands, quick commerce display flags</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {renderComparisonBadge(activeSimulatedChannel.advertisingSpend, activeChannelComparativeMetrics?.advertisingSpend, true)}
-                        <span className="text-amber-700">-{formatCurrency(activeSimulatedChannel.advertisingSpend)}</span>
-                      </div>
-                    </div>
+                        {/* 4.2 People Cost -- static placeholder, data pending */}
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 px-2 rounded font-mono text-sm text-slate-500">
+                          <div className="flex flex-col">
+                            <span className="font-sans text-slate-500">People Cost</span>
+                            <span className="text-[10px] font-sans text-slate-400">Manual entry — pending Finance input</span>
+                          </div>
+                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-md font-mono">Pending</span>
+                        </div>
+
+                        {/* 4.3 Rental Charges (PPOB) -- static placeholder, data pending */}
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 px-2 rounded font-mono text-sm text-slate-500">
+                          <div className="flex flex-col">
+                            <span className="font-sans text-slate-500">Rental Charges (PPOB)</span>
+                            <span className="text-[10px] font-sans text-slate-400">Manual entry — pending Finance input</span>
+                          </div>
+                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-md font-mono">Pending</span>
+                        </div>
+
+                        {/* 4.4 Advertisement Cost (Clickable Dropdown, L2 split: Amazon Ads + Beyond Ads) */}
+                        <div>
+                          <div
+                            className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700 cursor-pointer select-none"
+                            onClick={() => {
+                              const next = !showAdvertisementL2;
+                              setShowAdvertisementL2(next);
+                              if (next && !advertisementL2Fetched) {
+                                fetchAdvertisementL2(startDateStr, endDateStr);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <ChevronRight size={14} className={`text-slate-400 transition-transform duration-200 ${showAdvertisementL2 ? "rotate-90" : ""}`} />
+                              <div className="flex flex-col">
+                                <span className="font-sans text-slate-700">Advertisement Cost</span>
+                                <span className="text-[10px] font-sans text-slate-400">Click to view breakdown — Amazon Ads (billed) + Beyond Ads (10% estimate)</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {renderComparisonBadge(amazonFinancials.advertisementCost.total, amazonFinancialsComparative?.advertisementCost?.total, true)}
+                              <span className="text-amber-700">-{formatCurrency(amazonFinancials.advertisementCost.total)}</span>
+                            </div>
+                          </div>
+
+                          {showAdvertisementL2 && (
+                            <div className="bg-slate-50/80 border-l-2 border-slate-300 ml-4 mb-1 rounded-b overflow-hidden">
+                              {isLoadingAdvertisementL2 ? (
+                                <div className="flex items-center justify-center py-4 gap-2 text-xs text-slate-400">
+                                  <RefreshCw size={12} className="animate-spin" />
+                                  <span>Loading breakdown...</span>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="px-3 pt-2 pb-1">
+                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Advertisement Breakdown</span>
+                                  </div>
+                                  <div className="divide-y divide-slate-100">
+                                    {advertisementL2Data.map((item, idx) => (
+                                      <div key={`ad-${idx}`} className="flex items-center justify-between py-2 px-3 hover:bg-slate-100/60 text-xs font-mono">
+                                        <span className="text-slate-700 font-sans font-medium">{item.description}</span>
+                                        <span className="text-slate-800 font-semibold">{formatCurrency(item.amount)}</span>
+                                      </div>
+                                    ))}
+                                    <div className="flex items-center justify-between py-2 px-3 bg-blue-50/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                      <span className="text-blue-800 font-sans">Total Advertisement Cost</span>
+                                      <span className="text-blue-900">{formatCurrency(advertisementL2Total)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 4.5 Return Loss -- static row */}
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
+                          <div className="flex flex-col">
+                            <span className="font-sans text-slate-700">Return Loss</span>
+                            <span className="text-[10px] font-sans text-slate-400">COGS of bad-marked returned units minus claim reimbursement</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {renderComparisonBadge(amazonFinancials.returnLoss, amazonFinancialsComparative?.returnLoss, true)}
+                            <span className="text-amber-600 font-semibold">-{formatCurrency(amazonFinancials.returnLoss)}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <div
+                            className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700 cursor-pointer select-none"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex flex-col">
+                                <span className="font-sans text-slate-700">Indirect Exp + People Cost Allocation</span>
+                                <span className="text-[10px] font-sans text-slate-400">Attributed staffing, dark store rents, corporate overheads</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {renderComparisonBadge(activeSimulatedChannel.indirectExpAndPeople, activeChannelComparativeMetrics?.indirectExpAndPeople, true)}
+                              <span className="text-slate-700">-{formatCurrency(activeSimulatedChannel.indirectExpAndPeople)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
+                          <div className="flex flex-col">
+                            <span className="font-sans text-slate-700">Platform Sponsored Advertising Spend</span>
+                            <span className="text-[10px] font-sans text-slate-400">CPC bids, sponsored brands, quick commerce display flags</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {renderComparisonBadge(activeSimulatedChannel.advertisingSpend, activeChannelComparativeMetrics?.advertisingSpend, true)}
+                            <span className="text-amber-700">-{formatCurrency(activeSimulatedChannel.advertisingSpend)}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     {/* Row 5: CM2 */}
                     <div className="flex items-center justify-between py-3 border-b border-slate-100 bg-blue-500/5 hover:bg-blue-500/10 px-2 rounded font-mono text-sm border-l-4 border-l-blue-500">
@@ -1934,6 +2172,58 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Real Trend View (daily / WoW / MoM) -- backend-driven, distinct from the "Simulated" chart on the Consolidated tab */}
+                {selectedChannelId === "amazon" && (
+                  <div className="bg-white px-6 py-4 border-b border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Amazon Trend (Real Data)</h3>
+                        <p className="text-xs text-slate-500">Net Revenue, CM1, CM2 and Net Profit over the selected period</p>
+                      </div>
+                      <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
+                        {(["daily", "weekly", "monthly"] as const).map(g => (
+                          <button
+                            key={g}
+                            onClick={() => setTrendGranularity(g)}
+                            className={`text-[10px] px-2.5 py-1 rounded-lg capitalize font-medium ${
+                              trendGranularity === g ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
+                            }`}
+                          >
+                            {g === "daily" ? "Daily" : g === "weekly" ? "WoW" : "MoM"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {isLoadingTrend ? (
+                      <div className="h-56 flex items-center justify-center gap-2 text-xs text-slate-400">
+                        <RefreshCw size={12} className="animate-spin" />
+                        <span>Loading trend...</span>
+                      </div>
+                    ) : realTrendData.length === 0 ? (
+                      <div className="h-56 flex items-center justify-center text-xs text-slate-400">No trend data for the selected range.</div>
+                    ) : (
+                      <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={realTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
+                            <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                              formatter={(val: number) => [formatCurrency(val), ""]}
+                            />
+                            <Legend wrapperStyle={{ fontSize: "10px" }} />
+                            <Area type="monotone" dataKey="netRevenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2} name="Net Revenue" />
+                            <Area type="monotone" dataKey="cm1" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} name="CM1" />
+                            <Area type="monotone" dataKey="cm2" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} name="CM2" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-slate-400 mt-2">Advertisement Cost is omitted from this trend — Amazon ad spend is only available as a lifetime total, not per-day.</p>
+                  </div>
+                )}
+
                 {/* Sub-Table 2: Efficiency & Listing Metrics */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1948,7 +2238,10 @@ export default function App() {
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Average Order Value (AOV)</span>
                       <p className="text-xs text-slate-405 mt-0.5">Average checkout ticket price</p>
                     </div>
-                    <span className="font-mono text-lg font-bold text-slate-800">₹{selectedChannel.aov.toFixed(0)}</span>
+                    <div className="flex items-center gap-2">
+                      {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.aov, comparativeOperationalMetrics?.aov)}
+                      <span className="font-mono text-lg font-bold text-slate-800">₹{selectedChannel.aov.toFixed(0)}</span>
+                    </div>
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
@@ -1956,7 +2249,21 @@ export default function App() {
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Orders Per Day (OPD)</span>
                       <p className="text-xs text-slate-405 mt-0.5">Daily shipment run counts</p>
                     </div>
-                    <span className="font-mono text-lg font-bold text-slate-800">{selectedChannel.ordersPerDay} units</span>
+                    <div className="flex items-center gap-2">
+                      {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.ordersPerDay, comparativeOperationalMetrics?.ordersPerDay)}
+                      <span className="font-mono text-lg font-bold text-slate-800">{selectedChannel.ordersPerDay} units</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Units / Order</span>
+                      <p className="text-xs text-slate-405 mt-0.5">Total units sold / total order count</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedChannelId === "amazon" && renderComparisonBadge(amazonOperationalMetrics?.unitsPerOrder ?? 0, comparativeOperationalMetrics?.unitsPerOrder)}
+                      <span className="font-mono text-lg font-bold text-slate-800">{selectedChannelId === "amazon" ? (amazonOperationalMetrics?.unitsPerOrder ?? 0).toFixed(2) : "—"}</span>
+                    </div>
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
@@ -1964,7 +2271,10 @@ export default function App() {
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Listings Count (SKUs)</span>
                       <p className="text-xs text-slate-405 mt-0.5">Total registered catalog SKUs</p>
                     </div>
-                    <span className="font-mono text-lg font-bold text-slate-800">{selectedChannel.listingsCount}</span>
+                    <div className="flex items-center gap-2">
+                      {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.listingsCount, comparativeOperationalMetrics?.listingsCount)}
+                      <span className="font-mono text-lg font-bold text-slate-800">{selectedChannel.listingsCount}</span>
+                    </div>
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
@@ -1972,15 +2282,21 @@ export default function App() {
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Active Listing Count</span>
                       <p className="text-xs text-slate-405 mt-0.5">Visibly indexed search elements</p>
                     </div>
-                    <span className="font-mono text-lg font-bold text-emerald-600">{selectedChannel.activeListingCount} / {selectedChannel.listingsCount}</span>
+                    <div className="flex items-center gap-2">
+                      {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.activeListingCount, comparativeOperationalMetrics?.activeListingCount)}
+                      <span className="font-mono text-lg font-bold text-emerald-600">{selectedChannel.activeListingCount} / {selectedChannel.listingsCount}</span>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between md:col-span-2">
+                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Revenue Per SKU (ASIN Performance)</span>
                       <p className="text-xs text-slate-405 mt-0.5">Average output yielded per logged catalog element</p>
                     </div>
-                    <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(selectedChannel.revenuePerSku)}</span>
+                    <div className="flex items-center gap-2">
+                      {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.revenuePerSku, comparativeOperationalMetrics?.revenuePerSku)}
+                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(selectedChannel.revenuePerSku)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1994,36 +2310,90 @@ export default function App() {
 
                 <div className="px-6 py-4 bg-white">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    
+
                     <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
                       <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Out of Stock Days</span>
-                      <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{selectedChannel.outOfStockDays} days</span>
+                      {renderMetricOrPending(selectedChannel.outOfStockDays, (v) => `${v} days`)}
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Average monthly lag</span>
                     </div>
 
+                    {selectedChannelId === "amazon" && (
+                      <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                        <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Stockout Cost</span>
+                        {renderMetricOrPending(amazonOperationalMetrics?.stockoutCost ?? null, formatCurrency)}
+                        <span className="text-[9px] text-slate-405 font-sans mt-0.5">Opportunity lost to out-of-stock inventory</span>
+                      </div>
+                    )}
+
                     <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
                       <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory (90D+)</span>
-                      <span className="font-mono text-lg font-extrabold text-orange-600 block mt-1">{formatPercent(selectedChannel.ageingInventoryPct)}</span>
+                      {renderMetricOrPending(selectedChannel.ageingInventoryPct, formatPercent)}
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Overstocked catalog weight</span>
                     </div>
 
                     <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
                       <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Dead Stock %</span>
-                      <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(selectedChannel.deadStockPct)}</span>
+                      {renderMetricOrPending(selectedChannel.deadStockPct, formatPercent)}
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Zero daily transaction share</span>
                     </div>
 
                     <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Return & Refund Rate</span>
+                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Refund Rate</span>
                       <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
-                      <span className="text-[9px] text-rose-500 font-sans mt-0.5">Customer order cancellation</span>
+                      <span className="text-[9px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
                     </div>
 
+                    {selectedChannelId === "amazon" && (
+                      <>
+                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.goodReturnPct ?? 0)}</span>
+                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
+                        </div>
+
+                        <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(amazonOperationalMetrics?.badReturnPct ?? 0)}</span>
+                          <span className="text-[9px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
+                        </div>
+                      </>
+                    )}
+
                     <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Claim Success Rate</span>
-                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(selectedChannel.claimPct)}</span>
-                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">UnReturned cargo recoveries</span>
+                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
+                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
+                        {selectedChannelId === "amazon" ? formatPercent(amazonOperationalMetrics?.claimRatePct ?? 0) : formatPercent(selectedChannel.claimPct)}
+                      </span>
+                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Claims raised / bad-returned units</span>
                     </div>
+
+                    {selectedChannelId === "amazon" && (
+                      <>
+                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim Success %</span>
+                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claimSuccessPct ?? 0)}</span>
+                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Successful claims / total claims raised</span>
+                        </div>
+
+                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
+                          {renderMetricOrPending(null, formatPercent, "Not Available")}
+                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">No claim-raised timestamp in ingested data</span>
+                        </div>
+
+                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.reimbursementPct ?? 0)}</span>
+                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
+                        </div>
+
+                        <div className="bg-amber-50 border border-amber-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{formatPercent(amazonFinancials?.returnLossPct ?? 0)}</span>
+                          <span className="text-[9px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
+                        </div>
+                      </>
+                    )}
 
                     <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
                       <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Amount</span>
@@ -2034,23 +2404,27 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Sub-Table 4: Catalogue benchmark */}
-                <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare size={16} className="text-slate-655" />
-                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Catalogue Benchmark Standard</span>
-                  </div>
-                </div>
-                <div className="px-6 py-4 flex items-center justify-around font-mono text-sm bg-white text-slate-705">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 font-sans">Total Catalogue SKUs:</span>
-                    <span className="text-slate-900 font-bold">{selectedChannel.totalSkus}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-500 font-sans">Ideal Benchmark Target:</span>
-                    <span className="text-amber-700 font-bold">{selectedChannel.skusBenchmark} SKUs</span>
-                  </div>
-                </div>
+                {/* Sub-Table 4: Catalogue benchmark -- removed for Amazon per finance request; retained for other channels */}
+                {selectedChannelId !== "amazon" && (
+                  <>
+                    <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare size={16} className="text-slate-655" />
+                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Catalogue Benchmark Standard</span>
+                      </div>
+                    </div>
+                    <div className="px-6 py-4 flex items-center justify-around font-mono text-sm bg-white text-slate-705">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 font-sans">Total Catalogue SKUs:</span>
+                        <span className="text-slate-900 font-bold">{selectedChannel.totalSkus}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 font-sans">Ideal Benchmark Target:</span>
+                        <span className="text-amber-700 font-bold">{selectedChannel.skusBenchmark} SKUs</span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
               </div>
 
@@ -2262,6 +2636,59 @@ export default function App() {
               </div>
             </div>
 
+            {/* SKU Trend panel -- on-demand, shown when a SKU row is clicked (channels tab has the full-channel trend chart) */}
+            {skuTrendSku && (
+              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">SKU Trend — {skuTrendSku}</h3>
+                    <p className="text-xs text-slate-500">Revenue, COGS and CM1 over the selected period</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
+                      {(["daily", "weekly", "monthly"] as const).map(g => (
+                        <button
+                          key={g}
+                          onClick={() => { setTrendGranularity(g); fetchSkuTrend(skuTrendSku, startDateStr, endDateStr, g, gstMode); }}
+                          className={`text-[10px] px-2.5 py-1 rounded-lg capitalize font-medium ${
+                            trendGranularity === g ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          {g === "daily" ? "Daily" : g === "weekly" ? "WoW" : "MoM"}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => setSkuTrendSku(null)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+                  </div>
+                </div>
+                {isLoadingSkuTrend ? (
+                  <div className="h-48 flex items-center justify-center gap-2 text-xs text-slate-400">
+                    <RefreshCw size={12} className="animate-spin" />
+                    <span>Loading trend...</span>
+                  </div>
+                ) : skuTrendData.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center text-xs text-slate-400">No trend data for this SKU in the selected range.</div>
+                ) : (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={skuTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
+                        <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                          formatter={(val: number) => [formatCurrency(val), ""]}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "10px" }} />
+                        <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2} name="Revenue" />
+                        <Area type="monotone" dataKey="cm1" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} name="CM1" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Detailed SKU Margin Spreadsheet Card */}
             <div className="bg-white border border-slate-201 rounded-2xl overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
@@ -2271,6 +2698,8 @@ export default function App() {
                       <th className="py-3 px-4">SKU / Item Name</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4 text-center">Units Sold</th>
+                      <th className="py-3 px-4 text-center">Glance Views</th>
+                      <th className="py-3 px-4 text-center">Conv. Rate</th>
                       <th className="py-3 px-4 text-right">Revenue</th>
                       <th className="py-3 px-4 text-right text-rose-700">Landing COGS</th>
                       <th className="py-3 px-4 text-right">Mkt Commission</th>
@@ -2284,15 +2713,26 @@ export default function App() {
                   <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
                     {filteredSKUs.map(s => {
                       return (
-                        <tr key={s.sku} className="hover:bg-slate-51 transition-all">
+                        <tr
+                          key={s.sku}
+                          className="hover:bg-slate-51 transition-all cursor-pointer"
+                          onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
+                        >
                           <td className="py-3.5 px-4 font-sans text-slate-900">
-                            <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
+                              {s.moverShaker && (
+                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700 border border-purple-200">Mover & Shaker</span>
+                              )}
+                            </span>
                             <span className="block text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1">{s.name}</span>
                           </td>
                           <td className="py-3.5 px-4 font-sans">
                             <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[10px] text-slate-600 border border-slate-200">{s.category}</span>
                           </td>
                           <td className="py-3.5 px-4 text-center text-slate-800 font-bold">{s.unitsSold.toLocaleString()}</td>
+                          <td className="py-3.5 px-4 text-center text-slate-600">{s.glanceViews !== null && s.glanceViews !== undefined ? s.glanceViews.toLocaleString() : "—"}</td>
+                          <td className="py-3.5 px-4 text-center text-slate-600">{s.conversionRate !== null && s.conversionRate !== undefined ? `${s.conversionRate.toFixed(2)}%` : "—"}</td>
                           <td className="py-3.5 px-4 text-right text-slate-900">{formatCurrency(s.revenue)}</td>
                           <td className="py-3.5 px-4 text-right text-rose-600 font-medium">{formatCurrency(s.landingCost)}</td>
                           <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.marketplaceFees)}</td>
@@ -2306,8 +2746,8 @@ export default function App() {
                           </td>
                           <td className="py-3.5 px-4 text-center font-sans">
                             <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
-                              s.status === "Profitable" 
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200" 
+                              s.status === "Profitable"
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                                 : s.status === "Borderline"
                                 ? "bg-amber-100 text-amber-800 border border-amber-200"
                                 : "bg-rose-100 text-rose-800 border border-rose-200"

@@ -87,6 +87,15 @@ async function classifySettlementFile(filePath: string): Promise<string> {
   const headers = table.headers;
   const rows = table.rows;
 
+  // New 36-col format: has "shipment-fee-type" instead of "amount-description".
+  // Classify by row count — same threshold as old format.
+  if (headers.includes("shipment-fee-type")) {
+    return rows.length < 4500
+      ? "amazon_v2_settlement_report_data_flat_file_v2_electronics"
+      : "amazon_v2_settlement_report_data_flat_file_v2_cod";
+  }
+
+  // Old 24-col format: use amount-description keywords first, then row count.
   const descIdx = headers.indexOf("amount-description");
   if (descIdx !== -1) {
     for (const r of rows) {
@@ -102,6 +111,14 @@ async function classifySettlementFile(filePath: string): Promise<string> {
   }
 
   return "amazon_v2_settlement_report_data_flat_file_v2_cod";
+}
+
+// Exported for use by download-all-settlements.ts
+export async function classifyAndIngestSettlement(filePath: string): Promise<string> {
+  const reportKey = await classifySettlementFile(filePath);
+  console.log(`  classified as ${reportKey}`);
+  await ingestFileToTable(filePath, reportKey);
+  return reportKey;
 }
 
 export async function ingestDownloadedReports(targetReportKey?: string) {
