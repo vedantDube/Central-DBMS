@@ -1018,7 +1018,14 @@ async function startServer() {
       }
 
       const outOfStockDays = platformRevenueInRange > 0 ? outOfStockDaysWeighted / platformRevenueInRange : 0;
-      const stockoutCost = outOfStockDays * platformRevenueInRange;
+      // Stockout Cost must multiply the day-count by an average DAILY revenue rate, not the whole period's
+      // total revenue -- multiplying by period-total revenue mismatches units (days x total-period-money
+      // produces a figure that can exceed the period's entire actual revenue several times over).
+      const reportDayCount = Math.max(1, Math.round(
+        (new Date(reportEndStr).getTime() - new Date(reportStartStr).getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1);
+      const avgDailyPlatformRevenue = platformRevenueInRange / reportDayCount;
+      const stockoutCost = outOfStockDays * avgDailyPlatformRevenue;
       const ageingInventoryPct = activeListings > 0 ? (ageingFlaggedCount / activeListings) * 100 : 0;
       const deadStockPct = activeListings > 0 ? (deadStockCriticalCount / activeListings) * 100 : 0;
 
