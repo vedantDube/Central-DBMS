@@ -11,6 +11,9 @@ const { Pool } = pg;
 // "Beyond Ads" is billed at a fixed 10% of Amazon-billed ad spend (finance-confirmed constant, not user-editable)
 const BEYOND_ADS_MULTIPLIER = 0.10;
 
+// Rental Charges for PPOB: fixed monthly figure (finance-confirmed), prorated across the selected date range
+const RENTAL_CHARGES_PER_MONTH = 16000;
+
 // Custom connection string parser to handle special characters (like @, /, or :) in passwords
 export function parseConnectionString(uri: string) {
   try {
@@ -842,6 +845,142 @@ async function startServer() {
 
       const reimbursementPct = cogsOfClaimedUnits > 0 ? (totalReimbursed / cogsOfClaimedUnits) * 100 : 0;
 
+      // --- Supply Chain vulnerability metrics: Out of Stock Days, Stockout Cost, Ageing Inventory %, Dead Stock % ---
+      // Reference date = end of the selected range (or today, if no range picked); a 182-day (26-week) trailing
+      // lookback before it is pulled to run the week-over-week ageing state-machine and day-over-day dead-stock
+      // check. (A SKU whose ageing flag was triggered further back than this window, and never recovered, will
+      // read as un-flagged -- an accepted bound rather than pulling unbounded history on every request.)
+      const referenceDateStr = endDate || new Date().toISOString().slice(0, 10);
+      const lookbackStartStr = new Date(new Date(referenceDateStr).getTime() - 182 * 24 * 60 * 60 * 1000)
+        .toISOString().slice(0, 10);
+      const reportStartStr = startDate || lookbackStartStr;
+      const reportEndStr = referenceDateStr;
+
+      const [dailyUnitsResult, dailyStockResult] = await Promise.all([
+        client.query(`
+          SELECT sku, order_date::date AS d,
+            COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
+            COALESCE(SUM(${revenueCol}), 0) AS revenue
+          FROM "Amazon_GST_Master"
+          WHERE transaction_type = 'Shipment'
+            AND order_date IS NOT NULL AND order_date != ''
+            AND order_date::date >= $1::date AND order_date::date <= $2::date
+          GROUP BY sku, order_date::date
+        `, [lookbackStartStr, referenceDateStr]),
+        client.query(`
+          SELECT sku, date::date AS d, quantity
+          FROM "EasyEcomInventory"
+          WHERE date IS NOT NULL AND date != ''
+            AND date::date >= $1::date AND date::date <= $2::date
+        `, [lookbackStartStr, referenceDateStr]),
+      ]);
+
+      type DayNum = { units: number; revenue: number };
+      const unitsBySkuDate = new Map<string, Map<string, DayNum>>();
+      for (const row of dailyUnitsResult.rows) {
+        const d = new Date(row.d).toISOString().slice(0, 10);
+        if (!unitsBySkuDate.has(row.sku)) unitsBySkuDate.set(row.sku, new Map());
+        unitsBySkuDate.get(row.sku)!.set(d, { units: parseFloat(row.units), revenue: parseFloat(row.revenue) });
+      }
+      const stockBySkuDate = new Map<string, Map<string, number>>();
+      for (const row of dailyStockResult.rows) {
+        const d = new Date(row.d).toISOString().slice(0, 10);
+        if (!stockBySkuDate.has(row.sku)) stockBySkuDate.set(row.sku, new Map());
+        stockBySkuDate.get(row.sku)!.set(d, row.quantity == null ? 0 : parseFloat(row.quantity));
+      }
+
+      const allSkus = new Set<string>([...unitsBySkuDate.keys(), ...stockBySkuDate.keys()]);
+
+      // Monday of the ISO week containing a given date, as a YYYY-MM-DD string
+      const isoWeekStart = (dateStr: string) => {
+        const dt = new Date(dateStr + "T00:00:00Z");
+        const day = dt.getUTCDay(); // 0=Sun..6=Sat
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        dt.setUTCDate(dt.getUTCDate() + diffToMonday);
+        return dt.toISOString().slice(0, 10);
+      };
+
+      let ageingFlaggedCount = 0;
+      let deadStockCriticalCount = 0;
+      let outOfStockDaysWeighted = 0;
+      let platformRevenueInRange = 0;
+      const perSkuRevenueInRange = new Map<string, number>();
+
+      for (const sku of allSkus) {
+        const stockMap = stockBySkuDate.get(sku) || new Map<string, number>();
+        const unitsMap = unitsBySkuDate.get(sku) || new Map<string, DayNum>();
+
+        // All dates this SKU has a stock snapshot for, ascending -- the timeline we can evaluate "stocked" on
+        const dates = [...stockMap.keys()].sort();
+
+        // Weekly avg run-rate over stocked days only (per spec footnote), for the ageing state-machine
+        const weekBuckets = new Map<string, { sum: number; count: number }>();
+        for (const d of dates) {
+          const qty = stockMap.get(d)!;
+          if (qty <= 0) continue; // not stocked -- excluded from run-rate per spec
+          const unitsSold = unitsMap.get(d)?.units ?? 0;
+          const wk = isoWeekStart(d);
+          const bucket = weekBuckets.get(wk) || { sum: 0, count: 0 };
+          bucket.sum += unitsSold;
+          bucket.count += 1;
+          weekBuckets.set(wk, bucket);
+        }
+        const weeks = [...weekBuckets.entries()]
+          .map(([wk, b]) => ({ wk, rate: b.sum / b.count }))
+          .sort((a, b) => (a.wk < b.wk ? -1 : 1));
+
+        let flagged = false;
+        let triggerRate = 0;
+        for (let i = 1; i < weeks.length; i++) {
+          const prevRate = weeks[i - 1].rate;
+          const currRate = weeks[i].rate;
+          if (!flagged) {
+            if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
+              flagged = true;
+              triggerRate = prevRate;
+            }
+          } else if (currRate >= triggerRate) {
+            flagged = false;
+          }
+        }
+        if (flagged) ageingFlaggedCount++;
+
+        // Dead Stock (critical): day-over-day run-rate drop >= 50%, checked on the most recent two stocked days
+        const stockedDatesInRange = dates.filter((d) => d >= reportStartStr && d <= reportEndStr && stockMap.get(d)! > 0);
+        if (stockedDatesInRange.length >= 2) {
+          const last = stockedDatesInRange[stockedDatesInRange.length - 1];
+          const prev = stockedDatesInRange[stockedDatesInRange.length - 2];
+          const lastRate = unitsMap.get(last)?.units ?? 0;
+          const prevRate = unitsMap.get(prev)?.units ?? 0;
+          if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) {
+            deadStockCriticalCount++;
+          }
+        }
+
+        // Out of Stock Days: count OOS days within the reporting range only, weighted by this SKU's revenue share
+        let oosDaysInRange = 0;
+        for (const d of dates) {
+          if (d < reportStartStr || d > reportEndStr) continue;
+          if (stockMap.get(d)! <= 0) oosDaysInRange++;
+        }
+        let skuRevenueInRange = 0;
+        for (const [d, dn] of unitsMap.entries()) {
+          if (d < reportStartStr || d > reportEndStr) continue;
+          skuRevenueInRange += dn.revenue;
+        }
+        perSkuRevenueInRange.set(sku, skuRevenueInRange);
+        platformRevenueInRange += skuRevenueInRange;
+
+        if (oosDaysInRange > 0) {
+          outOfStockDaysWeighted += oosDaysInRange * skuRevenueInRange; // divided by platform revenue below
+        }
+      }
+
+      const outOfStockDays = platformRevenueInRange > 0 ? outOfStockDaysWeighted / platformRevenueInRange : 0;
+      const stockoutCost = outOfStockDays * platformRevenueInRange;
+      const ageingInventoryPct = activeListings > 0 ? (ageingFlaggedCount / activeListings) * 100 : 0;
+      const deadStockPct = activeListings > 0 ? (deadStockCriticalCount / activeListings) * 100 : 0;
+
       res.json({
         success: true,
         data: {
@@ -864,11 +1003,11 @@ async function startServer() {
           reimbursementPct: Math.round(reimbursementPct * 100) / 100,
           reimbursementAmount: Math.round(totalReimbursed * 100) / 100,
           returnLossPct: null, // computed alongside returnLoss amount in /api/amazon/financials; see that endpoint
-          // Definition Pending -- explicitly flagged by finance as "to be discussed", not yet formulated
-          outOfStockDays: null,
-          stockoutCost: null,
-          ageingInventoryPct: null,
-          deadStockPct: null,
+          // Supply Chain vulnerability metrics -- see the computation block above for formulas/assumptions
+          outOfStockDays: Math.round(outOfStockDays * 100) / 100,
+          stockoutCost: Math.round(stockoutCost * 100) / 100,
+          ageingInventoryPct: Math.round(ageingInventoryPct * 100) / 100,
+          deadStockPct: Math.round(deadStockPct * 100) / 100,
           gstMode,
         },
       });
@@ -983,7 +1122,11 @@ async function startServer() {
 
       const amazonCharges = parseFloat(feesResult.rows[0].amazon_charges_total);
       const peopleCost = 0; // Pending Finance input -- data to be added later
-      const rentalCharges = 0; // Pending Finance input -- data to be added later
+
+      const dayCount = startDate && endDate
+        ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        : 30;
+      const rentalCharges = RENTAL_CHARGES_PER_MONTH * (dayCount / 30);
 
       const amazonAdsSpend = parseFloat(adsResult.rows[0].total_ad_spend);
       const beyondAdsSpend = amazonAdsSpend * BEYOND_ADS_MULTIPLIER;
@@ -1072,16 +1215,32 @@ async function startServer() {
         const adsResult = await client.query(`
           SELECT
             COALESCE(type, 'Unspecified') AS description,
-            COALESCE(SUM(CAST(NULLIF(spend, '') AS numeric)), 0) AS amount
+            COALESCE(SUM(CAST(NULLIF(spend, '') AS numeric)), 0) AS amount,
+            COALESCE(SUM(CAST(NULLIF(impressions, '') AS numeric)), 0) AS impressions,
+            COALESCE(SUM(CAST(NULLIF(clicks, '') AS numeric)), 0) AS clicks,
+            COALESCE(SUM(CAST(NULLIF(sales, '') AS numeric)), 0) AS sales
           FROM "AmazonAdsCampaignRow"
           WHERE currency_code = 'INR'
           GROUP BY type
           ORDER BY amount DESC
         `);
-        const amazonAdsBreakdown = adsResult.rows.map((r: any) => ({
-          description: `Amazon Ads (billed) - ${r.description}`,
-          amount: parseFloat(r.amount),
-        }));
+        // CTR/ACOS/ROAS computed from the summed totals (weighted), not by averaging the per-row ratios.
+        const amazonAdsBreakdown = adsResult.rows.map((r: any) => {
+          const amount = parseFloat(r.amount);
+          const impressions = parseFloat(r.impressions);
+          const clicks = parseFloat(r.clicks);
+          const sales = parseFloat(r.sales);
+          return {
+            description: `Amazon Ads (billed) - ${r.description}`,
+            amount,
+            impressions,
+            clicks,
+            sales,
+            ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+            acos: sales > 0 ? (amount / sales) * 100 : 0,
+            roas: amount > 0 ? sales / amount : 0,
+          };
+        });
         const amazonAdsTotal = amazonAdsBreakdown.reduce((s: number, i: any) => s + i.amount, 0);
         const beyondAdsTotal = amazonAdsTotal * BEYOND_ADS_MULTIPLIER;
 

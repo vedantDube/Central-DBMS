@@ -135,6 +135,12 @@ export default function App() {
   const [isLoadingAdvertisementL2, setIsLoadingAdvertisementL2] = useState<boolean>(false);
   const [advertisementL2Fetched, setAdvertisementL2Fetched] = useState<boolean>(false);
 
+  // Ads Performance section state (per-campaign-type Spend/Impressions/Clicks/CTR/ACOS/ROAS/Sales)
+  const [adsPerformanceData, setAdsPerformanceData] = useState<{
+    description: string; amount: number; impressions: number; clicks: number; sales: number; ctr: number; acos: number; roas: number;
+  }[]>([]);
+  const [isLoadingAdsPerformance, setIsLoadingAdsPerformance] = useState<boolean>(false);
+
   // Database integration state
   const [dbStatus, setDbStatus] = useState<any>(null);
   const [b2cSchemaData, setB2cSchemaData] = useState<any>(null);
@@ -333,6 +339,22 @@ export default function App() {
     }
   };
 
+  const fetchAdsPerformance = async () => {
+    setIsLoadingAdsPerformance(true);
+    try {
+      const params = new URLSearchParams({ section: "advertisement" });
+      const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setAdsPerformanceData(data.data.settlementBreakdown);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Ads Performance breakdown:", err);
+    } finally {
+      setIsLoadingAdsPerformance(false);
+    }
+  };
+
   const [anomalies, setAnomalies] = useState<any>(null);
 
   const fetchAnomalies = async (start: string, end: string) => {
@@ -482,6 +504,11 @@ export default function App() {
   useEffect(() => {
     fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
   }, [trendGranularity]);
+
+  // Ads Performance breakdown: lifetime totals per campaign type (AmazonAdsCampaignRow has no date column), fetch once
+  useEffect(() => {
+    fetchAdsPerformance();
+  }, []);
 
   // Deterministic noise generator for 90-day historical timeseries data
   const getDeterministicNoise = (dateStr: string, channelId: string, idx: number) => {
@@ -2404,24 +2431,56 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Sub-Table 4: Catalogue benchmark -- removed for Amazon per finance request; retained for other channels */}
-                {selectedChannelId !== "amazon" && (
+                {/* Sub-Table 4: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
+                {selectedChannelId === "amazon" && (
                   <>
                     <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckSquare size={16} className="text-slate-655" />
-                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Catalogue Benchmark Standard</span>
+                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Ads Performance</span>
                       </div>
                     </div>
-                    <div className="px-6 py-4 flex items-center justify-around font-mono text-sm bg-white text-slate-705">
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500 font-sans">Total Catalogue SKUs:</span>
-                        <span className="text-slate-900 font-bold">{selectedChannel.totalSkus}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500 font-sans">Ideal Benchmark Target:</span>
-                        <span className="text-amber-700 font-bold">{selectedChannel.skusBenchmark} SKUs</span>
-                      </div>
+                    <div className="px-6 py-4 bg-white">
+                      {isLoadingAdsPerformance ? (
+                        <p className="text-xs text-slate-405 font-sans">Loading ads performance...</p>
+                      ) : adsPerformanceData.length === 0 ? (
+                        <p className="text-xs text-slate-405 font-sans">No ads campaign data available.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs font-mono">
+                            <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                              <tr>
+                                <th className="py-2 pr-4">Campaign Type</th>
+                                <th className="py-2 px-3 text-right">Spend</th>
+                                <th className="py-2 px-3 text-right">Impressions</th>
+                                <th className="py-2 px-3 text-right">Clicks</th>
+                                <th className="py-2 px-3 text-right">CTR</th>
+                                <th className="py-2 px-3 text-right">ACOS</th>
+                                <th className="py-2 px-3 text-right">ROAS</th>
+                                <th className="py-2 pl-3 text-right">Sales</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-700">
+                              {adsPerformanceData.map((row, idx) => (
+                                <tr key={idx}>
+                                  <td className="py-2 pr-4 font-sans text-slate-800">{row.description}</td>
+                                  <td className="py-2 px-3 text-right">{formatCurrency(row.amount)}</td>
+                                  <td className="py-2 px-3 text-right">{row.impressions.toLocaleString()}</td>
+                                  <td className="py-2 px-3 text-right">{row.clicks.toLocaleString()}</td>
+                                  <td className="py-2 px-3 text-right">{formatPercent(row.ctr)}</td>
+                                  <td className="py-2 px-3 text-right">{formatPercent(row.acos)}</td>
+                                  <td className="py-2 px-3 text-right">{row.roas.toFixed(2)}x</td>
+                                  <td className="py-2 pl-3 text-right">{formatCurrency(row.sales)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      <p className="text-[9px] text-slate-405 font-sans mt-3">
+                        Per-campaign Glance Views / Conversion Rate not available — no per-campaign traffic data is ingested today.
+                        Figures are lifetime totals (AmazonAdsCampaignRow carries no date column).
+                      </p>
                     </div>
                   </>
                 )}
