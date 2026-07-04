@@ -39,25 +39,51 @@ async function main() {
     }
   }
 
-  // 2. Fetch all EasyEcom Inventory records and cache costs in memory
+  // 2. Fetch all EasyEcom Inventory records and build a per-SKU, date-ordered cost history.
+  // A SKU can have a different cost recorded on different days (e.g. a new purchase order landing at a
+  // different rate) -- previously this loaded a plain sku->cost map with no ordering, so it landed on
+  // whichever row Postgres happened to return last for that SKU (arbitrary, not date-matched to the
+  // order). Now each GST Master row is matched to whatever cost was in effect ON OR BEFORE its own
+  // order date, which is the correct "cost at time of sale" semantics.
   console.log("Fetching EasyEcom Inventory...");
   const inventoryRecords = await prisma.easyEcomInventory.findMany({
     select: {
       sku: true,
+      date: true,
       rawJson: true
-    }
+    },
+    orderBy: { date: "asc" }
   });
   console.log(`Loaded ${inventoryRecords.length} inventory records.`);
 
-  const inventoryCostMap = new Map<string, number>(); // key: sku, value: cost
+  const inventoryCostHistory = new Map<string, { date: string; cost: number }[]>(); // key: sku, value: date-ascending cost history
   for (const inv of inventoryRecords) {
-    if (inv.sku && inv.rawJson) {
+    if (inv.sku && inv.rawJson && inv.date) {
       const raw = inv.rawJson as any;
       const cost = raw?.cost !== undefined && raw?.cost !== null ? Number(raw.cost) : null;
       if (cost !== null && !isNaN(cost)) {
-        inventoryCostMap.set(String(inv.sku).trim(), cost);
+        const sku = String(inv.sku).trim();
+        if (!inventoryCostHistory.has(sku)) inventoryCostHistory.set(sku, []);
+        inventoryCostHistory.get(sku)!.push({ date: inv.date, cost });
       }
     }
+  }
+
+  // Binary search for the latest history entry with date <= targetDate; falls back to the earliest
+  // known cost if the order predates every recorded snapshot (best available data on record).
+  function costAsOf(history: { date: string; cost: number }[], targetDate: string): number | undefined {
+    if (history.length === 0) return undefined;
+    let lo = 0, hi = history.length - 1, result = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (history[mid].date <= targetDate) {
+        result = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return result === -1 ? history[0].cost : history[result].cost;
   }
 
   // 3. Count Amazon GST Master rows
@@ -85,7 +111,8 @@ async function main() {
       select: {
         id: true,
         sku: true,
-        asin: true
+        asin: true,
+        order_date: true
       }
     });
 
@@ -100,7 +127,9 @@ async function main() {
       const masterSku = listingsMap.get(lookupKey);
 
       if (masterSku) {
-        const cost = inventoryCostMap.get(masterSku);
+        const history = inventoryCostHistory.get(masterSku);
+        const orderDate = (row.order_date || "").slice(0, 10); // YYYY-MM-DD portion
+        const cost = history && orderDate ? costAsOf(history, orderDate) : undefined;
         if (cost !== undefined) {
           matchedCount++;
           updates.push({

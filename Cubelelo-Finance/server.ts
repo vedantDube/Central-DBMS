@@ -438,7 +438,7 @@ async function startServer() {
       const wowLookbackStartStr = new Date(new Date(wowReferenceDateStr).getTime() - 14 * 24 * 60 * 60 * 1000)
         .toISOString().slice(0, 10);
       const wowResult = await client.query(`
-        SELECT sku, order_date::date AS d,
+        SELECT sku, TO_CHAR(order_date::date, 'YYYY-MM-DD') AS d,
           COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units
         FROM "Amazon_GST_Master"
         WHERE transaction_type = 'Shipment'
@@ -452,7 +452,7 @@ async function startServer() {
       const thisWeekUnitsBySku: Record<string, number> = {};
       const lastWeekUnitsBySku: Record<string, number> = {};
       for (const row of wowResult.rows) {
-        const d = new Date(row.d).toISOString().slice(0, 10);
+        const d = row.d;
         const wk = isoWeekStart(d);
         const units = parseFloat(row.units);
         if (wk === thisWeekStart) thisWeekUnitsBySku[row.sku] = (thisWeekUnitsBySku[row.sku] || 0) + units;
@@ -908,7 +908,7 @@ async function startServer() {
 
       const [dailyUnitsResult, dailyStockResult] = await Promise.all([
         client.query(`
-          SELECT sku, order_date::date AS d,
+          SELECT sku, TO_CHAR(order_date::date, 'YYYY-MM-DD') AS d,
             COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
             COALESCE(SUM(${revenueCol}), 0) AS revenue
           FROM "Amazon_GST_Master"
@@ -918,7 +918,7 @@ async function startServer() {
           GROUP BY sku, order_date::date
         `, [lookbackStartStr, referenceDateStr]),
         client.query(`
-          SELECT sku, date::date AS d, quantity
+          SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
           FROM "EasyEcomInventory"
           WHERE date IS NOT NULL AND date != ''
             AND date::date >= $1::date AND date::date <= $2::date
@@ -928,13 +928,13 @@ async function startServer() {
       type DayNum = { units: number; revenue: number };
       const unitsBySkuDate = new Map<string, Map<string, DayNum>>();
       for (const row of dailyUnitsResult.rows) {
-        const d = new Date(row.d).toISOString().slice(0, 10);
+        const d = row.d;
         if (!unitsBySkuDate.has(row.sku)) unitsBySkuDate.set(row.sku, new Map());
         unitsBySkuDate.get(row.sku)!.set(d, { units: parseFloat(row.units), revenue: parseFloat(row.revenue) });
       }
       const stockBySkuDate = new Map<string, Map<string, number>>();
       for (const row of dailyStockResult.rows) {
-        const d = new Date(row.d).toISOString().slice(0, 10);
+        const d = row.d;
         if (!stockBySkuDate.has(row.sku)) stockBySkuDate.set(row.sku, new Map());
         stockBySkuDate.get(row.sku)!.set(d, row.quantity == null ? 0 : parseFloat(row.quantity));
       }
@@ -1036,6 +1036,7 @@ async function startServer() {
           ordersPerDay,
           unitsPerOrder: Math.round(unitsPerOrder * 100) / 100,
           totalOrders,
+          unitsSold: shippedQty,
           listingsCount: totalListings,
           activeListingCount: activeListings,
           revenuePerSku,
@@ -1461,6 +1462,79 @@ async function startServer() {
     }
   });
 
+  // Amazon Compare Sales Endpoint -- single-day metrics for a reference date vs the day before,
+  // same day last week, and same day last year (mirrors Amazon Seller Central's own "Compare Sales" panel).
+  // "Reference date" is whatever date the dashboard's selected range ends on -- this app has no live "today"
+  // concept since the underlying data isn't a real-time feed.
+  app.get("/api/amazon/compare-sales", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const refDateStr = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+      const gstMode = (req.query.gstMode as string) === "inclusive" ? "inclusive" : "exclusive";
+      const revenueCol = gstMode === "inclusive" ? "invoice_amount" : "tax_exclusive_gross";
+
+      const refDate = new Date(refDateStr + "T00:00:00Z");
+      const addDays = (d: Date, n: number) => {
+        const copy = new Date(d);
+        copy.setUTCDate(copy.getUTCDate() + n);
+        return copy.toISOString().slice(0, 10);
+      };
+
+      const periods = [
+        { key: "reference", label: "Selected Day", date: refDateStr },
+        { key: "previousDay", label: "Previous Day", date: addDays(refDate, -1) },
+        { key: "sameDayLastWeek", label: "Same Day Last Week", date: addDays(refDate, -7) },
+        { key: "sameDayLastYear", label: "Same Day Last Year", date: addDays(refDate, -365) },
+      ];
+      const dates = periods.map((p) => p.date);
+
+      const result = await client.query(`
+        SELECT TO_CHAR(order_date::date, 'YYYY-MM-DD') AS d,
+          COUNT(DISTINCT CASE WHEN transaction_type = 'Shipment' THEN order_id END) AS total_orders,
+          COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold,
+          COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue
+        FROM "Amazon_GST_Master"
+        WHERE order_date IS NOT NULL AND order_date != '' AND order_date::date = ANY($1::date[])
+        GROUP BY order_date::date
+      `, [dates]);
+
+      const byDate: Record<string, { totalOrders: number; unitsSold: number; revenue: number }> = {};
+      for (const row of result.rows) {
+        const d = row.d;
+        byDate[d] = {
+          totalOrders: parseInt(row.total_orders),
+          unitsSold: parseFloat(row.units_sold),
+          revenue: parseFloat(row.revenue),
+        };
+      }
+
+      const data = periods.map((p) => {
+        const stats = byDate[p.date] || { totalOrders: 0, unitsSold: 0, revenue: 0 };
+        return {
+          key: p.key,
+          label: p.label,
+          date: p.date,
+          totalOrders: stats.totalOrders,
+          unitsSold: stats.unitsSold,
+          revenue: Math.round(stats.revenue * 100) / 100,
+          avgUnitsPerOrder: stats.totalOrders > 0 ? Math.round((stats.unitsSold / stats.totalOrders) * 100) / 100 : 0,
+          avgSalesPerOrder: stats.totalOrders > 0 ? Math.round((stats.revenue / stats.totalOrders) * 100) / 100 : 0,
+          hasData: !!byDate[p.date],
+        };
+      });
+
+      res.json({ success: true, data, gstMode });
+    } catch (err: any) {
+      console.error("Amazon compare-sales query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
   // Amazon SKU-level Trend Endpoint (daily / weekly / monthly), scoped to a single SKU on demand
   app.get("/api/amazon/sku-trend", async (req, res) => {
     let client;
@@ -1582,6 +1656,50 @@ async function startServer() {
       res.json({ success: true, data, granularity, gstMode, sku });
     } catch (err: any) {
       console.error("Amazon SKU trend query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  // Amazon SKU Sparklines Endpoint -- weekly units-sold series for ALL SKUs in one query, so the SKU table
+  // can render an inline trend glance per row without an N+1 fetch-per-SKU (the per-SKU sku-trend endpoint
+  // above is for the full detail chart when a row is clicked).
+  app.get("/api/amazon/sku-sparklines", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+
+      let gstDateFilter = "";
+      const params: string[] = [];
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
+      }
+
+      const result = await client.query(`
+        SELECT sku,
+          TO_CHAR(date_trunc('week', order_date::date), 'YYYY-MM-DD') AS period,
+          COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units_sold
+        FROM "Amazon_GST_Master"
+        WHERE transaction_type = 'Shipment' AND order_date IS NOT NULL AND order_date != '' ${gstDateFilter}
+        GROUP BY sku, period
+        ORDER BY sku, period ASC
+      `, params);
+
+      const bySku: Record<string, { period: string; unitsSold: number }[]> = {};
+      for (const row of result.rows) {
+        if (!bySku[row.sku]) bySku[row.sku] = [];
+        bySku[row.sku].push({ period: row.period, unitsSold: parseFloat(row.units_sold) });
+      }
+
+      res.json({ success: true, data: bySku });
+    } catch (err: any) {
+      console.error("Amazon SKU sparklines query failed:", err);
       res.status(500).json({ success: false, error: err?.message || String(err) });
     } finally {
       if (client) client.release();

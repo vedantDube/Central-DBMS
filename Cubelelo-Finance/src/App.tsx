@@ -120,6 +120,15 @@ export default function App() {
   const [skuTrendData, setSkuTrendData] = useState<any[]>([]);
   const [isLoadingSkuTrend, setIsLoadingSkuTrend] = useState<boolean>(false);
 
+  // Compare Sales panel (mirrors Amazon Seller Central's own "Compare Sales" -- Selected Day vs Previous Day
+  // vs Same Day Last Week vs Same Day Last Year), and its graph/table view toggle
+  const [compareSalesData, setCompareSalesData] = useState<any[]>([]);
+  const [isLoadingCompareSales, setIsLoadingCompareSales] = useState<boolean>(false);
+  const [compareSalesView, setCompareSalesView] = useState<"graph" | "table">("graph");
+
+  // Bulk SKU sparklines (weekly units-sold per SKU) -- avoids fetching sku-trend per row just for a glance
+  const [skuSparklines, setSkuSparklines] = useState<Record<string, { period: string; unitsSold: number }[]>>({});
+
   // Indirect expense breakdown state
   const [showIndirectBreakdown, setShowIndirectBreakdown] = useState<boolean>(false);
   const [indirectSummaryData, setIndirectSummaryData] = useState<{description: string, amount: number}[]>([]);
@@ -400,6 +409,35 @@ export default function App() {
     }
   };
 
+  const fetchCompareSales = async (date: string, mode: "inclusive" | "exclusive") => {
+    setIsLoadingCompareSales(true);
+    try {
+      const params = new URLSearchParams({ date, gstMode: mode });
+      const res = await fetch(`/api/amazon/compare-sales?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setCompareSalesData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Compare Sales:", err);
+    } finally {
+      setIsLoadingCompareSales(false);
+    }
+  };
+
+  const fetchSkuSparklines = async (start: string, end: string) => {
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const res = await fetch(`/api/amazon/sku-sparklines?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setSkuSparklines(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch SKU sparklines:", err);
+    }
+  };
+
   const fetchSkuTrend = async (sku: string, start: string, end: string, granularity: "daily" | "weekly" | "monthly", mode: "inclusive" | "exclusive") => {
     setIsLoadingSkuTrend(true);
     try {
@@ -495,6 +533,8 @@ export default function App() {
     fetchShopifyFinancials(startDateStr, endDateStr);
     fetchShopifyOperationalMetrics(startDateStr, endDateStr);
     fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+    fetchCompareSales(endDateStr, gstMode);
+    fetchSkuSparklines(startDateStr, endDateStr);
     setBreakdownFetched(false);
     setShowIndirectBreakdown(false);
     setAdvertisementL2Fetched(false);
@@ -914,6 +954,30 @@ export default function App() {
     return <span className="font-mono text-lg font-extrabold block mt-1">{formatter(val)}</span>;
   };
 
+  // Lightweight inline sparkline (plain SVG, not recharts) -- a SKU table can have 100+ rows, and a full
+  // recharts chart per row would be far too heavy. Gives an at-a-glance trend without clicking into the row.
+  const renderSparkline = (series: { period: string; unitsSold: number }[] | undefined) => {
+    if (!series || series.length < 2) {
+      return <span className="text-[10px] text-slate-350 font-sans">—</span>;
+    }
+    const values = series.map(p => p.unitsSold);
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const range = max - min || 1;
+    const w = 64, h = 22, pad = 2;
+    const points = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const trendingUp = values[values.length - 1] >= values[0];
+    return (
+      <svg width={w} height={h} className="inline-block align-middle">
+        <polyline points={points} fill="none" stroke={trendingUp ? "#10b981" : "#f43f5e"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    );
+  };
+
   // Helper to render WoW comparison badges
   const renderComparisonBadge = (current: number, comparative: number | undefined | null, isExpense = false) => {
     if (comparative === undefined || comparative === null || comparative === 0) {
@@ -988,6 +1052,25 @@ export default function App() {
       return true;
     });
   }, [skus, skuSearch, skuFilter, skuMoverFilter, skuChannelFilter, simulationParams]);
+
+  // Deep Dive ASIN performance buckets -- mirrors Amazon Seller Central's own "Deep dive your ASIN
+  // performance" panel (Products with Declining/Increasing Sales, Top Sales Products). "Declining Traffic
+  // Products" is intentionally omitted -- no per-period traffic data is ingested to compute it from.
+  const deepDiveBuckets = useMemo(() => {
+    const amazonSkus = skus.filter(s => s.revenue > 0);
+    const decliningSales = amazonSkus
+      .filter(s => s.moverShakerType === "shaker")
+      .sort((a, b) => (a.wowChangePct ?? 0) - (b.wowChangePct ?? 0))
+      .slice(0, 8);
+    const increasingSales = amazonSkus
+      .filter(s => s.moverShakerType === "mover")
+      .sort((a, b) => (b.wowChangePct ?? 0) - (a.wowChangePct ?? 0))
+      .slice(0, 8);
+    const topSales = [...amazonSkus]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+    return { decliningSales, increasingSales, topSales };
+  }, [skus]);
 
   // Filter Orders for reconciliation
   const filteredOrders = useMemo(() => {
@@ -1877,6 +1960,139 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Sales Snapshot -- mirrors Amazon Seller Central's own Sales Dashboard snapshot row */}
+              {selectedChannelId === "amazon" && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Sales Snapshot</h3>
+                    <span className="text-[10px] font-mono text-slate-400">as of {endDateStr}</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Total Order Items</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{(amazonOperationalMetrics?.totalOrders ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Units Ordered</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{(amazonOperationalMetrics?.unitsSold ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Ordered Product Sales</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(amazonFinancials?.grossRevenue ?? 0)}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Avg Units/Order</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{(amazonOperationalMetrics?.unitsPerOrder ?? 0).toFixed(2)}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Avg Sales/Order</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(amazonOperationalMetrics?.aov ?? 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Compare Sales -- Selected Day vs Previous Day vs Same Day Last Week vs Same Day Last Year */}
+              {selectedChannelId === "amazon" && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Compare Sales</h3>
+                    <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
+                      {(["graph", "table"] as const).map(v => (
+                        <button
+                          key={v}
+                          onClick={() => setCompareSalesView(v)}
+                          className={`text-[10px] px-3 py-1 rounded-lg capitalize font-medium ${
+                            compareSalesView === v ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
+                          }`}
+                        >
+                          {v} view
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {isLoadingCompareSales ? (
+                    <div className="h-40 flex items-center justify-center gap-2 text-xs text-slate-400">
+                      <RefreshCw size={12} className="animate-spin" />
+                      <span>Loading comparison...</span>
+                    </div>
+                  ) : compareSalesData.length === 0 ? (
+                    <div className="h-40 flex items-center justify-center text-xs text-slate-400">No comparison data available.</div>
+                  ) : compareSalesView === "graph" ? (
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={compareSalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="label" stroke="#64748b" fontSize={9} />
+                          <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                            formatter={(val: number, name: string) => [name === "revenue" ? formatCurrency(val) : val, name]}
+                          />
+                          <Legend wrapperStyle={{ fontSize: "10px" }} />
+                          <Bar dataKey="revenue" fill="#3b82f6" name="Ordered Product Sales" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="unitsSold" fill="#10b981" name="Units Ordered" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs font-mono">
+                        <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                          <tr>
+                            <th className="py-2 pr-4"></th>
+                            {compareSalesData.map((p) => (
+                              <th key={p.key} className="py-2 px-3 text-right">{p.label}<br /><span className="text-slate-400 normal-case">{p.date}</span></th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          <tr>
+                            <td className="py-2 pr-4 font-sans text-slate-600">Total Order Items</td>
+                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.totalOrders.toLocaleString() : "—"}</td>)}
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4 font-sans text-slate-600">Units Ordered</td>
+                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.unitsSold.toLocaleString() : "—"}</td>)}
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4 font-sans text-slate-600">Ordered Product Sales</td>
+                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? formatCurrency(p.revenue) : "—"}</td>)}
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4 font-sans text-slate-600">Avg Units/Order</td>
+                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.avgUnitsPerOrder.toFixed(2) : "—"}</td>)}
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4 font-sans text-slate-600">Avg Sales/Order</td>
+                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? formatCurrency(p.avgSalesPerOrder) : "—"}</td>)}
+                          </tr>
+                          <tr className="bg-slate-50/60">
+                            <td className="py-2 pr-4 font-sans text-slate-600 font-semibold">% Change vs Selected Day</td>
+                            {compareSalesData.map((p) => {
+                              const ref = compareSalesData[0];
+                              if (p.key === "reference" || !p.hasData || !ref.hasData || ref.revenue === 0) {
+                                return <td key={p.key} className="py-2 px-3 text-right text-slate-400">—</td>;
+                              }
+                              const pct = ((ref.revenue - p.revenue) / p.revenue) * 100;
+                              return (
+                                <td key={p.key} className={`py-2 px-3 text-right font-semibold ${pct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                                  {pct >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <p className="text-[9px] text-slate-405 font-sans mt-3">
+                    "Selected Day" is the end of your chosen date range, not live-today — this dashboard reflects ingested historical data, not a real-time feed.
+                  </p>
+                </div>
+              )}
+
               {/* THREE SPREADSHEET TABLE CARD MODULES */}
               <div className="bg-white border border-slate-205 rounded-2xl overflow-hidden shadow-sm">
                 
@@ -2648,6 +2864,50 @@ export default function App() {
         {activeTab === "skus" && (
           <div className="flex flex-col gap-6">
 
+            {/* Deep Dive ASIN Performance -- mirrors Amazon Seller Central's own panel */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">Deep Dive ASIN Performance</h3>
+              <div className="flex flex-col gap-4">
+                {([
+                  { key: "decliningSales", label: "Products with Declining Sales", data: deepDiveBuckets.decliningSales, accent: "rose" as const },
+                  { key: "increasingSales", label: "Products with Increasing Sales", data: deepDiveBuckets.increasingSales, accent: "emerald" as const },
+                  { key: "topSales", label: "Top Sales Products", data: deepDiveBuckets.topSales, accent: "blue" as const },
+                ]).map(bucket => (
+                  <div key={bucket.key}>
+                    <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">{bucket.label}</span>
+                    {bucket.data.length === 0 ? (
+                      <p className="text-xs text-slate-400 mt-1.5">No SKUs match this bucket for the selected period.</p>
+                    ) : (
+                      <div className="flex gap-2.5 mt-1.5 overflow-x-auto pb-1">
+                        {bucket.data.map(s => (
+                          <button
+                            key={s.sku}
+                            onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
+                            className={`flex-shrink-0 w-40 text-left bg-slate-50 hover:bg-slate-100 border rounded-xl p-3 transition-colors ${
+                              bucket.accent === "rose" ? "border-rose-100" : bucket.accent === "emerald" ? "border-emerald-100" : "border-blue-100"
+                            }`}
+                          >
+                            <span className="block text-[10px] font-mono text-slate-400">{s.sku}</span>
+                            <span className="block text-[11px] font-semibold text-slate-800 line-clamp-2 mt-0.5 h-7">{s.name}</span>
+                            {bucket.key === "topSales" ? (
+                              <span className="block text-xs font-mono font-bold text-blue-600 mt-1">{formatCurrency(s.revenue)}</span>
+                            ) : (
+                              <span className={`block text-xs font-mono font-bold mt-1 ${bucket.accent === "rose" ? "text-rose-600" : "text-emerald-600"}`}>
+                                {bucket.accent === "rose" ? "▼" : "▲"} {Math.abs(s.wowChangePct ?? 0).toFixed(0)}% WoW
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[9px] text-slate-405 font-sans mt-3">
+                Declining/Increasing Sales compare Monday-Sunday weeks (units sold, ≥25% change). Click a card to load its trend below.
+              </p>
+            </div>
+
             {/* SKU Filters Dashboard Bar */}
             <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -2791,6 +3051,7 @@ export default function App() {
                       <th className="py-3 px-4">SKU / Item Name</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4 text-center">Units Sold</th>
+                      <th className="py-3 px-4 text-center">Trend</th>
                       <th className="py-3 px-4 text-center">Glance Views</th>
                       <th className="py-3 px-4 text-center">Conv. Rate</th>
                       <th className="py-3 px-4 text-right">Revenue</th>
@@ -2831,6 +3092,7 @@ export default function App() {
                             <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[10px] text-slate-600 border border-slate-200">{s.category}</span>
                           </td>
                           <td className="py-3.5 px-4 text-center text-slate-800 font-bold">{s.unitsSold.toLocaleString()}</td>
+                          <td className="py-3.5 px-4 text-center">{renderSparkline(skuSparklines[s.sku])}</td>
                           <td className="py-3.5 px-4 text-center text-slate-600">{s.glanceViews !== null && s.glanceViews !== undefined ? s.glanceViews.toLocaleString() : "—"}</td>
                           <td className="py-3.5 px-4 text-center text-slate-600">{s.conversionRate !== null && s.conversionRate !== undefined ? `${s.conversionRate.toFixed(2)}%` : "—"}</td>
                           <td className="py-3.5 px-4 text-right text-slate-900">{formatCurrency(s.revenue)}</td>

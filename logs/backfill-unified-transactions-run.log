@@ -1,0 +1,123 @@
+◇ injected env (45) from .env // tip: ⌘ override existing { override: true }
+Skipping Unified Transaction Report: SP-API request failed for /reports/2021-06-30/reports: 400  - {
+  "errors": [
+    {
+      "code": "InvalidInput",
+      "message": "Request for report type 1202 is not allowed at this time",
+      "details": ""
+    }
+  ]
+}
+Ingesting downloads\amazon\payments\transactions\2026-april-unified-transaction.csv ...
+Syncing 24588 rows to Supabase DB for amazon_unified_transaction...
+Synced 24588 rows to Supabase DB for amazon_unified_transaction.
+Ingested downloads\amazon\payments\transactions\2026-april-unified-transaction.csv -> [ { tableName: 'AmazonUnifiedTransactionRow', inserted: 24588 } ]
+Ingesting downloads\amazon\payments\transactions\2026-may-unified-transaction.csv ...
+Syncing 24480 rows to Supabase DB for amazon_unified_transaction...
+Synced 24480 rows to Supabase DB for amazon_unified_transaction.
+Ingested downloads\amazon\payments\transactions\2026-may-unified-transaction.csv -> [ { tableName: 'AmazonUnifiedTransactionRow', inserted: 24480 } ]
+=== Syncing Amazon GST Master Table ===
+Proceeding with incremental sync for AmazonGstMasterRow...
+Fetching B2B GST records...
+Found 402 B2B records to map.
+Fetching B2C GST records...
+Found 25435 B2C records to map.
+Inserting/merging 25837 records into Master table...
+Synced batch 1 of 26
+Synced batch 2 of 26
+Synced batch 3 of 26
+Synced batch 4 of 26
+Synced batch 5 of 26
+Synced batch 6 of 26
+Synced batch 7 of 26
+Synced batch 8 of 26
+Synced batch 9 of 26
+Synced batch 10 of 26
+Synced batch 11 of 26
+Synced batch 12 of 26
+Synced batch 13 of 26
+Synced batch 14 of 26
+Synced batch 15 of 26
+Synced batch 16 of 26
+Synced batch 17 of 26
+Synced batch 18 of 26
+Synced batch 19 of 26
+Synced batch 20 of 26
+Synced batch 21 of 26
+Synced batch 22 of 26
+Synced batch 23 of 26
+Synced batch 24 of 26
+Synced batch 25 of 26
+Synced batch 26 of 26
+✅ Master table sync completed successfully.
+=== Payment Reconciliation (by order_id + sku + type) ===
+
+Loading unified transaction amounts...
+Loaded 47709 unified rows → 44364 unique keys (skipped 3150 non-Order/Refund rows).
+
+Loading GST master rows...
+Found 25727 GST master rows.
+
+Reconciliation results:
+  Matched:              21847
+    Fully reconciled:    21524
+    With mismatch:       323
+  Auto-reconciled Cancel: 3540
+  Unmatched:            340
+  Total:                25727
+
+Writing reconciliation flags to database (raw SQL batch)...
+  Updated 500 / 25727
+  Updated 1000 / 25727
+  Updated 1500 / 25727
+  Updated 2000 / 25727
+  Updated 2500 / 25727
+  Updated 3000 / 25727
+  Updated 3500 / 25727
+  Updated 4000 / 25727
+  Updated 4500 / 25727
+  Updated 5000 / 25727
+  Updated 5500 / 25727
+  Updated 6000 / 25727
+  Updated 6500 / 25727
+  Updated 7000 / 25727
+  Updated 7500 / 25727
+  Updated 8000 / 25727
+  Updated 8500 / 25727
+  Updated 9000 / 25727
+  Updated 9500 / 25727
+  Updated 10000 / 25727
+  Updated 10500 / 25727
+  Updated 11000 / 25727
+  Updated 11500 / 25727
+  Updated 12000 / 25727
+  Updated 12500 / 25727
+  Updated 13000 / 25727
+  Updated 13500 / 25727
+  Updated 14000 / 25727
+  Updated 14500 / 25727
+  Updated 15000 / 25727
+  Updated 15500 / 25727
+  Updated 16000 / 25727
+  Updated 16500 / 25727
+  Updated 17000 / 25727
+  Updated 17500 / 25727
+  Updated 18000 / 25727
+  Updated 18500 / 25727
+  Updated 19000 / 25727
+  Updated 19500 / 25727
+  Updated 20000 / 25727
+  Updated 20500 / 25727
+  Updated 21000 / 25727
+  Updated 21500 / 25727
+  Updated 22000 / 25727
+  Updated 22500 / 25727
+  Updated 23000 / 25727
+  Updated 23500 / 25727
+  Updated 24000 / 25727
+  Updated 24500 / 25727
+  Updated 25000 / 25727
+  Updated 25500 / 25727
+  Updated 25727 / 25727
+
+Reconciliation complete.

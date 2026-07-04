@@ -1,0 +1,25 @@
+=== Beginning Parallel Cost Mapping Process ===
+Fetching EasyEcom Marketplace Listings...
+Loaded 5882 marketplace listings.
+Fetching EasyEcom Inventory...
+Loaded 307476 inventory records.
+Total rows in Amazon_GST_Master: 25727
+Processing and updating rows in parallel...
+Processed 2000 / 25727 rows... (Updated: 1714)
+Processed 4000 / 25727 rows... (Updated: 3406)
+Processed 6000 / 25727 rows... (Updated: 5043)
+Processed 8000 / 25727 rows... (Updated: 6699)
+Processed 10000 / 25727 rows... (Updated: 8351)
+Processed 12000 / 25727 rows... (Updated: 10050)
+Processed 14000 / 25727 rows... (Updated: 11726)
+Processed 16000 / 25727 rows... (Updated: 13407)
+Processed 18000 / 25727 rows... (Updated: 15094)
+Processed 20000 / 25727 rows... (Updated: 16777)
+Processed 22000 / 25727 rows... (Updated: 18476)
+Processed 24000 / 25727 rows... (Updated: 20197)
+Processed 25727 / 25727 rows... (Updated: 21719)
+
+=== Cost Mapping Complete ===
+Total GST Master Rows: 25727
+Matching Listings found: 21719
+Successfully Updated Rows: 21719
