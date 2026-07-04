@@ -149,6 +149,12 @@ export default function App() {
   const [adsPerformanceData, setAdsPerformanceData] = useState<{
     description: string; amount: number; impressions: number; clicks: number; sales: number; ctr: number; acos: number; roas: number;
   }[]>([]);
+  // Per-campaign breakdown (real campaign names) with Glance Views (Detail Page Views) and Conversion
+  // Rate, from the manually-ingested Advertised Product report
+  const [adsPerformanceByCampaign, setAdsPerformanceByCampaign] = useState<{
+    campaignId: string; campaignName: string | null; impressions: number; clicks: number; spend: number;
+    sales: number; purchases: number; ctr: number; acos: number; roas: number; conversionRate: number; glanceViews: number | null;
+  }[]>([]);
   const [isLoadingAdsPerformance, setIsLoadingAdsPerformance] = useState<boolean>(false);
 
   // Database integration state
@@ -357,6 +363,7 @@ export default function App() {
       const data = await res.json();
       if (data.success) {
         setAdsPerformanceData(data.data.settlementBreakdown);
+        setAdsPerformanceByCampaign(data.data.byCampaign || []);
       }
     } catch (err) {
       console.error("Failed to fetch Ads Performance breakdown:", err);
@@ -2701,9 +2708,44 @@ export default function App() {
                         </div>
                       )}
                       <p className="text-[9px] text-slate-405 font-sans mt-3">
-                        Per-campaign Glance Views / Conversion Rate not available — no per-campaign traffic data is ingested today.
-                        Figures are lifetime totals (AmazonAdsCampaignRow carries no date column).
+                        Figures above are lifetime totals (AmazonAdsCampaignRow carries no date column).
                       </p>
+
+                      {adsPerformanceByCampaign.length > 0 && (
+                        <div className="mt-5">
+                          <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">By Campaign — Glance Views & Conversion Rate</span>
+                          <div className="overflow-x-auto mt-2">
+                            <table className="w-full text-left text-xs font-mono">
+                              <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                                <tr>
+                                  <th className="py-2 pr-4">Campaign</th>
+                                  <th className="py-2 px-3 text-right">Spend</th>
+                                  <th className="py-2 px-3 text-right">Glance Views</th>
+                                  <th className="py-2 px-3 text-right">Conv. Rate</th>
+                                  <th className="py-2 px-3 text-right">ROAS</th>
+                                  <th className="py-2 pl-3 text-right">Sales</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {adsPerformanceByCampaign.map((row) => (
+                                  <tr key={row.campaignId}>
+                                    <td className="py-2 pr-4 font-sans text-slate-800">{row.campaignName || row.campaignId}</td>
+                                    <td className="py-2 px-3 text-right">{formatCurrency(row.spend)}</td>
+                                    <td className="py-2 px-3 text-right">{row.glanceViews !== null ? row.glanceViews.toLocaleString() : "—"}</td>
+                                    <td className="py-2 px-3 text-right">{formatPercent(row.conversionRate)}</td>
+                                    <td className="py-2 px-3 text-right">{row.roas.toFixed(2)}x</td>
+                                    <td className="py-2 pl-3 text-right">{formatCurrency(row.sales)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-[9px] text-slate-405 font-sans mt-2">
+                            From the manually-exported Advertised Product report (Sponsored Products). Conversion Rate = Purchases / Clicks.
+                            Glance Views (Detail Page Views) shows "—" where the source export left it blank, rather than showing a misleading zero.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

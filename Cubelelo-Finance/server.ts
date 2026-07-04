@@ -1293,6 +1293,48 @@ async function startServer() {
         const amazonAdsTotal = amazonAdsBreakdown.reduce((s: number, i: any) => s + i.amount, 0);
         const beyondAdsTotal = amazonAdsTotal * BEYOND_ADS_MULTIPLIER;
 
+        // Per-campaign breakdown with real campaign names, Glance Views (Detail Page Views) and
+        // Conversion Rate (Purchases / Clicks) -- from the manually-exported Advertised Product report.
+        // NOTE: Detail Page Views is sparsely populated in the source export (mostly blank/zero for
+        // low-volume campaigns) -- shown as null rather than 0 when genuinely absent, not estimated.
+        const campaignResult = await client.query(`
+          SELECT
+            "campaignId",
+            MAX("campaignName") AS campaign_name,
+            COALESCE(SUM(CAST(NULLIF(impressions, '') AS numeric)), 0) AS impressions,
+            COALESCE(SUM(CAST(NULLIF(clicks, '') AS numeric)), 0) AS clicks,
+            COALESCE(SUM(CAST(NULLIF("totalCost", '') AS numeric)), 0) AS spend,
+            COALESCE(SUM(CAST(NULLIF(sales, '') AS numeric)), 0) AS sales,
+            COALESCE(SUM(CAST(NULLIF(purchases, '') AS numeric)), 0) AS purchases,
+            SUM(CAST(NULLIF("detailPageViews", '') AS numeric)) AS detail_page_views,
+            COUNT("detailPageViews") FILTER (WHERE "detailPageViews" IS NOT NULL AND "detailPageViews" != '') AS detail_page_views_rows
+          FROM "Amazon_Advertised_Product"
+          GROUP BY "campaignId"
+          ORDER BY spend DESC
+        `);
+        const byCampaign = campaignResult.rows.map((r: any) => {
+          const impressions = parseFloat(r.impressions);
+          const clicks = parseFloat(r.clicks);
+          const spend = parseFloat(r.spend);
+          const sales = parseFloat(r.sales);
+          const purchases = parseFloat(r.purchases);
+          const hasDetailPageViews = parseInt(r.detail_page_views_rows) > 0;
+          return {
+            campaignId: r.campaignId,
+            campaignName: r.campaign_name,
+            impressions,
+            clicks,
+            spend,
+            sales,
+            purchases,
+            ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+            acos: sales > 0 ? (spend / sales) * 100 : 0,
+            roas: spend > 0 ? sales / spend : 0,
+            conversionRate: clicks > 0 ? (purchases / clicks) * 100 : 0,
+            glanceViews: hasDetailPageViews ? parseFloat(r.detail_page_views) : null,
+          };
+        });
+
         res.json({
           success: true,
           data: {
@@ -1303,6 +1345,7 @@ async function startServer() {
             total: amazonAdsTotal + beyondAdsTotal,
             settlementBreakdown: amazonAdsBreakdown,
             settlementTotal: amazonAdsTotal,
+            byCampaign,
           },
         });
         return;

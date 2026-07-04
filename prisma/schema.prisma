@@ -1045,6 +1045,40 @@ model AmazonAdsCampaignRow {
   @@unique([account_id])
 }
 
+// Amazon Ads "Advertised Product" report (Sponsored Products) -- manually exported CSV, no automated
+// SP-API ingestion yet. Unlike AmazonAdsCampaignRow (one row per account, lifetime totals), this is
+// per-SKU-within-campaign for a given date range, and includes Detail Page Views (Glance Views equivalent)
+// and Purchase Rate (Conversion Rate equivalent) -- the data that was previously missing for Ads Performance.
+model AmazonAdvertisedProductRow {
+  id                     String   @id @default(cuid())
+  reportKey              String
+  createdAt              DateTime @default(now())
+
+  dateRange              String   @default("")
+  campaignId             String   @default("")
+  campaignName           String?
+  adGroupId              String?
+  adGroupName            String?
+  advertisedProductId    String?
+  advertisedProductName  String?
+  advertisedProductSku   String   @default("")
+  impressions            String?
+  clicks                 String?
+  ctr                    String?
+  totalCost              String?
+  purchases              String?
+  sales                  String?
+  unitsSold              String?
+  purchaseRate           String?
+  roas                   String?
+  detailPageViews        String?
+  detailPageViewRate     String?
+
+  @@map("Amazon_Advertised_Product")
+  @@index([reportKey, createdAt])
+  @@unique([dateRange, campaignId, advertisedProductSku])
+}
+
 model AmazonElectronicsSettlementRow {
   id                          String   @id @default(cuid())
   reportKey                   String
