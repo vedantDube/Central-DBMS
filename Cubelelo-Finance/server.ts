@@ -1102,7 +1102,7 @@ async function startServer() {
         client.query(`
           SELECT
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue,
-            COALESCE(SUM(CASE WHEN transaction_type = 'Return' THEN ABS(${revenueCol}) ELSE 0 END), 0) AS returns,
+            COALESCE(SUM(CASE WHEN transaction_type = 'Refund' THEN ABS(${revenueCol}) ELSE 0 END), 0) AS returns,
             COALESCE(SUM(cost_inventory), 0) AS cogs
           FROM "Amazon_GST_Master"
           WHERE 1=1 ${gstDateFilter}
@@ -1382,7 +1382,7 @@ async function startServer() {
         SELECT
           ${periodExpr} AS period,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS gross_revenue,
-          COALESCE(SUM(CASE WHEN transaction_type = 'Return' THEN ABS(${revenueCol}) ELSE 0 END), 0) AS sale_returns,
+          COALESCE(SUM(CASE WHEN transaction_type = 'Refund' THEN ABS(${revenueCol}) ELSE 0 END), 0) AS sale_returns,
           COALESCE(SUM(cost_inventory), 0) AS cogs,
           COUNT(DISTINCT CASE WHEN transaction_type = 'Shipment' THEN order_id END) AS orders,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold
