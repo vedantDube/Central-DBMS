@@ -70,6 +70,7 @@ export default function App() {
   const [skus, setSkus] = useState<SKUProfitability[]>(initialSKUProfitability);
   const [skuSearch, setSkuSearch] = useState<string>("");
   const [skuFilter, setSkuFilter] = useState<string>("all"); // "all" | "profitable" | "loss" | "borderline"
+  const [skuMoverFilter, setSkuMoverFilter] = useState<string>("all"); // "all" | "mover" | "shaker"
   const [skuChannelFilter, setSkuChannelFilter] = useState<string>("amazon");
   
   // Reconciliation Data state
@@ -977,13 +978,16 @@ export default function App() {
                             s.name.toLowerCase().includes(skuSearch.toLowerCase());
 
       if (!matchesSearch) return false;
-      if (skuFilter === "all") return true;
-      if (skuFilter === "profitable") return s.status === "Profitable";
-      if (skuFilter === "loss") return s.status === "Loss Making";
-      if (skuFilter === "borderline") return s.status === "Borderline";
+      if (skuFilter === "profitable" && s.status !== "Profitable") return false;
+      if (skuFilter === "loss" && s.status !== "Loss Making") return false;
+      if (skuFilter === "borderline" && s.status !== "Borderline") return false;
+
+      if (skuMoverFilter === "mover" && s.moverShakerType !== "mover") return false;
+      if (skuMoverFilter === "shaker" && s.moverShakerType !== "shaker") return false;
+
       return true;
     });
-  }, [skus, skuSearch, skuFilter, skuChannelFilter, simulationParams]);
+  }, [skus, skuSearch, skuFilter, skuMoverFilter, skuChannelFilter, simulationParams]);
 
   // Filter Orders for reconciliation
   const filteredOrders = useMemo(() => {
@@ -2049,13 +2053,16 @@ export default function App() {
                           <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-md font-mono">Pending</span>
                         </div>
 
-                        {/* 4.3 Rental Charges (PPOB) -- static placeholder, data pending */}
-                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 px-2 rounded font-mono text-sm text-slate-500">
+                        {/* 4.3 Rental Charges (PPOB) -- ₹16,000/month fixed, prorated across the selected date range */}
+                        <div className="flex items-center justify-between py-2.5 border-b border-slate-100 px-2 rounded font-mono text-sm text-slate-700">
                           <div className="flex flex-col">
-                            <span className="font-sans text-slate-500">Rental Charges (PPOB)</span>
-                            <span className="text-[10px] font-sans text-slate-400">Manual entry — pending Finance input</span>
+                            <span className="font-sans text-slate-700">Rental Charges (PPOB)</span>
+                            <span className="text-[10px] font-sans text-slate-400">₹16,000/month, prorated across the selected date range</span>
                           </div>
-                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-md font-mono">Pending</span>
+                          <div className="flex items-center gap-2">
+                            {renderComparisonBadge(amazonFinancials.rentalCharges, amazonFinancialsComparative?.rentalCharges, true)}
+                            <span className="text-slate-700">-{formatCurrency(amazonFinancials.rentalCharges)}</span>
+                          </div>
                         </div>
 
                         {/* 4.4 Advertisement Cost (Clickable Dropdown, L2 split: Amazon Ads + Beyond Ads) */}
@@ -2688,6 +2695,30 @@ export default function App() {
                     ))}
                   </div>
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={13} className="text-slate-400" />
+                  <span className="text-xs text-slate-505 font-medium">Deep Dive:</span>
+                  <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200">
+                    {([
+                      { key: "all", label: "All" },
+                      { key: "mover", label: "Movers (WoW ↑)" },
+                      { key: "shaker", label: "Shakers (WoW ↓)" },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setSkuMoverFilter(opt.key)}
+                        className={`text-[10px] px-2.5 py-1 rounded font-medium ${
+                          skuMoverFilter === opt.key
+                            ? "bg-white text-slate-800 shadow-sm font-semibold border border-slate-200/50"
+                            : "text-slate-400 hover:text-slate-655"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="text-[11px] font-mono text-slate-500 bg-slate-50 px-3.5 py-1.5 rounded-lg border border-slate-200">
@@ -2701,7 +2732,7 @@ export default function App() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">SKU Trend — {skuTrendSku}</h3>
-                    <p className="text-xs text-slate-500">Revenue, COGS and CM1 over the selected period</p>
+                    <p className="text-xs text-slate-500">Revenue, COGS, Marketplace Fees, Return Loss and Net Profit over the selected period</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
@@ -2740,7 +2771,10 @@ export default function App() {
                         />
                         <Legend wrapperStyle={{ fontSize: "10px" }} />
                         <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2} name="Revenue" />
-                        <Area type="monotone" dataKey="cm1" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} name="CM1" />
+                        <Area type="monotone" dataKey="cogs" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.08} strokeWidth={1.5} name="COGS" />
+                        <Area type="monotone" dataKey="marketplaceFees" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.08} strokeWidth={1.5} name="Marketplace Fees" />
+                        <Area type="monotone" dataKey="returnLoss" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.08} strokeWidth={1.5} name="Return Loss" />
+                        <Area type="monotone" dataKey="netProfit" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} name="Net Profit" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -2780,8 +2814,15 @@ export default function App() {
                           <td className="py-3.5 px-4 font-sans text-slate-900">
                             <span className="flex items-center gap-1.5">
                               <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
-                              {s.moverShaker && (
-                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700 border border-purple-200">Mover & Shaker</span>
+                              {s.moverShakerType === "mover" && (
+                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                  ▲ Mover {s.wowChangePct !== null ? `+${s.wowChangePct.toFixed(0)}%` : ""}
+                                </span>
+                              )}
+                              {s.moverShakerType === "shaker" && (
+                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                  ▼ Shaker {s.wowChangePct !== null ? `${s.wowChangePct.toFixed(0)}%` : ""}
+                                </span>
                               )}
                             </span>
                             <span className="block text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1">{s.name}</span>

@@ -14,6 +14,16 @@ const BEYOND_ADS_MULTIPLIER = 0.10;
 // Rental Charges for PPOB: fixed monthly figure (finance-confirmed), prorated across the selected date range
 const RENTAL_CHARGES_PER_MONTH = 16000;
 
+// Monday of the ISO week containing a given date, as a YYYY-MM-DD string (Mon-Sun weeks, matching Amazon's
+// own "Deep dive ASIN performance" week-over-week convention)
+const isoWeekStart = (dateStr: string) => {
+  const dt = new Date(dateStr + "T00:00:00Z");
+  const day = dt.getUTCDay(); // 0=Sun..6=Sat
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  dt.setUTCDate(dt.getUTCDate() + diffToMonday);
+  return dt.toISOString().slice(0, 10);
+};
+
 // Custom connection string parser to handle special characters (like @, /, or :) in passwords
 export function parseConnectionString(uri: string) {
   try {
@@ -420,6 +430,35 @@ async function startServer() {
         `),
       ]);
 
+      // --- Mover & Shaker: week-over-week units-sold classification (Mon-Sun weeks, matching Amazon's own
+      // "Deep dive ASIN performance" convention). "Mover" = WoW units sold up >=25%, "Shaker" = down >=25%.
+      // Reference date = end of the selected range (or today); only the trailing 14 days are needed to cover
+      // "this week" and "last week".
+      const wowReferenceDateStr = endDate || new Date().toISOString().slice(0, 10);
+      const wowLookbackStartStr = new Date(new Date(wowReferenceDateStr).getTime() - 14 * 24 * 60 * 60 * 1000)
+        .toISOString().slice(0, 10);
+      const wowResult = await client.query(`
+        SELECT sku, order_date::date AS d,
+          COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units
+        FROM "Amazon_GST_Master"
+        WHERE transaction_type = 'Shipment'
+          AND order_date IS NOT NULL AND order_date != ''
+          AND order_date::date >= $1::date AND order_date::date <= $2::date
+        GROUP BY sku, order_date::date
+      `, [wowLookbackStartStr, wowReferenceDateStr]);
+
+      const thisWeekStart = isoWeekStart(wowReferenceDateStr);
+      const lastWeekStart = isoWeekStart(new Date(new Date(thisWeekStart + "T00:00:00Z").getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+      const thisWeekUnitsBySku: Record<string, number> = {};
+      const lastWeekUnitsBySku: Record<string, number> = {};
+      for (const row of wowResult.rows) {
+        const d = new Date(row.d).toISOString().slice(0, 10);
+        const wk = isoWeekStart(d);
+        const units = parseFloat(row.units);
+        if (wk === thisWeekStart) thisWeekUnitsBySku[row.sku] = (thisWeekUnitsBySku[row.sku] || 0) + units;
+        else if (wk === lastWeekStart) lastWeekUnitsBySku[row.sku] = (lastWeekUnitsBySku[row.sku] || 0) + units;
+      }
+
       const feesMap: Record<string, { fba: number; selling: number; other: number }> = {};
       for (const row of feesResult.rows) {
         feesMap[row.sku] = {
@@ -469,6 +508,14 @@ async function startServer() {
           if (cm1 < 0) status = "Loss Making";
           else if (revenue > 0 && cm1 < revenue * 0.08) status = "Borderline";
 
+          const thisWeekUnits = thisWeekUnitsBySku[sku] || 0;
+          const lastWeekUnits = lastWeekUnitsBySku[sku] || 0;
+          const wowChangePct = lastWeekUnits > 0 ? ((thisWeekUnits - lastWeekUnits) / lastWeekUnits) * 100 : null;
+          const moverShakerType: "mover" | "shaker" | null =
+            wowChangePct !== null && wowChangePct >= 25 ? "mover"
+            : wowChangePct !== null && wowChangePct <= -25 ? "shaker"
+            : null;
+
           return {
             sku,
             name: product?.name || sku,
@@ -488,8 +535,11 @@ async function startServer() {
             // Lifetime (not period-filtered) real traffic data via Sales & Traffic report -- null if no ASIN match
             glanceViews: traffic ? traffic.glanceViews : null,
             conversionRate: traffic && traffic.sessions > 0 ? Math.round((traffic.unitsOrdered / traffic.sessions) * 10000) / 100 : null,
-            // Logic undefined -- stub until a real "Mover & Shaker" definition is confirmed
-            moverShaker: false,
+            // Mover & Shaker: WoW units-sold change vs the prior Mon-Sun week (>=25% up/down), null if no
+            // sales in the prior week to compare against
+            moverShaker: moverShakerType !== null,
+            moverShakerType,
+            wowChangePct: wowChangePct !== null ? Math.round(wowChangePct * 100) / 100 : null,
           };
         })
         .filter((s: any) => s.revenue > 0)
@@ -890,15 +940,6 @@ async function startServer() {
       }
 
       const allSkus = new Set<string>([...unitsBySkuDate.keys(), ...stockBySkuDate.keys()]);
-
-      // Monday of the ISO week containing a given date, as a YYYY-MM-DD string
-      const isoWeekStart = (dateStr: string) => {
-        const dt = new Date(dateStr + "T00:00:00Z");
-        const day = dt.getUTCDay(); // 0=Sun..6=Sat
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        dt.setUTCDate(dt.getUTCDate() + diffToMonday);
-        return dt.toISOString().slice(0, 10);
-      };
 
       let ageingFlaggedCount = 0;
       let deadStockCriticalCount = 0;
@@ -1448,25 +1489,88 @@ async function startServer() {
         gstDateFilter = `AND order_date >= $2 AND order_date <= $3`;
       }
 
-      const result = await client.query(`
-        SELECT
-          ${periodExpr} AS period,
-          COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue,
-          COALESCE(SUM(cost_inventory), 0) AS cogs,
-          COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold
-        FROM "Amazon_GST_Master"
-        WHERE sku = $1 ${gstDateFilter}
-        GROUP BY period
-        ORDER BY period ASC
-      `, params);
+      // Marketplace fees and returns bucketed to the same granularity, each on their own date column
+      // (see /api/amazon/sku-profitability for why these two tables are the source for these figures).
+      const utPeriodExpr = granularity === "daily"
+        ? `TO_CHAR(TO_DATE(datetime, 'DD Mon YYYY'), 'YYYY-MM-DD')`
+        : granularity === "weekly"
+        ? `TO_CHAR(date_trunc('week', TO_DATE(datetime, 'DD Mon YYYY')), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', TO_DATE(datetime, 'DD Mon YYYY')), 'YYYY-MM-DD')`;
+      let utDateFilter = "";
+      const utParams: string[] = [sku];
+      if (startDate && endDate) {
+        utParams.push(startDate, endDate);
+        utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $2::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $3::date`;
+      }
 
-      const data = result.rows.map((row: any) => ({
-        period: row.period,
-        revenue: parseFloat(row.revenue),
-        cogs: parseFloat(row.cogs),
-        cm1: parseFloat(row.revenue) - parseFloat(row.cogs),
-        unitsSold: parseFloat(row.units_sold),
-      }));
+      const returnsPeriodExpr = granularity === "daily"
+        ? `TO_CHAR(returndate::date, 'YYYY-MM-DD')`
+        : granularity === "weekly"
+        ? `TO_CHAR(date_trunc('week', returndate::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', returndate::date), 'YYYY-MM-DD')`;
+      let returnsDateFilter = "";
+      const returnsParams: string[] = [sku];
+      if (startDate && endDate) {
+        returnsParams.push(startDate, endDate);
+        returnsDateFilter = `AND returndate >= $2 AND returndate <= $3`;
+      }
+
+      const [result, feesResult, returnsResult] = await Promise.all([
+        client.query(`
+          SELECT
+            ${periodExpr} AS period,
+            COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue,
+            COALESCE(SUM(cost_inventory), 0) AS cogs,
+            COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold
+          FROM "Amazon_GST_Master"
+          WHERE sku = $1 ${gstDateFilter}
+          GROUP BY period
+          ORDER BY period ASC
+        `, params),
+        client.query(`
+          SELECT ${utPeriodExpr} AS period,
+            COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(fba_fees, ',', ''), '') AS numeric))), 0)
+              + COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(selling_fees, ',', ''), '') AS numeric))), 0)
+              + COALESCE(ABS(SUM(CAST(NULLIF(REPLACE(other_transaction_fees, ',', ''), '') AS numeric))), 0) AS marketplace_fees
+          FROM "Amazon_Unified_Transactions"
+          WHERE sku = $1 ${utDateFilter}
+          GROUP BY period
+        `, utParams),
+        client.query(`
+          SELECT ${returnsPeriodExpr} AS period,
+            COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS returned_qty
+          FROM "AmazonReturnsB2cRow"
+          WHERE sku = $1 ${returnsDateFilter}
+          GROUP BY period
+        `, returnsParams),
+      ]);
+
+      const feesByPeriod: Record<string, number> = {};
+      for (const row of feesResult.rows) feesByPeriod[row.period] = parseFloat(row.marketplace_fees);
+      const returnedQtyByPeriod: Record<string, number> = {};
+      for (const row of returnsResult.rows) returnedQtyByPeriod[row.period] = parseFloat(row.returned_qty);
+
+      // returnLoss formula matches /api/amazon/sku-profitability: (returnedQty/unitsSold) * revenue * 0.5, per period
+      const data = result.rows.map((row: any) => {
+        const period = row.period;
+        const revenue = parseFloat(row.revenue);
+        const cogs = parseFloat(row.cogs);
+        const unitsSold = parseFloat(row.units_sold);
+        const marketplaceFees = feesByPeriod[period] || 0;
+        const returnedQty = returnedQtyByPeriod[period] || 0;
+        const returnLoss = unitsSold > 0 ? (returnedQty / unitsSold) * revenue * 0.5 : 0;
+        const netProfit = revenue - cogs - marketplaceFees - returnLoss;
+        return {
+          period,
+          revenue,
+          cogs,
+          unitsSold,
+          marketplaceFees: Math.round(marketplaceFees * 100) / 100,
+          returnLoss: Math.round(returnLoss * 100) / 100,
+          cm1: Math.round((revenue - cogs) * 100) / 100,
+          netProfit: Math.round(netProfit * 100) / 100,
+        };
+      });
 
       res.json({ success: true, data, granularity, gstMode, sku });
     } catch (err: any) {
