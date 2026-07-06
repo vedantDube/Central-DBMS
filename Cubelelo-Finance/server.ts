@@ -947,6 +947,7 @@ async function startServer() {
       let platformRevenueInRange = 0;
       const perSkuRevenueInRange = new Map<string, number>();
       const criticalSkus: { sku: string; prevRate: number; lastRate: number; dropPct: number }[] = [];
+      const ageingSkus: { sku: string; triggerWeek: string; prevRate: number; currRate: number; dropPct: number }[] = [];
 
       for (const sku of allSkus) {
         const stockMap = stockBySkuDate.get(sku) || new Map<string, number>();
@@ -973,6 +974,8 @@ async function startServer() {
 
         let flagged = false;
         let triggerRate = 0;
+        let triggerWeek = "";
+        let triggerCurrRate = 0;
         for (let i = 1; i < weeks.length; i++) {
           const prevRate = weeks[i - 1].rate;
           const currRate = weeks[i].rate;
@@ -980,12 +983,23 @@ async function startServer() {
             if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
               flagged = true;
               triggerRate = prevRate;
+              triggerWeek = weeks[i].wk;
+              triggerCurrRate = currRate;
             }
           } else if (currRate >= triggerRate) {
             flagged = false;
           }
         }
-        if (flagged) ageingFlaggedCount++;
+        if (flagged) {
+          ageingFlaggedCount++;
+          ageingSkus.push({
+            sku,
+            triggerWeek,
+            prevRate: Math.round(triggerRate * 100) / 100,
+            currRate: Math.round(triggerCurrRate * 100) / 100,
+            dropPct: Math.round(((triggerRate - triggerCurrRate) / triggerRate) * 10000) / 100,
+          });
+        }
 
         // Dead Stock (critical): day-over-day run-rate drop >= 50%, checked on the most recent two stocked days
         const stockedDatesInRange = dates.filter((d) => d >= reportStartStr && d <= reportEndStr && stockMap.get(d)! > 0);
@@ -1067,6 +1081,9 @@ async function startServer() {
           criticalSkus: criticalSkus
             .sort((a, b) => b.dropPct - a.dropPct)
             .map((c) => ({ ...c, revenueInRange: Math.round((perSkuRevenueInRange.get(c.sku) ?? 0) * 100) / 100 })),
+          ageingSkus: ageingSkus
+            .sort((a, b) => b.dropPct - a.dropPct)
+            .map((a) => ({ ...a, revenueInRange: Math.round((perSkuRevenueInRange.get(a.sku) ?? 0) * 100) / 100 })),
           gstMode,
         },
       });

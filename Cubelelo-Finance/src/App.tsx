@@ -118,6 +118,7 @@ export default function App() {
   const [amazonOperationalMetrics, setAmazonOperationalMetrics] = useState<any>(null);
   const [comparativeOperationalMetrics, setComparativeOperationalMetrics] = useState<any>(null);
   const [criticalSkusExpanded, setCriticalSkusExpanded] = useState<boolean>(false);
+  const [ageingSkusExpanded, setAgeingSkusExpanded] = useState<boolean>(false);
 
   // Real trend view (daily / weekly / monthly) -- separate from the synthetic rolling60DaysData simulator
   const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -2615,11 +2616,18 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                    <button
+                      type="button"
+                      onClick={() => selectedChannelId === "amazon" && setAgeingSkusExpanded(v => !v)}
+                      className={`bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"}`}
+                    >
                       <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory (90D+)</span>
                       {renderMetricOrPending(selectedChannel.ageingInventoryPct, formatPercent)}
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Overstocked catalog weight</span>
-                    </div>
+                      {selectedChannelId === "amazon" && (
+                        <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{ageingSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
+                      )}
+                    </button>
 
                     <button
                       type="button"
@@ -2753,6 +2761,70 @@ export default function App() {
                                   <td className="px-3 py-2 font-mono text-right text-slate-600">{c.lastRate}</td>
                                   <td className="px-3 py-2 font-mono text-right text-rose-600 font-semibold">{formatPercent(c.dropPct)}</td>
                                   <td className="px-3 py-2 font-mono text-right text-slate-600">{formatCurrency(c.revenueInRange)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedChannelId === "amazon" && ageingSkusExpanded && (
+                    <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4.5">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Ageing SKU Count</span>
+                          <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{(amazonOperationalMetrics?.ageingSkus?.length ?? 0).toLocaleString()}</span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory %</span>
+                          <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{formatPercent(selectedChannel.ageingInventoryPct)}</span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Revenue At Risk</span>
+                          <span className="font-mono text-lg font-bold text-rose-600 block mt-0.5">
+                            {formatCurrency((amazonOperationalMetrics?.ageingSkus ?? []).reduce((sum: number, a: any) => sum + (a.revenueInRange ?? 0), 0))}
+                          </span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Avg. Run-Rate Drop</span>
+                          <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">
+                            {(() => {
+                              const list = amazonOperationalMetrics?.ageingSkus ?? [];
+                              if (list.length === 0) return "—";
+                              const avg = list.reduce((sum: number, a: any) => sum + (a.dropPct ?? 0), 0) / list.length;
+                              return formatPercent(avg);
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Ageing SKUs List</span>
+                      {(amazonOperationalMetrics?.ageingSkus ?? []).length === 0 ? (
+                        <p className="text-xs text-slate-400 mt-1.5">No SKUs currently flagged as ageing for the selected period.</p>
+                      ) : (
+                        <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200">
+                          <table className="w-full text-xs">
+                            <thead className="bg-white sticky top-0">
+                              <tr className="text-left text-slate-500 uppercase text-[10px]">
+                                <th className="px-3 py-2 font-medium">SKU</th>
+                                <th className="px-3 py-2 font-medium">Trigger Week</th>
+                                <th className="px-3 py-2 font-medium text-right">Prev Run-Rate</th>
+                                <th className="px-3 py-2 font-medium text-right">Curr Run-Rate</th>
+                                <th className="px-3 py-2 font-medium text-right">Drop %</th>
+                                <th className="px-3 py-2 font-medium text-right">Revenue In Range</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(amazonOperationalMetrics?.ageingSkus ?? []).map((a: any) => (
+                                <tr key={a.sku} className="border-t border-slate-100 bg-white">
+                                  <td className="px-3 py-2 font-mono text-slate-700">{a.sku}</td>
+                                  <td className="px-3 py-2 font-mono text-slate-600">{a.triggerWeek}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-slate-600">{a.prevRate}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-slate-600">{a.currRate}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-amber-600 font-semibold">{formatPercent(a.dropPct)}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-slate-600">{formatCurrency(a.revenueInRange)}</td>
                                 </tr>
                               ))}
                             </tbody>
