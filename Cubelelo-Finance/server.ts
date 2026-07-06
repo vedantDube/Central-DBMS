@@ -946,6 +946,7 @@ async function startServer() {
       let outOfStockDaysWeighted = 0;
       let platformRevenueInRange = 0;
       const perSkuRevenueInRange = new Map<string, number>();
+      const criticalSkus: { sku: string; prevRate: number; lastRate: number; dropPct: number }[] = [];
 
       for (const sku of allSkus) {
         const stockMap = stockBySkuDate.get(sku) || new Map<string, number>();
@@ -995,6 +996,12 @@ async function startServer() {
           const prevRate = unitsMap.get(prev)?.units ?? 0;
           if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) {
             deadStockCriticalCount++;
+            criticalSkus.push({
+              sku,
+              prevRate: Math.round(prevRate * 100) / 100,
+              lastRate: Math.round(lastRate * 100) / 100,
+              dropPct: Math.round(((prevRate - lastRate) / prevRate) * 10000) / 100,
+            });
           }
         }
 
@@ -1057,6 +1064,9 @@ async function startServer() {
           stockoutCost: Math.round(stockoutCost * 100) / 100,
           ageingInventoryPct: Math.round(ageingInventoryPct * 100) / 100,
           deadStockPct: Math.round(deadStockPct * 100) / 100,
+          criticalSkus: criticalSkus
+            .sort((a, b) => b.dropPct - a.dropPct)
+            .map((c) => ({ ...c, revenueInRange: Math.round((perSkuRevenueInRange.get(c.sku) ?? 0) * 100) / 100 })),
           gstMode,
         },
       });

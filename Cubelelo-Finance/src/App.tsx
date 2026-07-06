@@ -111,6 +111,7 @@ export default function App() {
   // Amazon real (non-simulated) operational metrics, incl. Return-Tool-sourced Supply Chain metrics
   const [amazonOperationalMetrics, setAmazonOperationalMetrics] = useState<any>(null);
   const [comparativeOperationalMetrics, setComparativeOperationalMetrics] = useState<any>(null);
+  const [criticalSkusExpanded, setCriticalSkusExpanded] = useState<boolean>(false);
 
   // Real trend view (daily / weekly / monthly) -- separate from the synthetic rolling60DaysData simulator
   const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -1061,22 +1062,13 @@ export default function App() {
   }, [skus, skuSearch, skuFilter, skuMoverFilter, skuChannelFilter, simulationParams]);
 
   // Deep Dive ASIN performance buckets -- mirrors Amazon Seller Central's own "Deep dive your ASIN
-  // performance" panel (Products with Declining/Increasing Sales, Top Sales Products). "Declining Traffic
-  // Products" is intentionally omitted -- no per-period traffic data is ingested to compute it from.
+  // performance" panel (Top Sales Products).
   const deepDiveBuckets = useMemo(() => {
     const amazonSkus = skus.filter(s => s.revenue > 0);
-    const decliningSales = amazonSkus
-      .filter(s => s.moverShakerType === "shaker")
-      .sort((a, b) => (a.wowChangePct ?? 0) - (b.wowChangePct ?? 0))
-      .slice(0, 8);
-    const increasingSales = amazonSkus
-      .filter(s => s.moverShakerType === "mover")
-      .sort((a, b) => (b.wowChangePct ?? 0) - (a.wowChangePct ?? 0))
-      .slice(0, 8);
     const topSales = [...amazonSkus]
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 8);
-    return { decliningSales, increasingSales, topSales };
+    return { topSales };
   }, [skus]);
 
   // Filter Orders for reconciliation
@@ -2588,14 +2580,21 @@ export default function App() {
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Overstocked catalog weight</span>
                     </div>
 
-                    <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
-                      <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Dead Stock %</span>
+                    <button
+                      type="button"
+                      onClick={() => selectedChannelId === "amazon" && setCriticalSkusExpanded(v => !v)}
+                      className={`bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"}`}
+                    >
+                      <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Critical SKUs</span>
                       {renderMetricOrPending(selectedChannel.deadStockPct, formatPercent)}
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Zero daily transaction share</span>
-                    </div>
+                      {selectedChannelId === "amazon" && (
+                        <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{criticalSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
+                      )}
+                    </button>
 
                     <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Refund Rate</span>
+                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
                       <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
                       <span className="text-[9px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
                     </div>
@@ -2659,6 +2658,68 @@ export default function App() {
                     </div>
 
                   </div>
+
+                  {selectedChannelId === "amazon" && criticalSkusExpanded && (
+                    <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4.5">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Critical SKU Count</span>
+                          <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{(amazonOperationalMetrics?.criticalSkus?.length ?? 0).toLocaleString()}</span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Critical SKUs %</span>
+                          <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{formatPercent(selectedChannel.deadStockPct)}</span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Revenue At Risk</span>
+                          <span className="font-mono text-lg font-bold text-rose-600 block mt-0.5">
+                            {formatCurrency((amazonOperationalMetrics?.criticalSkus ?? []).reduce((sum: number, c: any) => sum + (c.revenueInRange ?? 0), 0))}
+                          </span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Avg. Run-Rate Drop</span>
+                          <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">
+                            {(() => {
+                              const list = amazonOperationalMetrics?.criticalSkus ?? [];
+                              if (list.length === 0) return "—";
+                              const avg = list.reduce((sum: number, c: any) => sum + (c.dropPct ?? 0), 0) / list.length;
+                              return formatPercent(avg);
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Critical SKUs List</span>
+                      {(amazonOperationalMetrics?.criticalSkus ?? []).length === 0 ? (
+                        <p className="text-xs text-slate-400 mt-1.5">No SKUs currently flagged as critical for the selected period.</p>
+                      ) : (
+                        <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200">
+                          <table className="w-full text-xs">
+                            <thead className="bg-white sticky top-0">
+                              <tr className="text-left text-slate-500 uppercase text-[10px]">
+                                <th className="px-3 py-2 font-medium">SKU</th>
+                                <th className="px-3 py-2 font-medium text-right">Prev Run-Rate</th>
+                                <th className="px-3 py-2 font-medium text-right">Last Run-Rate</th>
+                                <th className="px-3 py-2 font-medium text-right">Drop %</th>
+                                <th className="px-3 py-2 font-medium text-right">Revenue In Range</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(amazonOperationalMetrics?.criticalSkus ?? []).map((c: any) => (
+                                <tr key={c.sku} className="border-t border-slate-100 bg-white">
+                                  <td className="px-3 py-2 font-mono text-slate-700">{c.sku}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-slate-600">{c.prevRate}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-slate-600">{c.lastRate}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-rose-600 font-semibold">{formatPercent(c.dropPct)}</td>
+                                  <td className="px-3 py-2 font-mono text-right text-slate-600">{formatCurrency(c.revenueInRange)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Sub-Table 4: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
@@ -2910,43 +2971,29 @@ export default function App() {
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">Deep Dive ASIN Performance</h3>
               <div className="flex flex-col gap-4">
-                {([
-                  { key: "decliningSales", label: "Products with Declining Sales", data: deepDiveBuckets.decliningSales, accent: "rose" as const },
-                  { key: "increasingSales", label: "Products with Increasing Sales", data: deepDiveBuckets.increasingSales, accent: "emerald" as const },
-                  { key: "topSales", label: "Top Sales Products", data: deepDiveBuckets.topSales, accent: "blue" as const },
-                ]).map(bucket => (
-                  <div key={bucket.key}>
-                    <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">{bucket.label}</span>
-                    {bucket.data.length === 0 ? (
-                      <p className="text-xs text-slate-400 mt-1.5">No SKUs match this bucket for the selected period.</p>
-                    ) : (
-                      <div className="flex gap-2.5 mt-1.5 overflow-x-auto pb-1">
-                        {bucket.data.map(s => (
-                          <button
-                            key={s.sku}
-                            onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
-                            className={`flex-shrink-0 w-40 text-left bg-slate-50 hover:bg-slate-100 border rounded-xl p-3 transition-colors ${
-                              bucket.accent === "rose" ? "border-rose-100" : bucket.accent === "emerald" ? "border-emerald-100" : "border-blue-100"
-                            }`}
-                          >
-                            <span className="block text-[10px] font-mono text-slate-400">{s.sku}</span>
-                            <span className="block text-[11px] font-semibold text-slate-800 line-clamp-2 mt-0.5 h-7">{s.name}</span>
-                            {bucket.key === "topSales" ? (
-                              <span className="block text-xs font-mono font-bold text-blue-600 mt-1">{formatCurrency(s.revenue)}</span>
-                            ) : (
-                              <span className={`block text-xs font-mono font-bold mt-1 ${bucket.accent === "rose" ? "text-rose-600" : "text-emerald-600"}`}>
-                                {bucket.accent === "rose" ? "▼" : "▲"} {Math.abs(s.wowChangePct ?? 0).toFixed(0)}% WoW
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Top Sales Products</span>
+                  {deepDiveBuckets.topSales.length === 0 ? (
+                    <p className="text-xs text-slate-400 mt-1.5">No SKUs match this bucket for the selected period.</p>
+                  ) : (
+                    <div className="flex gap-2.5 mt-1.5 overflow-x-auto pb-1">
+                      {deepDiveBuckets.topSales.map(s => (
+                        <button
+                          key={s.sku}
+                          onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
+                          className="flex-shrink-0 w-40 text-left bg-slate-50 hover:bg-slate-100 border border-blue-100 rounded-xl p-3 transition-colors"
+                        >
+                          <span className="block text-[10px] font-mono text-slate-400">{s.sku}</span>
+                          <span className="block text-[11px] font-semibold text-slate-800 line-clamp-2 mt-0.5 h-7">{s.name}</span>
+                          <span className="block text-xs font-mono font-bold text-blue-600 mt-1">{formatCurrency(s.revenue)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <p className="text-[9px] text-slate-405 font-sans mt-3">
-                Declining/Increasing Sales compare Monday-Sunday weeks (units sold, ≥25% change). Click a card to load its trend below.
+                Click a card to load its trend below.
               </p>
             </div>
 
