@@ -129,7 +129,7 @@ export default function App() {
   const [comparativeOperationalMetrics, setComparativeOperationalMetrics] = useState<any>(null);
   const [criticalSkusExpanded, setCriticalSkusExpanded] = useState<boolean>(false);
   const [ageingSkusExpanded, setAgeingSkusExpanded] = useState<boolean>(false);
-  const [expandedVolumeMetric, setExpandedVolumeMetric] = useState<"aov" | "unitsPerOrder" | "revenuePerSku" | null>(null);
+  const [expandedVolumeMetric, setExpandedVolumeMetric] = useState<"aov" | "ordersPerDay" | "unitsPerOrder" | "revenuePerSku" | null>(null);
 
   // Real trend view (daily / weekly / monthly) -- separate from the synthetic rolling60DaysData simulator
   const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -1038,6 +1038,7 @@ export default function App() {
       return {
         period: p.period,
         aov: orders > 0 ? Math.round((grossRevenue / orders) * 100) / 100 : 0,
+        ordersPerDay: orders,
         unitsPerOrder: orders > 0 ? Math.round((unitsSold / orders) * 100) / 100 : 0,
         revenuePerSku: activeListingCount > 0 ? Math.round((grossRevenue / activeListingCount) * 100) / 100 : 0,
       };
@@ -1397,17 +1398,12 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans ${darkMode ? "dark-theme" : "bg-slate-100 text-slate-900"}`}>
 
-      {/* Full-page loading overlay -- the date range / GST mode change triggers ~9 independent fetches
-          (financials, operational metrics, trend, sku profitability, anomalies, etc). Without this,
-          each section renders as soon as its own request resolves, so the page visibly trickles in with
-          old data next to new. This blocks interaction until every in-flight fetch has settled. */}
+      {/* Thin top progress bar -- the date range / GST mode change triggers ~9 independent fetches
+          (financials, operational metrics, trend, sku profitability, anomalies, etc). This gives visible
+          feedback that a refresh is in flight without blocking interaction or covering content. */}
       {isPageLoading && (
-        <div className="fixed inset-0 z-50 bg-slate-100/80 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 px-8 py-6 flex flex-col items-center gap-3">
-            <RefreshCw size={28} className="text-blue-600 animate-spin" />
-            <div className="text-sm font-semibold text-slate-700">Loading financial data...</div>
-            <div className="text-xs text-slate-400">Fetching the latest figures for the selected range</div>
-          </div>
+        <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-blue-100 overflow-hidden">
+          <div className="h-full w-1/3 bg-blue-600 animate-loading-bar" />
         </div>
       )}
 
@@ -2633,10 +2629,13 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                  <div
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "ordersPerDay" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "ordersPerDay" ? null : "ordersPerDay")}
+                  >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Orders Per Day (OPD)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Daily shipment run counts</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Daily shipment run counts{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.ordersPerDay, comparativeOperationalMetrics?.ordersPerDay)}
@@ -2703,7 +2702,10 @@ export default function App() {
                     <div className="mb-3 flex items-center justify-between">
                       <div>
                         <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-                          {expandedVolumeMetric === "aov" ? "AOV Trend" : expandedVolumeMetric === "unitsPerOrder" ? "Units/Order Trend" : "Revenue/SKU Trend"}
+                          {expandedVolumeMetric === "aov" ? "AOV Trend"
+                            : expandedVolumeMetric === "ordersPerDay" ? "Orders Per Day Trend"
+                            : expandedVolumeMetric === "unitsPerOrder" ? "Units/Order Trend"
+                            : "Revenue/SKU Trend"}
                         </h3>
                         <p className="text-xs text-slate-500">Over the selected period</p>
                       </div>
@@ -2734,6 +2736,9 @@ export default function App() {
                             <Legend wrapperStyle={{ fontSize: "10px" }} />
                             {expandedVolumeMetric === "aov" && (
                               <Line type="monotone" dataKey="aov" stroke="#3b82f6" strokeWidth={2} dot={false} name="AOV (₹)" />
+                            )}
+                            {expandedVolumeMetric === "ordersPerDay" && (
+                              <Line type="monotone" dataKey="ordersPerDay" stroke="#f59e0b" strokeWidth={2} dot={false} name="Orders" />
                             )}
                             {expandedVolumeMetric === "unitsPerOrder" && (
                               <Line type="monotone" dataKey="unitsPerOrder" stroke="#10b981" strokeWidth={2} dot={false} name="Units/Order" />
