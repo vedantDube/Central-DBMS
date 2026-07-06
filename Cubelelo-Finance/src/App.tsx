@@ -1567,8 +1567,6 @@ export default function App() {
                         <input
                           id="period-start-date-input"
                           type="date"
-                          min="2026-04-17"
-                          max="2026-06-15"
                           value={startDateStr}
                           onChange={(e) => handleStartDateChange(e.target.value)}
                           className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors animate-fade-in"
@@ -1581,8 +1579,6 @@ export default function App() {
                         <input
                           id="period-end-date-input"
                           type="date"
-                          min="2026-04-17"
-                          max="2026-06-15"
                           value={endDateStr}
                           onChange={(e) => handleEndDateChange(e.target.value)}
                           className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
