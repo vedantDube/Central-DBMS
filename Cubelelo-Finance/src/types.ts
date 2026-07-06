@@ -54,9 +54,7 @@ export interface SKUProfitability {
   status: "Profitable" | "Borderline" | "Loss Making";
   glanceViews: number | null; // real data from Sales & Traffic report, lifetime total (not period-filterable)
   conversionRate: number | null; // unitsOrdered / sessions, as a percentage
-  moverShaker: boolean; // true if moverShakerType is non-null
-  moverShakerType: "mover" | "shaker" | null; // WoW units-sold change vs prior Mon-Sun week: >=25% up/down
-  wowChangePct: number | null; // WoW units-sold % change; null if no sales in the prior week to compare against
+  isNewListing: boolean; // true if first inventory record for this SKU is more recent than Today-180d
 }
 
 export interface OrderReconciliation {

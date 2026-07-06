@@ -76,7 +76,7 @@ export default function App() {
   const [skus, setSkus] = useState<SKUProfitability[]>(initialSKUProfitability);
   const [skuSearch, setSkuSearch] = useState<string>("");
   const [skuFilter, setSkuFilter] = useState<string>("all"); // "all" | "profitable" | "loss" | "borderline"
-  const [skuMoverFilter, setSkuMoverFilter] = useState<string>("all"); // "all" | "mover" | "shaker"
+  const [skuMoverFilter, setSkuMoverFilter] = useState<string>("all"); // "all" | "new"
   const [skuChannelFilter, setSkuChannelFilter] = useState<string>("amazon");
   
   // Reconciliation Data state
@@ -1092,8 +1092,7 @@ export default function App() {
       if (skuFilter === "loss" && s.status !== "Loss Making") return false;
       if (skuFilter === "borderline" && s.status !== "Borderline") return false;
 
-      if (skuMoverFilter === "mover" && s.moverShakerType !== "mover") return false;
-      if (skuMoverFilter === "shaker" && s.moverShakerType !== "shaker") return false;
+      if (skuMoverFilter === "new" && !s.isNewListing) return false;
 
       return true;
     });
@@ -2682,8 +2681,8 @@ export default function App() {
 
                         <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
                           <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
-                          {renderMetricOrPending(null, formatPercent, "Not Available")}
-                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">No claim-raised timestamp in ingested data</span>
+                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claim24hPct ?? 0)}</span>
+                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Claims filed within 24h / bad-returned units</span>
                         </div>
 
                         <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
@@ -3253,8 +3252,7 @@ export default function App() {
                   <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200">
                     {([
                       { key: "all", label: "All" },
-                      { key: "mover", label: "Movers (WoW ↑)" },
-                      { key: "shaker", label: "Shakers (WoW ↓)" },
+                      { key: "new", label: "New Listings" },
                     ] as const).map(opt => (
                       <button
                         key={opt.key}
@@ -3364,19 +3362,7 @@ export default function App() {
                           onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
                         >
                           <td className="py-3.5 px-4 font-sans text-slate-900">
-                            <span className="flex items-center gap-1.5">
-                              <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
-                              {s.moverShakerType === "mover" && (
-                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                  ▲ Mover {s.wowChangePct !== null ? `+${s.wowChangePct.toFixed(0)}%` : ""}
-                                </span>
-                              )}
-                              {s.moverShakerType === "shaker" && (
-                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                                  ▼ Shaker {s.wowChangePct !== null ? `${s.wowChangePct.toFixed(0)}%` : ""}
-                                </span>
-                              )}
-                            </span>
+                            <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
                             <span className="block text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1">{s.name}</span>
                           </td>
                           <td className="py-3.5 px-4 font-sans">

@@ -389,7 +389,7 @@ async function startServer() {
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
-      const [gstResult, feesResult, returnsResult, productsResult, trafficResult] = await Promise.all([
+      const [gstResult, feesResult, returnsResult, productsResult, firstSeenResult, trafficResult] = await Promise.all([
         client.query(`
           SELECT sku,
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue,
@@ -415,6 +415,7 @@ async function startServer() {
           GROUP BY sku
         `, params),
         client.query(`SELECT sku, product_name, category_name, brand FROM "EasyEcomProductMaster"`),
+        client.query(`SELECT sku, MIN(date) AS first_seen FROM "EasyEcomInventory" GROUP BY sku`),
         // Glance Views / Conversion Rate: real data from the Sales & Traffic report, joined SKU -> ASIN -> traffic.
         // NOTE: AmazonSalesAndTrafficRow "asin" rows carry no date (lifetime totals per ASIN), so this is NOT
         // date-range filterable -- it reflects all-time traffic for the ASIN, not the selected period.
@@ -430,34 +431,6 @@ async function startServer() {
         `),
       ]);
 
-      // --- Mover & Shaker: week-over-week units-sold classification (Mon-Sun weeks, matching Amazon's own
-      // "Deep dive ASIN performance" convention). "Mover" = WoW units sold up >=25%, "Shaker" = down >=25%.
-      // Reference date = end of the selected range (or today); only the trailing 14 days are needed to cover
-      // "this week" and "last week".
-      const wowReferenceDateStr = endDate || new Date().toISOString().slice(0, 10);
-      const wowLookbackStartStr = new Date(new Date(wowReferenceDateStr).getTime() - 14 * 24 * 60 * 60 * 1000)
-        .toISOString().slice(0, 10);
-      const wowResult = await client.query(`
-        SELECT sku, TO_CHAR(order_date::date, 'YYYY-MM-DD') AS d,
-          COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units
-        FROM "Amazon_GST_Master"
-        WHERE transaction_type = 'Shipment'
-          AND order_date IS NOT NULL AND order_date != ''
-          AND order_date::date >= $1::date AND order_date::date <= $2::date
-        GROUP BY sku, order_date::date
-      `, [wowLookbackStartStr, wowReferenceDateStr]);
-
-      const thisWeekStart = isoWeekStart(wowReferenceDateStr);
-      const lastWeekStart = isoWeekStart(new Date(new Date(thisWeekStart + "T00:00:00Z").getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
-      const thisWeekUnitsBySku: Record<string, number> = {};
-      const lastWeekUnitsBySku: Record<string, number> = {};
-      for (const row of wowResult.rows) {
-        const d = row.d;
-        const wk = isoWeekStart(d);
-        const units = parseFloat(row.units);
-        if (wk === thisWeekStart) thisWeekUnitsBySku[row.sku] = (thisWeekUnitsBySku[row.sku] || 0) + units;
-        else if (wk === lastWeekStart) lastWeekUnitsBySku[row.sku] = (lastWeekUnitsBySku[row.sku] || 0) + units;
-      }
 
       const feesMap: Record<string, { fba: number; selling: number; other: number }> = {};
       for (const row of feesResult.rows) {
@@ -479,6 +452,14 @@ async function startServer() {
           name: row.product_name || row.sku,
           category: row.category_name || "Uncategorized",
         };
+      }
+
+      // New Listing: SKU's earliest inventory-data date is within the last 180 days (i.e. first
+      // observed after Today-180d). Uses EasyEcomInventory as the catalog's date-of-first-record source.
+      const newListingCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const firstSeenMap: Record<string, string> = {};
+      for (const row of firstSeenResult.rows) {
+        firstSeenMap[row.sku] = row.first_seen;
       }
 
       const trafficMap: Record<string, { glanceViews: number; sessions: number; unitsOrdered: number }> = {};
@@ -508,14 +489,6 @@ async function startServer() {
           if (cm1 < 0) status = "Loss Making";
           else if (revenue > 0 && cm1 < revenue * 0.08) status = "Borderline";
 
-          const thisWeekUnits = thisWeekUnitsBySku[sku] || 0;
-          const lastWeekUnits = lastWeekUnitsBySku[sku] || 0;
-          const wowChangePct = lastWeekUnits > 0 ? ((thisWeekUnits - lastWeekUnits) / lastWeekUnits) * 100 : null;
-          const moverShakerType: "mover" | "shaker" | null =
-            wowChangePct !== null && wowChangePct >= 25 ? "mover"
-            : wowChangePct !== null && wowChangePct <= -25 ? "shaker"
-            : null;
-
           return {
             sku,
             name: product?.name || sku,
@@ -535,11 +508,8 @@ async function startServer() {
             // Lifetime (not period-filtered) real traffic data via Sales & Traffic report -- null if no ASIN match
             glanceViews: traffic ? traffic.glanceViews : null,
             conversionRate: traffic && traffic.sessions > 0 ? Math.round((traffic.unitsOrdered / traffic.sessions) * 10000) / 100 : null,
-            // Mover & Shaker: WoW units-sold change vs the prior Mon-Sun week (>=25% up/down), null if no
-            // sales in the prior week to compare against
-            moverShaker: moverShakerType !== null,
-            moverShakerType,
-            wowChangePct: wowChangePct !== null ? Math.round(wowChangePct * 100) / 100 : null,
+            // New Listing: first inventory record for this SKU is more recent than Today-180d
+            isNewListing: firstSeenMap[sku] ? firstSeenMap[sku] > newListingCutoff : false,
           };
         })
         .filter((s: any) => s.revenue > 0)
@@ -874,6 +844,25 @@ async function startServer() {
       `, params);
       const cogsOfClaimedUnits = parseFloat(cogsOfClaimedUnitsResult.rows[0].cogs_of_claimed_units);
 
+      // Claim (<24h) Rate: claims filed within 24h of the matching bad-disposition return, over total
+      // bad-returned units. filedat is backfilled from the returns-ops DB's Reimbursement.filedAt --
+      // Amazon's own export has no claim-raised timestamp.
+      const claim24hResult = await client.query(`
+        WITH bad_returns AS (
+          SELECT orderid, sku, returndate
+          FROM "AmazonReturnsB2cRow"
+          WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
+        )
+        SELECT COUNT(DISTINCT (c.reimbursementid)) AS claims_within_24h
+        FROM "AmazonClaimsReimbursementsRow" c
+        JOIN bad_returns r ON r.orderid = c.amazonorderid AND r.sku = c.sku
+        WHERE c.filedat IS NOT NULL
+          AND EXTRACT(EPOCH FROM (c.filedat::timestamptz - r.returndate::timestamptz)) / 3600 BETWEEN 0 AND 24
+          ${claimDateFilter}
+      `, params);
+      const claimsWithin24h = parseInt(claim24hResult.rows[0].claims_within_24h);
+      const claim24hPct = badReturnQty > 0 ? (claimsWithin24h / badReturnQty) * 100 : 0;
+
       const dayCount = startDate && endDate
         ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
         : 30;
@@ -1069,7 +1058,7 @@ async function startServer() {
           // Claim metrics: old metric preserved under a new name, new metric added alongside it
           claimSuccessPct: Math.round(claimSuccessPct * 100) / 100,
           claimRatePct: Math.round(claimRatePct * 100) / 100,
-          claim24hPct: null, // permanently unavailable -- no claim-raised timestamp exists in ingested data
+          claim24hPct: Math.round(claim24hPct * 100) / 100,
           reimbursementPct: Math.round(reimbursementPct * 100) / 100,
           reimbursementAmount: Math.round(totalReimbursed * 100) / 100,
           returnLossPct: null, // computed alongside returnLoss amount in /api/amazon/financials; see that endpoint
