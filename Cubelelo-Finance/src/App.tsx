@@ -728,21 +728,37 @@ export default function App() {
   // Comparison period dates bounding box
   const { compStartStr, compEndStr } = useMemo(() => {
     const diff = getDiffDays(startDateStr, endDateStr);
-    
+
     let compStart = "";
     let compEnd = "";
-    
+
     if (comparisonType === "previous_period") {
+      // Immediately preceding window of identical length -- e.g. a 12-day selection compares
+      // against the 12 days right before it.
       compStart = shiftDateStr(startDateStr, -diff);
       compEnd = shiftDateStr(startDateStr, -1);
     } else if (comparisonType === "wow") {
-      compStart = shiftDateStr(startDateStr, -7);
-      compEnd = shiftDateStr(endDateStr, -7);
+      // Scale to whole weeks so multi-week selections still compare an equal number of weeks back,
+      // instead of a flat 7-day shift regardless of how many days are actually selected.
+      const weeks = Math.max(1, Math.ceil(diff / 7));
+      const shiftDays = weeks * 7;
+      compStart = shiftDateStr(startDateStr, -shiftDays);
+      compEnd = shiftDateStr(endDateStr, -shiftDays);
     } else { // "previous_month"
-      compStart = shiftDateStr(startDateStr, -30);
-      compEnd = shiftDateStr(endDateStr, -30);
+      // Calendar-aware: shift the anchor date back exactly one calendar month rather than a flat -30,
+      // so a 31-day selection compares against the real prior calendar month instead of drifting.
+      // Day-of-month is clamped to the target month's actual length (e.g. Mar 31 - 1 month -> Feb 28/29,
+      // not JS Date's default overflow into early March).
+      const shiftMonthClamped = (dateStr: string) => {
+        const [y, m, d] = dateStr.split("-").map(Number);
+        const targetMonthLastDay = new Date(y, m - 1, 0).getDate(); // day 0 of target month = last day of month before it
+        const clampedDay = Math.min(d, targetMonthLastDay);
+        return toLocalDateStr(new Date(y, m - 2, clampedDay));
+      };
+      compStart = shiftMonthClamped(startDateStr);
+      compEnd = shiftMonthClamped(endDateStr);
     }
-    
+
     return { compStartStr: compStart, compEndStr: compEnd };
   }, [startDateStr, endDateStr, comparisonType]);
 
@@ -1643,8 +1659,8 @@ export default function App() {
                       className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-sans cursor-pointer hover:bg-slate-100 transition-colors"
                     >
                       <option value="previous_period">vs Previous Period (matching duration)</option>
-                      <option value="wow">vs Previous Week (WoW standard)</option>
-                      <option value="previous_month">vs Previous Month (30d prior)</option>
+                      <option value="wow">vs Previous Week(s) (equal week count prior)</option>
+                      <option value="previous_month">vs Previous Calendar Month</option>
                     </select>
                   </div>
 
