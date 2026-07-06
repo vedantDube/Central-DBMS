@@ -488,12 +488,42 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Formats a Date using local (not UTC) y/m/d components, avoiding
+  // timezone-shift bugs that toISOString() introduces near midnight.
+  const toLocalDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   // Date Controls state
-  const todayStr = new Date().toISOString().split("T")[0];
-  const [dateRangePreset, setDateRangePreset] = useState<string>("previous_month");
-  const [startDateStr, setStartDateStr] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split("T")[0]);
-  const [endDateStr, setEndDateStr] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString().split("T")[0]);
+  const todayStr = toLocalDateStr(new Date());
+  const [dateRangePreset, setDateRangePreset] = useState<string>(() => {
+    return localStorage.getItem("dateRangePreset") || "previous_month";
+  });
+  const [startDateStr, setStartDateStr] = useState<string>(() => {
+    const saved = localStorage.getItem("startDateStr");
+    if (saved) return saved;
+    const today = new Date();
+    return toLocalDateStr(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+  });
+  const [endDateStr, setEndDateStr] = useState<string>(() => {
+    const saved = localStorage.getItem("endDateStr");
+    if (saved) return saved;
+    const today = new Date();
+    return toLocalDateStr(new Date(today.getFullYear(), today.getMonth(), 0));
+  });
   const [comparisonType, setComparisonType] = useState<string>("previous_period"); // "previous_period" | "wow" | "previous_month"
+
+  useEffect(() => {
+    localStorage.setItem("dateRangePreset", dateRangePreset);
+  }, [dateRangePreset]);
+
+  useEffect(() => {
+    localStorage.setItem("startDateStr", startDateStr);
+    localStorage.setItem("endDateStr", endDateStr);
+  }, [startDateStr, endDateStr]);
 
   // Date Synchronization and shifts
   useEffect(() => {
@@ -518,8 +548,8 @@ export default function App() {
       return; // custom allows manual overrides
     }
 
-    setStartDateStr(start.toISOString().split("T")[0]);
-    setEndDateStr(end.toISOString().split("T")[0]);
+    setStartDateStr(toLocalDateStr(start));
+    setEndDateStr(toLocalDateStr(end));
   }, [dateRangePreset]);
 
   const handleStartDateChange = (val: string) => {
@@ -579,9 +609,10 @@ export default function App() {
   };
 
   const shiftDateStr = (dateStr: string, daysToShift: number) => {
-    const d = new Date(dateStr);
+    const [y, m, day] = dateStr.split("-").map(Number);
+    const d = new Date(y, m - 1, day);
     d.setDate(d.getDate() + daysToShift);
-    return d.toISOString().split("T")[0];
+    return toLocalDateStr(d);
   };
 
   const rolling60DaysData = useMemo(() => {
@@ -1499,33 +1530,37 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* Start Date */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Start date:</label>
-                    <input 
-                      id="period-start-date-input"
-                      type="date"
-                      min="2026-04-17"
-                      max="2026-06-15"
-                      value={startDateStr}
-                      onChange={(e) => handleStartDateChange(e.target.value)}
-                      className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors animate-fade-in"
-                    />
-                  </div>
+                  {dateRangePreset === "custom" && (
+                    <>
+                      {/* Start Date */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Start date:</label>
+                        <input
+                          id="period-start-date-input"
+                          type="date"
+                          min="2026-04-17"
+                          max="2026-06-15"
+                          value={startDateStr}
+                          onChange={(e) => handleStartDateChange(e.target.value)}
+                          className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors animate-fade-in"
+                        />
+                      </div>
 
-                  {/* End Date */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">End date:</label>
-                    <input 
-                      id="period-end-date-input"
-                      type="date"
-                      min="2026-04-17"
-                      max="2026-06-15"
-                      value={endDateStr}
-                      onChange={(e) => handleEndDateChange(e.target.value)}
-                      className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
-                    />
-                  </div>
+                      {/* End Date */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">End date:</label>
+                        <input
+                          id="period-end-date-input"
+                          type="date"
+                          min="2026-04-17"
+                          max="2026-06-15"
+                          value={endDateStr}
+                          onChange={(e) => handleEndDateChange(e.target.value)}
+                          className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   {/* Comparison basis */}
                   <div className="flex flex-col gap-1">
