@@ -60,7 +60,13 @@ export default function App() {
   // Tabs: "consolidated" | "channels" | "skus" | "reconciliation" | "configurer"
   const [activeTab, setActiveTab] = useState<string>("channels");
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
-  const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", String(darkMode));
+  }, [darkMode]);
   
   // Channels Data state
   const [channels, setChannels] = useState<ChannelFinancials[]>(initialChannelsData);
