@@ -109,6 +109,14 @@ export default function App() {
   // Amazon live financials state
   const [isLoadingAmazonData, setIsLoadingAmazonData] = useState<boolean>(false);
 
+  // Global "page still loading" tracker -- counts in-flight fetches from the main date-range-triggered
+  // batch (financials, operational metrics, trend, etc.) so a single full-page overlay can cover the
+  // whole "data trickling in across many independent requests" window, not just one section at a time.
+  const [activeFetchCount, setActiveFetchCount] = useState<number>(0);
+  const beginFetch = () => setActiveFetchCount(c => c + 1);
+  const endFetch = () => setActiveFetchCount(c => Math.max(0, c - 1));
+  const isPageLoading = activeFetchCount > 0;
+
   // GST inclusive/exclusive toggle -- applies to Amazon revenue-derived metrics across Channel + SKU views
   const [gstMode, setGstMode] = useState<"inclusive" | "exclusive">("exclusive");
 
@@ -205,6 +213,7 @@ export default function App() {
 
   const fetchAmazonFinancials = async (start: string, end: string, mode: "inclusive" | "exclusive", compare = false) => {
     if (!compare) setIsLoadingAmazonData(true);
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end, gstMode: mode });
       const res = await fetch(`/api/amazon/financials?${params}`);
@@ -235,10 +244,12 @@ export default function App() {
       console.error("Failed to fetch Amazon financials:", err);
     } finally {
       if (!compare) setIsLoadingAmazonData(false);
+      endFetch();
     }
   };
 
   const fetchAmazonOperationalMetrics = async (start: string, end: string, mode: "inclusive" | "exclusive", compare = false) => {
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end, gstMode: mode });
       const res = await fetch(`/api/amazon/operational-metrics?${params}`);
@@ -269,10 +280,13 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch Amazon operational metrics:", err);
+    } finally {
+      endFetch();
     }
   };
 
   const fetchShopifyFinancials = async (start: string, end: string) => {
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end });
       const res = await fetch(`/api/shopify/financials?${params}`);
@@ -296,10 +310,13 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch Shopify financials:", err);
+    } finally {
+      endFetch();
     }
   };
 
   const fetchShopifyOperationalMetrics = async (start: string, end: string) => {
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end });
       const res = await fetch(`/api/shopify/operational-metrics?${params}`);
@@ -325,6 +342,8 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch Shopify operational metrics:", err);
+    } finally {
+      endFetch();
     }
   };
 
@@ -386,6 +405,7 @@ export default function App() {
   const [anomalies, setAnomalies] = useState<any>(null);
 
   const fetchAnomalies = async (start: string, end: string) => {
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end });
       const res = await fetch(`/api/amazon/anomalies?${params}`);
@@ -395,10 +415,13 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch anomalies:", err);
+    } finally {
+      endFetch();
     }
   };
 
   const fetchSkuProfitability = async (start: string, end: string, mode: "inclusive" | "exclusive") => {
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end, gstMode: mode });
       const res = await fetch(`/api/amazon/sku-profitability?${params}`);
@@ -408,11 +431,14 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch SKU profitability:", err);
+    } finally {
+      endFetch();
     }
   };
 
   const fetchAmazonTrend = async (start: string, end: string, granularity: "daily" | "weekly" | "monthly", mode: "inclusive" | "exclusive") => {
     setIsLoadingTrend(true);
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end, granularity, gstMode: mode });
       const res = await fetch(`/api/amazon/trend?${params}`);
@@ -424,11 +450,13 @@ export default function App() {
       console.error("Failed to fetch Amazon trend:", err);
     } finally {
       setIsLoadingTrend(false);
+      endFetch();
     }
   };
 
   const fetchCompareSales = async (date: string, mode: "inclusive" | "exclusive") => {
     setIsLoadingCompareSales(true);
+    beginFetch();
     try {
       const params = new URLSearchParams({ date, gstMode: mode });
       const res = await fetch(`/api/amazon/compare-sales?${params}`);
@@ -440,10 +468,12 @@ export default function App() {
       console.error("Failed to fetch Compare Sales:", err);
     } finally {
       setIsLoadingCompareSales(false);
+      endFetch();
     }
   };
 
   const fetchSkuSparklines = async (start: string, end: string) => {
+    beginFetch();
     try {
       const params = new URLSearchParams({ startDate: start, endDate: end });
       const res = await fetch(`/api/amazon/sku-sparklines?${params}`);
@@ -453,6 +483,8 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch SKU sparklines:", err);
+    } finally {
+      endFetch();
     }
   };
 
@@ -1348,7 +1380,21 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans ${darkMode ? "dark-theme" : "bg-slate-100 text-slate-900"}`}>
-      
+
+      {/* Full-page loading overlay -- the date range / GST mode change triggers ~9 independent fetches
+          (financials, operational metrics, trend, sku profitability, anomalies, etc). Without this,
+          each section renders as soon as its own request resolves, so the page visibly trickles in with
+          old data next to new. This blocks interaction until every in-flight fetch has settled. */}
+      {isPageLoading && (
+        <div className="fixed inset-0 z-50 bg-slate-100/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 px-8 py-6 flex flex-col items-center gap-3">
+            <RefreshCw size={28} className="text-blue-600 animate-spin" />
+            <div className="text-sm font-semibold text-slate-700">Loading financial data...</div>
+            <div className="text-xs text-slate-400">Fetching the latest figures for the selected range</div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg border border-emerald-500 flex items-center gap-3 glow-emerald animate-bounce">
