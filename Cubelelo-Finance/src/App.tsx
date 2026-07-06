@@ -2668,7 +2668,7 @@ export default function App() {
                       <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
                         {selectedChannelId === "amazon" ? formatPercent(amazonOperationalMetrics?.claimRatePct ?? 0) : formatPercent(selectedChannel.claimPct)}
                       </span>
-                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Claims raised / bad-returned units</span>
+                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
                     </div>
 
                     {selectedChannelId === "amazon" && (

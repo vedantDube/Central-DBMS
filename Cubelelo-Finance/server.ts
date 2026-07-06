@@ -844,6 +844,29 @@ async function startServer() {
       `, params);
       const cogsOfClaimedUnits = parseFloat(cogsOfClaimedUnitsResult.rows[0].cogs_of_claimed_units);
 
+      // Claim Rate: bad-returned units for which a claim was actually raised (matched by orderid+sku),
+      // over total bad-returned units. Previously this compared independent totals (claim COUNT filtered
+      // by approvaldate vs return quantity filtered by returndate on a different table) with no join --
+      // a claim approved in the period could match a return received outside it, or no return at all
+      // (e.g. CustomerServiceIssue claims), and claim-count was compared against unit-quantity. That let
+      // the rate exceed 100%. This join keeps both sides in the same unit (returned quantity) and requires
+      // an actual matching claim record, so it's naturally bounded at 100%.
+      const claimedBadReturnQtyResult = await client.query(`
+        WITH claimed_pairs AS (
+          SELECT DISTINCT amazonorderid, sku FROM "AmazonClaimsReimbursementsRow" WHERE 1=1 ${claimDateFilter}
+        )
+        SELECT COALESCE(SUM(
+          CASE WHEN cp.amazonorderid IS NOT NULL
+            THEN CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)
+            ELSE 0
+          END
+        ), 0) AS claimed_bad_return_qty
+        FROM "AmazonReturnsB2cRow" r
+        LEFT JOIN claimed_pairs cp ON cp.amazonorderid = r.orderid AND cp.sku = r.sku
+        WHERE r.detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
+      `, params);
+      const claimedBadReturnQty = parseFloat(claimedBadReturnQtyResult.rows[0].claimed_bad_return_qty);
+
       // Claim (<24h) Rate: claims filed within 24h of the matching bad-disposition return, over total
       // bad-returned units. filedat is backfilled from the returns-ops DB's Reimbursement.filedAt --
       // Amazon's own export has no claim-raised timestamp.
@@ -879,8 +902,8 @@ async function startServer() {
 
       // Preserved old "claims success" metric under a new name (was `claimPct`)
       const claimSuccessPct = totalClaims > 0 ? (successfulClaims / totalClaims) * 100 : 0;
-      // New "Claim Rate" per spec: claims raised / bad-returned units
-      const claimRatePct = badReturnQty > 0 ? (totalClaims / badReturnQty) * 100 : 0;
+      // Claim Rate: bad-returned units matched to an actual claim / total bad-returned units
+      const claimRatePct = badReturnQty > 0 ? (claimedBadReturnQty / badReturnQty) * 100 : 0;
 
       const reimbursementPct = cogsOfClaimedUnits > 0 ? (totalReimbursed / cogsOfClaimedUnits) * 100 : 0;
 
