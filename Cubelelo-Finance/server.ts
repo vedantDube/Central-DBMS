@@ -1224,8 +1224,18 @@ async function startServer() {
             .sort((a, b) => b.dropPct - a.dropPct)
             .map((c) => ({ ...c, revenueInRange: Math.round((perSkuRevenueInRange.get(c.sku) ?? 0) * 100) / 100 })),
           ageingSkus: ageingSkus
-            .sort((a, b) => b.dropPct - a.dropPct)
-            .map((a) => ({ ...a, revenueInRange: Math.round((perSkuRevenueInRange.get(a.sku) ?? 0) * 100) / 100 })),
+            .map((a) => ({
+              ...a,
+              revenueInRange: Math.round((perSkuRevenueInRange.get(a.sku) ?? 0) * 100) / 100,
+              // Velocity tag from the pre-drop run-rate (units/day), per spec bands
+              velocityTag: a.prevRate >= 30 ? "Fast" : a.prevRate >= 15 ? "Medium" : a.prevRate >= 4 ? "Slow" : "Non-Selling",
+            }))
+            .sort((a, b) => {
+              const tagOrder: Record<string, number> = { Fast: 0, Medium: 1, Slow: 2, "Non-Selling": 3 };
+              const tagDiff = tagOrder[a.velocityTag] - tagOrder[b.velocityTag];
+              if (tagDiff !== 0) return tagDiff;
+              return b.revenueInRange - a.revenueInRange;
+            }),
           gstMode,
         },
       });

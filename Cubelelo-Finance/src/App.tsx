@@ -40,6 +40,8 @@ import {
   Legend,
   AreaChart,
   Area,
+  LineChart,
+  Line,
   PieChart,
   Pie,
   Cell
@@ -119,6 +121,7 @@ export default function App() {
   const [comparativeOperationalMetrics, setComparativeOperationalMetrics] = useState<any>(null);
   const [criticalSkusExpanded, setCriticalSkusExpanded] = useState<boolean>(false);
   const [ageingSkusExpanded, setAgeingSkusExpanded] = useState<boolean>(false);
+  const [expandedVolumeMetric, setExpandedVolumeMetric] = useState<"aov" | "unitsPerOrder" | "revenuePerSku" | null>(null);
 
   // Real trend view (daily / weekly / monthly) -- separate from the synthetic rolling60DaysData simulator
   const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -973,6 +976,25 @@ export default function App() {
 
     return Object.values(dataMap).sort((a, b) => a.date.localeCompare(b.date));
   }, [startDateStr, endDateStr, rolling60DaysData, simulationParams]);
+
+  // Listing & Volume Performance trend, derived from the same per-period data already fetched for the
+  // "Amazon Trend (Real Data)" chart (grossRevenue/orders/unitsSold). Listings Count and Active Listing
+  // Count are NOT included here -- AmazonMtrRow (their source) has no date column, it's a current-catalog
+  // snapshot only, so there is no real historical series to plot for them.
+  const listingVolumeTrendData = useMemo(() => {
+    const activeListingCount = amazonOperationalMetrics?.activeListingCount ?? 0;
+    return realTrendData.map((p: any) => {
+      const orders = p.orders ?? 0;
+      const grossRevenue = p.grossRevenue ?? 0;
+      const unitsSold = p.unitsSold ?? 0;
+      return {
+        period: p.period,
+        aov: orders > 0 ? Math.round((grossRevenue / orders) * 100) / 100 : 0,
+        unitsPerOrder: orders > 0 ? Math.round((unitsSold / orders) * 100) / 100 : 0,
+        revenuePerSku: activeListingCount > 0 ? Math.round((grossRevenue / activeListingCount) * 100) / 100 : 0,
+      };
+    });
+  }, [realTrendData, amazonOperationalMetrics?.activeListingCount]);
 
   // Format currency helpers (INR / standard numeric fallback)
   const formatCurrency = (val: number) => {
@@ -2524,10 +2546,13 @@ export default function App() {
                 </div>
 
                 <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                  <div
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "aov" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "aov" ? null : "aov")}
+                  >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Average Order Value (AOV)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Average checkout ticket price</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Average checkout ticket price{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.aov, comparativeOperationalMetrics?.aov)}
@@ -2546,10 +2571,13 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                  <div
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "unitsPerOrder" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "unitsPerOrder" ? null : "unitsPerOrder")}
+                  >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Units / Order</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Total units sold / total order count</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Total units sold / total order count{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(amazonOperationalMetrics?.unitsPerOrder ?? 0, comparativeOperationalMetrics?.unitsPerOrder)}
@@ -2579,10 +2607,13 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+                  <div
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "revenuePerSku" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "revenuePerSku" ? null : "revenuePerSku")}
+                  >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Revenue Per SKU (ASIN Performance)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Average output yielded per logged catalog element</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Average output yielded per logged catalog element{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.revenuePerSku, comparativeOperationalMetrics?.revenuePerSku)}
@@ -2590,6 +2621,59 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+
+                {/* Listing & Volume Performance trend line -- opens only when a clickable card above is selected.
+                    Listings Count / Active Listing Count have no card here: AmazonMtrRow has no date column, so
+                    there's no real historical series for them, only the current snapshot shown as stat cards. */}
+                {selectedChannelId === "amazon" && expandedVolumeMetric && (
+                  <div className="bg-white px-6 pb-4 border-b border-slate-200">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                          {expandedVolumeMetric === "aov" ? "AOV Trend" : expandedVolumeMetric === "unitsPerOrder" ? "Units/Order Trend" : "Revenue/SKU Trend"}
+                        </h3>
+                        <p className="text-xs text-slate-500">Over the selected period</p>
+                      </div>
+                      <button
+                        onClick={() => setExpandedVolumeMetric(null)}
+                        className="text-[10px] text-slate-400 hover:text-slate-600 font-medium"
+                      >
+                        Close ✕
+                      </button>
+                    </div>
+                    {isLoadingTrend ? (
+                      <div className="h-56 flex items-center justify-center gap-2 text-xs text-slate-400">
+                        <RefreshCw size={12} className="animate-spin" />
+                        <span>Loading trend...</span>
+                      </div>
+                    ) : listingVolumeTrendData.length === 0 ? (
+                      <div className="h-56 flex items-center justify-center text-xs text-slate-400">No trend data for the selected range.</div>
+                    ) : (
+                      <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={listingVolumeTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
+                            <YAxis stroke="#64748b" fontSize={9} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                            />
+                            <Legend wrapperStyle={{ fontSize: "10px" }} />
+                            {expandedVolumeMetric === "aov" && (
+                              <Line type="monotone" dataKey="aov" stroke="#3b82f6" strokeWidth={2} dot={false} name="AOV (₹)" />
+                            )}
+                            {expandedVolumeMetric === "unitsPerOrder" && (
+                              <Line type="monotone" dataKey="unitsPerOrder" stroke="#10b981" strokeWidth={2} dot={false} name="Units/Order" />
+                            )}
+                            {expandedVolumeMetric === "revenuePerSku" && (
+                              <Line type="monotone" dataKey="revenuePerSku" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Revenue/SKU (₹)" />
+                            )}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Sub-Table 3: Stock & Inventory Health */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
@@ -2746,6 +2830,7 @@ export default function App() {
                               <tr className="text-left text-slate-500 uppercase text-[10px]">
                                 <th className="px-3 py-2 font-medium">SKU</th>
                                 <th className="px-3 py-2 font-medium">Trigger Week</th>
+                                <th className="px-3 py-2 font-medium">Tag</th>
                                 <th className="px-3 py-2 font-medium text-right">Prev Run-Rate</th>
                                 <th className="px-3 py-2 font-medium text-right">Curr Run-Rate</th>
                                 <th className="px-3 py-2 font-medium text-right">Drop %</th>
@@ -2757,6 +2842,14 @@ export default function App() {
                                 <tr key={a.sku} className="border-t border-slate-100 bg-white">
                                   <td className="px-3 py-2 font-mono text-slate-700">{a.sku}</td>
                                   <td className="px-3 py-2 font-mono text-slate-600">{a.triggerWeek}</td>
+                                  <td className="px-3 py-2">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                      a.velocityTag === "Fast" ? "bg-emerald-100 text-emerald-700" :
+                                      a.velocityTag === "Medium" ? "bg-blue-100 text-blue-700" :
+                                      a.velocityTag === "Slow" ? "bg-amber-100 text-amber-700" :
+                                      "bg-rose-100 text-rose-700"
+                                    }`}>{a.velocityTag}</span>
+                                  </td>
                                   <td className="px-3 py-2 font-mono text-right text-slate-600">{a.prevRate}</td>
                                   <td className="px-3 py-2 font-mono text-right text-slate-600">{a.currRate}</td>
                                   <td className="px-3 py-2 font-mono text-right text-amber-600 font-semibold">{formatPercent(a.dropPct)}</td>
