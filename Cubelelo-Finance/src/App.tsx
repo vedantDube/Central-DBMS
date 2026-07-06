@@ -2221,8 +2221,10 @@ export default function App() {
                         <span className="text-[10px] font-sans text-slate-400">Includes raw material, duty, logistics</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {renderComparisonBadge(activeSimulatedChannel.cogs, activeChannelComparativeMetrics?.cogs, true)}
-                        <span className="text-rose-600 font-semibold">-{formatCurrency(activeSimulatedChannel.cogs)}</span>
+                        {selectedChannelId === "amazon" && amazonFinancials
+                          ? renderComparisonBadge(amazonFinancials.cogs, amazonFinancialsComparative?.cogs, true)
+                          : renderComparisonBadge(activeSimulatedChannel.cogs, activeChannelComparativeMetrics?.cogs, true)}
+                        <span className="text-rose-600 font-semibold">-{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cogs : activeSimulatedChannel.cogs)}</span>
                       </div>
                     </div>
 
@@ -2234,10 +2236,16 @@ export default function App() {
                       </div>
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
-                          {renderComparisonBadge(activeSimulatedChannel.cm1, activeChannelComparativeMetrics?.cm1)}
-                          <span className="font-bold text-emerald-700">{formatCurrency(activeSimulatedChannel.cm1)}</span>
+                          {selectedChannelId === "amazon" && amazonFinancials
+                            ? renderComparisonBadge(amazonFinancials.cm1, amazonFinancialsComparative?.cm1)
+                            : renderComparisonBadge(activeSimulatedChannel.cm1, activeChannelComparativeMetrics?.cm1)}
+                          <span className="font-bold text-emerald-700">{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm1 : activeSimulatedChannel.cm1)}</span>
                         </div>
-                        <span className="text-[10px] text-emerald-600">{(activeSimulatedChannel.revenue > 0 ? (activeSimulatedChannel.cm1 / activeSimulatedChannel.revenue) * 100 : 0).toFixed(1)}% of margin</span>
+                        <span className="text-[10px] text-emerald-600">
+                          {selectedChannelId === "amazon" && amazonFinancials
+                            ? (amazonFinancials.netRevenue > 0 ? (amazonFinancials.cm1 / amazonFinancials.netRevenue) * 100 : 0).toFixed(1)
+                            : (activeSimulatedChannel.revenue > 0 ? (activeSimulatedChannel.cm1 / activeSimulatedChannel.revenue) * 100 : 0).toFixed(1)}% of margin
+                        </span>
                       </div>
                     </div>
 
@@ -2447,34 +2455,41 @@ export default function App() {
                       </div>
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
-                          {renderComparisonBadge(activeSimulatedChannel.cm2, activeChannelComparativeMetrics?.cm2)}
-                          <span className="font-bold text-blue-800">{formatCurrency(activeSimulatedChannel.cm2)}</span>
+                          {selectedChannelId === "amazon" && amazonFinancials
+                            ? renderComparisonBadge(amazonFinancials.cm2, amazonFinancialsComparative?.cm2)
+                            : renderComparisonBadge(activeSimulatedChannel.cm2, activeChannelComparativeMetrics?.cm2)}
+                          <span className="font-bold text-blue-800">{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : activeSimulatedChannel.cm2)}</span>
                         </div>
                         <span className="text-[10px] text-slate-500">ROAS conversion efficiency active</span>
                       </div>
                     </div>
 
-                    {/* Row 6: interest + tax + DA */}
+                    {/* Row 6: interest + tax + DA -- no real source for Amazon yet (Finance input pending), so this
+                        stays 0 for Amazon rather than falling back to the simulator's fabricated value. */}
                     <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-500">
                       <div className="flex flex-col">
                         <span className="font-sans text-slate-500">Interest + Tax + DA (Depreciation/Amortization)</span>
-                        <span className="text-[10px] font-sans text-slate-400">Financing costs, taxation allocations</span>
+                        <span className="text-[10px] font-sans text-slate-400">
+                          {selectedChannelId === "amazon" ? "Pending Finance input — not yet subtracted below" : "Financing costs, taxation allocations"}
+                        </span>
                       </div>
-                      <span className="text-slate-500">-{formatCurrency(activeSimulatedChannel.interestTaxDA)}</span>
+                      <span className="text-slate-500">-{formatCurrency(selectedChannelId === "amazon" ? 0 : activeSimulatedChannel.interestTaxDA)}</span>
                     </div>
 
-                    {/* Row 7: Net Profit */}
+                    {/* Row 7: Net Profit -- for Amazon this equals CM2 until real interest/tax/D&A data exists */}
                     <div className={`flex items-center justify-between py-4.5 bg-slate-50 hover:bg-slate-100/70 px-3 rounded font-mono text-base border-2 ${
-                      activeSimulatedChannel.netProfit >= 0 ? "border-emerald-500/50" : "border-rose-500/50"
+                      (selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : activeSimulatedChannel.netProfit) >= 0 ? "border-emerald-500/50" : "border-rose-500/50"
                     }`}>
                       <div className="flex flex-col">
                         <span className="font-sans font-extrabold text-slate-850">Net Profit</span>
                         <span className="text-[10px] font-sans text-slate-400">Bottom line channel yield after ALL operational costs</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {renderComparisonBadge(activeSimulatedChannel.netProfit, activeChannelComparativeMetrics?.netProfit)}
-                        <span className={`font-extrabold text-lg text-right ${activeSimulatedChannel.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                          {formatCurrency(activeSimulatedChannel.netProfit)}
+                        {selectedChannelId === "amazon" && amazonFinancials
+                          ? renderComparisonBadge(amazonFinancials.cm2, amazonFinancialsComparative?.cm2)
+                          : renderComparisonBadge(activeSimulatedChannel.netProfit, activeChannelComparativeMetrics?.netProfit)}
+                        <span className={`font-extrabold text-lg text-right ${(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : activeSimulatedChannel.netProfit) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                          {formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : activeSimulatedChannel.netProfit)}
                         </span>
                       </div>
                     </div>
