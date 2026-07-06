@@ -3006,12 +3006,6 @@ export default function App() {
                       </>
                     )}
 
-                    <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Amount</span>
-                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatCurrency(selectedChannel.reimbursementPct)}</span>
-                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amazon SPF credit scale</span>
-                    </div>
-
                   </div>
                 </div>
 
