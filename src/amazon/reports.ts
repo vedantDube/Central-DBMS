@@ -68,7 +68,7 @@ export const amazonReports: AmazonReportDefinition[] = [
     storagePath: "amazon/returns/b2c",
     reportTypeId: env.AMAZON_RETURNS_B2C_REPORT_TYPE_ID,
     preferredSource: "sp-api",
-    fileExtension: "csv",
+    fileExtension: "tsv",
   },
   {
     key: "amazon-returns-b2b",

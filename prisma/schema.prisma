@@ -539,6 +539,10 @@ model AmazonClaimsReimbursementsRow {
   originalreimbursementid     String?
   originalreimbursementtype   String?
 
+  // Claim-filed timestamp, backfilled from the returns-ops DB's Reimbursement.filedAt
+  // (keyed by platformReimbursementId = reimbursementid) -- not present in Amazon's own export.
+  filedat                     String?
+
   @@index([reportKey, createdAt])
   @@unique([reimbursementid])
 }
