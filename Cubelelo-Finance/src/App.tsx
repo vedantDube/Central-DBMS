@@ -2778,39 +2778,125 @@ export default function App() {
                       ) : adsPerformanceData.length === 0 ? (
                         <p className="text-xs text-slate-405 font-sans">No ads campaign data available.</p>
                       ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs font-mono">
-                            <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
-                              <tr>
-                                <th className="py-2 pr-4">Campaign Type</th>
-                                <th className="py-2 px-3 text-right">Spend</th>
-                                <th className="py-2 px-3 text-right">Impressions</th>
-                                <th className="py-2 px-3 text-right">Clicks</th>
-                                <th className="py-2 px-3 text-right">CTR</th>
-                                <th className="py-2 px-3 text-right">ACOS</th>
-                                <th className="py-2 px-3 text-right">ROAS</th>
-                                <th className="py-2 pl-3 text-right">Sales</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-slate-700">
-                              {adsPerformanceData.map((row, idx) => (
-                                <tr key={idx}>
-                                  <td className="py-2 pr-4 font-sans text-slate-800">{row.description}</td>
-                                  <td className="py-2 px-3 text-right">{formatCurrency(row.amount)}</td>
-                                  <td className="py-2 px-3 text-right">{row.impressions.toLocaleString()}</td>
-                                  <td className="py-2 px-3 text-right">{row.clicks.toLocaleString()}</td>
-                                  <td className="py-2 px-3 text-right">{formatPercent(row.ctr)}</td>
-                                  <td className="py-2 px-3 text-right">{formatPercent(row.acos)}</td>
-                                  <td className="py-2 px-3 text-right">{row.roas.toFixed(2)}x</td>
-                                  <td className="py-2 pl-3 text-right">{formatCurrency(row.sales)}</td>
+                        <>
+                          {/* Blended KPI summary tiles */}
+                          {(() => {
+                            const totalSpend = adsPerformanceData.reduce((s, r) => s + r.amount, 0);
+                            const totalSales = adsPerformanceData.reduce((s, r) => s + r.sales, 0);
+                            const totalImpressions = adsPerformanceData.reduce((s, r) => s + r.impressions, 0);
+                            const totalClicks = adsPerformanceData.reduce((s, r) => s + r.clicks, 0);
+                            const blendedAcos = totalSales > 0 ? (totalSpend / totalSales) * 100 : 0;
+                            const blendedRoas = totalSpend > 0 ? totalSales / totalSpend : 0;
+                            const blendedCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+                            const acosColor = blendedAcos <= 15 ? "text-emerald-600" : blendedAcos <= 30 ? "text-amber-600" : "text-rose-600";
+                            const roasColor = blendedRoas >= 4 ? "text-emerald-600" : blendedRoas >= 2 ? "text-amber-600" : "text-rose-600";
+                            return (
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Total Ad Spend</span>
+                                  <span className="font-mono text-base font-bold text-slate-800 block mt-0.5">{formatCurrency(totalSpend)}</span>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Attributed Sales</span>
+                                  <span className="font-mono text-base font-bold text-slate-800 block mt-0.5">{formatCurrency(totalSales)}</span>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Blended ACOS</span>
+                                  <span className={`font-mono text-base font-bold block mt-0.5 ${acosColor}`}>{blendedAcos.toFixed(1)}%</span>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Blended ROAS</span>
+                                  <span className={`font-mono text-base font-bold block mt-0.5 ${roasColor}`}>{blendedRoas.toFixed(2)}x</span>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Blended CTR</span>
+                                  <span className="font-mono text-base font-bold text-slate-800 block mt-0.5">{blendedCtr.toFixed(2)}%</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Spend vs Sales and ACOS/ROAS charts, per campaign type */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide font-sans">Spend vs Attributed Sales</span>
+                              <div className="h-52 mt-1">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <BarChart data={adsPerformanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis dataKey="description" stroke="#64748b" fontSize={9} />
+                                    <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                                    <Tooltip
+                                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                                      formatter={(val: number) => [formatCurrency(val), ""]}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: "10px" }} />
+                                    <Bar dataKey="amount" fill="#f59e0b" name="Spend" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="sales" fill="#3b82f6" name="Sales" radius={[4, 4, 0, 0]} />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide font-sans">ACOS vs ROAS</span>
+                              <div className="h-52 mt-1">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <BarChart data={adsPerformanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                    <XAxis dataKey="description" stroke="#64748b" fontSize={9} />
+                                    <YAxis yAxisId="acos" stroke="#64748b" fontSize={9} tickFormatter={(v) => `${v}%`} />
+                                    <YAxis yAxisId="roas" orientation="right" stroke="#64748b" fontSize={9} tickFormatter={(v) => `${v}x`} />
+                                    <Tooltip
+                                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                                      formatter={(val: number, name: string) => [name === "ACOS" ? `${val.toFixed(1)}%` : `${val.toFixed(2)}x`, name]}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: "10px" }} />
+                                    <Bar yAxisId="acos" dataKey="acos" fill="#ef4444" name="ACOS" radius={[4, 4, 0, 0]} />
+                                    <Bar yAxisId="roas" dataKey="roas" fill="#10b981" name="ROAS" radius={[4, 4, 0, 0]} />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs font-mono">
+                              <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                                <tr>
+                                  <th className="py-2 pr-4">Campaign Type</th>
+                                  <th className="py-2 px-3 text-right">Spend</th>
+                                  <th className="py-2 px-3 text-right">Impressions</th>
+                                  <th className="py-2 px-3 text-right">Clicks</th>
+                                  <th className="py-2 px-3 text-right">CTR</th>
+                                  <th className="py-2 px-3 text-right">ACOS</th>
+                                  <th className="py-2 px-3 text-right">ROAS</th>
+                                  <th className="py-2 pl-3 text-right">Sales</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {adsPerformanceData.map((row, idx) => {
+                                  const acosColor = row.acos <= 15 ? "text-emerald-600" : row.acos <= 30 ? "text-amber-600" : "text-rose-600";
+                                  const roasColor = row.roas >= 4 ? "text-emerald-600" : row.roas >= 2 ? "text-amber-600" : "text-rose-600";
+                                  return (
+                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                      <td className="py-2 pr-4 font-sans text-slate-800 font-medium">{row.description}</td>
+                                      <td className="py-2 px-3 text-right">{formatCurrency(row.amount)}</td>
+                                      <td className="py-2 px-3 text-right text-slate-500">{row.impressions.toLocaleString()}</td>
+                                      <td className="py-2 px-3 text-right text-slate-500">{row.clicks.toLocaleString()}</td>
+                                      <td className="py-2 px-3 text-right">{formatPercent(row.ctr)}</td>
+                                      <td className={`py-2 px-3 text-right font-semibold ${acosColor}`}>{formatPercent(row.acos)}</td>
+                                      <td className={`py-2 px-3 text-right font-semibold ${roasColor}`}>{row.roas.toFixed(2)}x</td>
+                                      <td className="py-2 pl-3 text-right font-semibold text-slate-800">{formatCurrency(row.sales)}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
                       )}
                       <p className="text-[9px] text-slate-405 font-sans mt-3">
-                        Figures above are lifetime totals (AmazonAdsCampaignRow carries no date column).
+                        Figures above are lifetime totals (AmazonAdsCampaignRow carries no date column). ACOS: <span className="text-emerald-600 font-semibold">green</span> ≤15%, <span className="text-amber-600 font-semibold">amber</span> ≤30%, <span className="text-rose-600 font-semibold">red</span> above. ROAS: <span className="text-emerald-600 font-semibold">green</span> ≥4x, <span className="text-amber-600 font-semibold">amber</span> ≥2x, <span className="text-rose-600 font-semibold">red</span> below.
                       </p>
 
                       {adsPerformanceByCampaign.length > 0 && (
@@ -2829,16 +2915,19 @@ export default function App() {
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 text-slate-700">
-                                {adsPerformanceByCampaign.map((row) => (
-                                  <tr key={row.campaignId}>
-                                    <td className="py-2 pr-4 font-sans text-slate-800">{row.campaignName || row.campaignId}</td>
-                                    <td className="py-2 px-3 text-right">{formatCurrency(row.spend)}</td>
-                                    <td className="py-2 px-3 text-right">{row.glanceViews !== null ? row.glanceViews.toLocaleString() : "—"}</td>
-                                    <td className="py-2 px-3 text-right">{formatPercent(row.conversionRate)}</td>
-                                    <td className="py-2 px-3 text-right">{row.roas.toFixed(2)}x</td>
-                                    <td className="py-2 pl-3 text-right">{formatCurrency(row.sales)}</td>
-                                  </tr>
-                                ))}
+                                {adsPerformanceByCampaign.map((row) => {
+                                  const roasColor = row.roas >= 4 ? "text-emerald-600" : row.roas >= 2 ? "text-amber-600" : "text-rose-600";
+                                  return (
+                                    <tr key={row.campaignId} className="hover:bg-slate-50 transition-colors">
+                                      <td className="py-2 pr-4 font-sans text-slate-800 font-medium">{row.campaignName || row.campaignId}</td>
+                                      <td className="py-2 px-3 text-right">{formatCurrency(row.spend)}</td>
+                                      <td className="py-2 px-3 text-right text-slate-500">{row.glanceViews !== null ? row.glanceViews.toLocaleString() : "—"}</td>
+                                      <td className="py-2 px-3 text-right">{formatPercent(row.conversionRate)}</td>
+                                      <td className={`py-2 px-3 text-right font-semibold ${roasColor}`}>{row.roas.toFixed(2)}x</td>
+                                      <td className="py-2 pl-3 text-right font-semibold text-slate-800">{formatCurrency(row.sales)}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
