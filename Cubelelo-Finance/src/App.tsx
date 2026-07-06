@@ -1552,8 +1552,8 @@ export default function App() {
                       <option value="last_7_days">Last 7 Days (WoW standard)</option>
                       <option value="last_14_days">Last 14 Days</option>
                       <option value="last_30_days">Last 30 Days</option>
-                      <option value="current_month">Current Month (June)</option>
-                      <option value="previous_month">Previous Month (May)</option>
+                      <option value="current_month">Current Month ({new Date().toLocaleString("default", { month: "long" })})</option>
+                      <option value="previous_month">Previous Month ({new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleString("default", { month: "long" })})</option>
                       <option value="full_60_days">Full rolling 60 Days</option>
                       <option value="custom">Custom Range...</option>
                     </select>
