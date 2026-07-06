@@ -1033,6 +1033,9 @@ model AmazonAdsCampaignRow {
 
   accounts     String?
   account_id   String   @default("")
+  // Period label for this snapshot, e.g. "May 2026" -- this report is account-level totals for
+  // a specific month, not a lifetime cumulative figure, so multiple periods coexist per account.
+  dateRange    String   @default("")
   country_name String?
   currency_code String?
   type         String?
@@ -1046,7 +1049,7 @@ model AmazonAdsCampaignRow {
   roas         String?
 
   @@index([reportKey, createdAt])
-  @@unique([account_id])
+  @@unique([account_id, dateRange])
 }
 
 // Amazon Ads "Advertised Product" report (Sponsored Products) -- manually exported CSV, no automated

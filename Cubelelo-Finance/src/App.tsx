@@ -363,10 +363,10 @@ export default function App() {
     }
   };
 
-  const fetchAdsPerformance = async () => {
+  const fetchAdsPerformance = async (start: string, end: string) => {
     setIsLoadingAdsPerformance(true);
     try {
-      const params = new URLSearchParams({ section: "advertisement" });
+      const params = new URLSearchParams({ startDate: start, endDate: end, section: "advertisement" });
       const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
       const data = await res.json();
       if (data.success) {
@@ -591,10 +591,11 @@ export default function App() {
     fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
   }, [trendGranularity]);
 
-  // Ads Performance breakdown: lifetime totals per campaign type (AmazonAdsCampaignRow has no date column), fetch once
+  // Ads Performance breakdown: per campaign type, scoped to the selected date range's month(s)
+  // (AmazonAdsCampaignRow stores one snapshot per calendar month, e.g. "May 2026")
   useEffect(() => {
-    fetchAdsPerformance();
-  }, []);
+    fetchAdsPerformance(startDateStr, endDateStr);
+  }, [startDateStr, endDateStr]);
 
   // Deterministic noise generator for 90-day historical timeseries data
   const getDeterministicNoise = (dateStr: string, channelId: string, idx: number) => {
@@ -2590,11 +2591,11 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Sub-Table 3: Operational Metrics */}
+                {/* Sub-Table 3: Stock & Inventory Health */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertTriangle size={16} className="text-slate-655" />
-                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">3. Supply Chain & Returns Vulnerability</span>
+                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">3. Stock & Inventory Health</span>
                   </div>
                 </div>
 
@@ -2640,70 +2641,6 @@ export default function App() {
                         <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{criticalSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
                       )}
                     </button>
-
-                    <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
-                      <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
-                      <span className="text-[9px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
-                    </div>
-
-                    {selectedChannelId === "amazon" && (
-                      <>
-                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
-                          <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.goodReturnPct ?? 0)}</span>
-                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
-                        </div>
-
-                        <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
-                          <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(amazonOperationalMetrics?.badReturnPct ?? 0)}</span>
-                          <span className="text-[9px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
-                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
-                        {selectedChannelId === "amazon" ? formatPercent(amazonOperationalMetrics?.claimRatePct ?? 0) : formatPercent(selectedChannel.claimPct)}
-                      </span>
-                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
-                    </div>
-
-                    {selectedChannelId === "amazon" && (
-                      <>
-                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
-                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim Success %</span>
-                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claimSuccessPct ?? 0)}</span>
-                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Successful claims / total claims raised</span>
-                        </div>
-
-                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
-                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
-                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claim24hPct ?? 0)}</span>
-                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Claims filed within 24h / bad-returned units</span>
-                        </div>
-
-                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
-                          <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.reimbursementPct ?? 0)}</span>
-                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
-                        </div>
-
-                        <div className="bg-amber-50 border border-amber-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
-                          <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{formatPercent(amazonFinancials?.returnLossPct ?? 0)}</span>
-                          <span className="text-[9px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Amount</span>
-                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatCurrency(selectedChannel.reimbursementPct)}</span>
-                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amazon SPF credit scale</span>
-                    </div>
 
                   </div>
 
@@ -2834,13 +2771,91 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Sub-Table 4: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
+                {/* Sub-Table 4: Returns & Claims */}
+                <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-slate-655" />
+                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Returns & Claims</span>
+                  </div>
+                </div>
+
+                <div className="px-6 py-4 bg-white">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+                    <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
+                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
+                      <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
+                      <span className="text-[9px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
+                    </div>
+
+                    {selectedChannelId === "amazon" && (
+                      <>
+                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.goodReturnPct ?? 0)}</span>
+                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
+                        </div>
+
+                        <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(amazonOperationalMetrics?.badReturnPct ?? 0)}</span>
+                          <span className="text-[9px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
+                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
+                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
+                        {selectedChannelId === "amazon" ? formatPercent(amazonOperationalMetrics?.claimRatePct ?? 0) : formatPercent(selectedChannel.claimPct)}
+                      </span>
+                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
+                    </div>
+
+                    {selectedChannelId === "amazon" && (
+                      <>
+                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim Success %</span>
+                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claimSuccessPct ?? 0)}</span>
+                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Reimbursed claims / total claims — rejected/denied claims aren't tracked in ingested data, so this reads ~100% by construction</span>
+                        </div>
+
+                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claim24hPct ?? 0)}</span>
+                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Claims filed within 24h / bad-returned units</span>
+                        </div>
+
+                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.reimbursementPct ?? 0)}</span>
+                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
+                        </div>
+
+                        <div className="bg-amber-50 border border-amber-100 p-4.5 rounded-xl text-center">
+                          <span className="text-[10px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
+                          <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{formatPercent(amazonFinancials?.returnLossPct ?? 0)}</span>
+                          <span className="text-[9px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
+                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Amount</span>
+                      <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatCurrency(selectedChannel.reimbursementPct)}</span>
+                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amazon SPF credit scale</span>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Sub-Table 5: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
                 {selectedChannelId === "amazon" && (
                   <>
                     <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckSquare size={16} className="text-slate-655" />
-                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Ads Performance</span>
+                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">5. Ads Performance</span>
                       </div>
                     </div>
                     <div className="px-6 py-4 bg-white">

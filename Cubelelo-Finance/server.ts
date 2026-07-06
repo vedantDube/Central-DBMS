@@ -24,6 +24,60 @@ const isoWeekStart = (dateStr: string) => {
   return dt.toISOString().slice(0, 10);
 };
 
+// AmazonAdsCampaignRow snapshots are labeled by calendar month (e.g. "May 2026"), matching the
+// account-level Ads Console export's own reporting granularity -- not arbitrary date ranges. Given a
+// selected startDate/endDate, this returns every "Month YYYY" label the range overlaps, so a query can
+// sum only the matching monthly snapshot(s) instead of every period ever ingested.
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function monthLabelsInRange(startDate: string, endDate: string): string[] {
+  const labels: string[] = [];
+  const start = new Date(startDate + "T00:00:00Z");
+  const end = new Date(endDate + "T00:00:00Z");
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+  while (cursor <= end) {
+    labels.push(`${MONTH_NAMES[cursor.getUTCMonth()]} ${cursor.getUTCFullYear()}`);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+  return labels;
+}
+
+// Binary search for the latest cost history entry with date <= targetDate; falls back to the earliest
+// known cost if targetDate predates every recorded snapshot. Same semantics as the cost_inventory
+// backfill in src/amazon/map-cost-inventory.ts, reused here as a fallback when a claim/return's order
+// never got a Amazon_GST_Master row (a real gap in Amazon's own GST export, not an ingestion bug) --
+// COGS is fundamentally a per-SKU cost basis, not tied to the order having a GST Master row at all.
+function costAsOf(history: { date: string; cost: number }[], targetDate: string): number | undefined {
+  if (history.length === 0) return undefined;
+  let lo = 0, hi = history.length - 1, result = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (history[mid].date <= targetDate) {
+      result = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return result === -1 ? history[0].cost : history[result].cost;
+}
+
+async function loadEasyEcomCostHistory(client: import("pg").PoolClient, skus: string[]): Promise<Map<string, { date: string; cost: number }[]>> {
+  const history = new Map<string, { date: string; cost: number }[]>();
+  if (skus.length === 0) return history;
+  const result = await client.query(
+    `SELECT sku, date, "rawJson"->>'cost' AS cost FROM "EasyEcomInventory" WHERE sku = ANY($1::text[]) AND "rawJson"->>'cost' IS NOT NULL ORDER BY sku, date ASC`,
+    [skus]
+  );
+  for (const row of result.rows) {
+    const cost = parseFloat(row.cost);
+    if (isNaN(cost)) continue;
+    const sku = String(row.sku).trim();
+    if (!history.has(sku)) history.set(sku, []);
+    history.get(sku)!.push({ date: row.date, cost });
+  }
+  return history;
+}
+
 // Custom connection string parser to handle special characters (like @, /, or :) in passwords
 export function parseConnectionString(uri: string) {
   try {
@@ -809,8 +863,7 @@ async function startServer() {
         client.query(`
           SELECT
             COUNT(*) AS total_claims,
-            COUNT(CASE WHEN CAST(NULLIF(REPLACE(quantityreimbursedtotal, ',', ''), '') AS numeric) > 0 THEN 1 END) AS successful_claims,
-            COALESCE(SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)), 0) AS total_reimbursed
+            COUNT(CASE WHEN CAST(NULLIF(REPLACE(quantityreimbursedtotal, ',', ''), '') AS numeric) > 0 THEN 1 END) AS successful_claims
           FROM "AmazonClaimsReimbursementsRow"
           WHERE 1=1 ${claimDateFilter}
         `, params),
@@ -829,20 +882,91 @@ async function startServer() {
 
       const totalClaims = parseInt(claimsResult.rows[0].total_claims);
       const successfulClaims = parseInt(claimsResult.rows[0].successful_claims);
-      const totalReimbursed = parseFloat(claimsResult.rows[0].total_reimbursed);
 
-      // Reimbursement Rate denominator: COGS of units for which a claim was raised, joined by sku/order.
-      // Uses the same date-range for GST Master as the rest of this endpoint.
-      const cogsOfClaimedUnitsResult = await client.query(`
-        WITH claimed AS (
-          SELECT DISTINCT amazonorderid, sku FROM "AmazonClaimsReimbursementsRow" WHERE 1=1 ${claimDateFilter}
-        )
-        SELECT COALESCE(SUM(g.cost_inventory), 0) AS cogs_of_claimed_units
-        FROM "Amazon_GST_Master" g
-        JOIN claimed c ON c.amazonorderid = g.order_id AND c.sku = g.sku
-        WHERE g.transaction_type = 'Shipment' ${gstDateFilter}
+      // Reimbursement Rate: reimbursed amount / COGS of claimed units, restricted to claims we can
+      // actually cost -- around two-thirds of claimed orders never got a Amazon_GST_Master row at all
+      // (a real gap in Amazon's own GST export, confirmed not a join-key or date-range bug: broadening to
+      // every transaction_type, and removing the date filter entirely, made no difference). Comparing all
+      // claims' reimbursed amount against a badly undercounted COGS denominator is what previously
+      // produced rates like 422% -- both sides must now come from the same resolvable population.
+      // Primary cost source: the matching Amazon_GST_Master shipment row(s) cost_inventory.
+      // Fallback: EasyEcomInventory's own per-SKU cost history (same source cost_inventory itself is
+      // built from), since COGS is a SKU-level cost basis, not something that requires the order to
+      // appear in Amazon's GST export. Claims with no cost available from either source are excluded
+      // from both sides, rather than left in the numerator alone.
+      const claimRowsResult = await client.query(`
+        SELECT amazonorderid, sku, approvaldate,
+          CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric) AS amount,
+          CAST(NULLIF(REPLACE(quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
+        FROM "AmazonClaimsReimbursementsRow"
+        WHERE 1=1 ${claimDateFilter}
       `, params);
-      const cogsOfClaimedUnits = parseFloat(cogsOfClaimedUnitsResult.rows[0].cogs_of_claimed_units);
+
+      // Group claim rows by (orderid, sku) pair first -- a pair can have multiple claim rows (partial/
+      // repeat reimbursements), and COGS must be resolved once per pair, not once per claim row, or a
+      // pair with 2 claims would have its cost counted twice.
+      const claimsByPair = new Map<string, { amount: number; qty: number; sku: string; latestApprovaldate: string }>();
+      for (const row of claimRowsResult.rows) {
+        const pairKey = `${row.amazonorderid}|||${row.sku}`;
+        const existing = claimsByPair.get(pairKey);
+        const amount = parseFloat(row.amount) || 0;
+        const qty = parseFloat(row.qty) || 0;
+        const approvaldate = row.approvaldate || "";
+        if (existing) {
+          existing.amount += amount;
+          existing.qty += qty;
+          if (approvaldate > existing.latestApprovaldate) existing.latestApprovaldate = approvaldate;
+        } else {
+          claimsByPair.set(pairKey, { amount, qty, sku: row.sku, latestApprovaldate: approvaldate });
+        }
+      }
+
+      const gstCostByPair = new Map<string, number>();
+      if (claimsByPair.size > 0) {
+        const orderIds: string[] = [];
+        const skus: string[] = [];
+        for (const key of claimsByPair.keys()) {
+          const [orderId, sku] = key.split("|||");
+          orderIds.push(orderId);
+          skus.push(sku);
+        }
+        const gstCostResult = await client.query(`
+          SELECT order_id, sku, COALESCE(SUM(cost_inventory), 0) AS total_cost
+          FROM "Amazon_GST_Master"
+          WHERE transaction_type = 'Shipment'
+            AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+          GROUP BY order_id, sku
+        `, [orderIds, skus]);
+        for (const row of gstCostResult.rows) {
+          const cost = parseFloat(row.total_cost);
+          if (!isNaN(cost)) gstCostByPair.set(`${row.order_id}|||${row.sku}`, cost);
+        }
+      }
+
+      const claimSkus = Array.from(new Set(Array.from(claimsByPair.values()).map((v) => v.sku).filter(Boolean)));
+      const easyEcomCostHistory = await loadEasyEcomCostHistory(client, claimSkus);
+
+      // True total reimbursed across ALL claims in the period (for the standalone "Reimbursement Amount"
+      // figure) -- distinct from the resolvable-cost-only subset used in the Reimbursement Rate ratio below.
+      const totalReimbursedAll = Array.from(claimsByPair.values()).reduce((sum, c) => sum + c.amount, 0);
+
+      let totalReimbursed = 0; // restricted to resolvable-cost claims (see comment above)
+      let cogsOfClaimedUnits = 0;
+      for (const [pairKey, claim] of claimsByPair) {
+        let rowCogs: number | undefined;
+        if (gstCostByPair.has(pairKey)) {
+          rowCogs = gstCostByPair.get(pairKey);
+        } else {
+          const history = easyEcomCostHistory.get(String(claim.sku).trim());
+          const unitCost = history ? costAsOf(history, claim.latestApprovaldate.slice(0, 10)) : undefined;
+          if (unitCost !== undefined) rowCogs = unitCost * claim.qty;
+        }
+
+        if (rowCogs !== undefined) {
+          totalReimbursed += claim.amount;
+          cogsOfClaimedUnits += rowCogs;
+        }
+      }
 
       // Claim Rate: bad-returned units for which a claim was actually raised (matched by orderid+sku),
       // over total bad-returned units. Previously this compared independent totals (claim COUNT filtered
@@ -900,7 +1024,13 @@ async function startServer() {
       const goodReturnPct = shippedQty > 0 ? (goodReturnQty / shippedQty) * 100 : 0;
       const badReturnPct = shippedQty > 0 ? (badReturnQty / shippedQty) * 100 : 0;
 
-      // Preserved old "claims success" metric under a new name (was `claimPct`)
+      // Preserved old "claims success" metric under a new name (was `claimPct`).
+      // NOTE: this reads ~100% by construction, not as a data bug. AmazonClaimsReimbursementsRow is
+      // Amazon's *reimbursements* report -- every row already represents a paid-out claim, so
+      // quantityreimbursedtotal is always >0 for every row in it. Rejected/denied claims are never
+      // ingested anywhere (confirmed against the returns-ops DB too: Reimbursement/claims_all/
+      // claims_status all only track post-approval or pre-filing state, never a rejection outcome).
+      // A real approval-rate would need Amazon's claims-*filed* data, which isn't ingested.
       const claimSuccessPct = totalClaims > 0 ? (successfulClaims / totalClaims) * 100 : 0;
       // Claim Rate: bad-returned units matched to an actual claim / total bad-returned units
       const claimRatePct = badReturnQty > 0 ? (claimedBadReturnQty / badReturnQty) * 100 : 0;
@@ -1083,7 +1213,7 @@ async function startServer() {
           claimRatePct: Math.round(claimRatePct * 100) / 100,
           claim24hPct: Math.round(claim24hPct * 100) / 100,
           reimbursementPct: Math.round(reimbursementPct * 100) / 100,
-          reimbursementAmount: Math.round(totalReimbursed * 100) / 100,
+          reimbursementAmount: Math.round(totalReimbursedAll * 100) / 100,
           returnLossPct: null, // computed alongside returnLoss amount in /api/amazon/financials; see that endpoint
           // Supply Chain vulnerability metrics -- see the computation block above for formulas/assumptions
           outOfStockDays: Math.round(outOfStockDays * 100) / 100,
@@ -1127,6 +1257,7 @@ async function startServer() {
       let gstDateFilter = "";
       let settlementDateFilter = "";
       let returnDateFilter = "";
+      let claimDateFilter = "";
       const params: string[] = [];
 
       if (startDate && endDate) {
@@ -1134,6 +1265,10 @@ async function startServer() {
         gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
         settlementDateFilter = `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date`;
         returnDateFilter = `AND returndate >= $1 AND returndate <= $2`;
+        // Previously the Return Loss "claims" CTE had no date filter at all, so reimbursements from any
+        // point in time got matched against the selected period's bad-return quantities -- inconsistent
+        // populations. Scope it to the same period as everything else in this endpoint.
+        claimDateFilter = `AND approvaldate >= $1 AND approvaldate <= $2`;
       }
 
       // Amazon Charges GST toggle: fba_fees/selling_fees/other_transaction_fees on Amazon_Unified_Transactions
@@ -1145,7 +1280,12 @@ async function startServer() {
         ? ""
         : `AND amountdescription NOT ILIKE '%cgst%' AND amountdescription NOT ILIKE '%sgst%' AND amountdescription NOT ILIKE '%igst%'`;
 
-      const [gstResult, feesResult, adsResult, returnLossResult] = await Promise.all([
+      // AmazonAdsCampaignRow is a monthly snapshot per account (dateRange = "May 2026" etc), not a single
+      // lifetime row -- sum only the month(s) the selected range overlaps, so switching periods in the UI
+      // doesn't silently add up every month ever ingested.
+      const adPeriodLabels = startDate && endDate ? monthLabelsInRange(startDate, endDate) : [];
+
+      const [gstResult, feesResult, adsResult, badReturnsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue,
@@ -1167,38 +1307,15 @@ async function startServer() {
         client.query(`
           SELECT COALESCE(SUM(CAST(NULLIF(spend, '') AS numeric)), 0) AS total_ad_spend
           FROM "AmazonAdsCampaignRow"
-          WHERE currency_code = 'INR'
-        `),
-        // Return Loss = COGS of bad-marked returned units (per-unit COGS from Amazon_GST_Master.cost_inventory)
-        // minus claim reimbursement matched to those same order/sku pairs.
-        // "Bad" = detaileddisposition != 'SELLABLE' (confirmed populated: SELLABLE/CUSTOMER_DAMAGED/DEFECTIVE/CARRIER_DAMAGED/DAMAGED).
+          WHERE currency_code = 'INR' ${adPeriodLabels.length > 0 ? "AND \"dateRange\" = ANY($1::text[])" : ""}
+        `, adPeriodLabels.length > 0 ? [adPeriodLabels] : []),
+        // Return Loss raw ingredients -- resolved and combined in JS below (see comment there for why).
         client.query(`
-          WITH bad_returns AS (
-            SELECT orderid, sku, SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS bad_qty
-            FROM "AmazonReturnsB2cRow"
-            WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
-            GROUP BY orderid, sku
-          ),
-          per_unit_cogs AS (
-            SELECT order_id, sku,
-              CASE WHEN SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) > 0
-                THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
-                ELSE 0 END AS unit_cogs
-            FROM "Amazon_GST_Master"
-            WHERE transaction_type = 'Shipment' ${gstDateFilter}
-            GROUP BY order_id, sku
-          ),
-          claims AS (
-            SELECT amazonorderid, sku, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
-            FROM "AmazonClaimsReimbursementsRow"
-            GROUP BY amazonorderid, sku
-          )
-          SELECT COALESCE(SUM(
-            (br.bad_qty * COALESCE(puc.unit_cogs, 0)) - COALESCE(c.reimbursed, 0)
-          ), 0) AS return_loss
-          FROM bad_returns br
-          LEFT JOIN per_unit_cogs puc ON puc.order_id = br.orderid AND puc.sku = br.sku
-          LEFT JOIN claims c ON c.amazonorderid = br.orderid AND c.sku = br.sku
+          SELECT orderid, sku, SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS bad_qty,
+            MAX(returndate) AS latest_returndate
+          FROM "AmazonReturnsB2cRow"
+          WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
+          GROUP BY orderid, sku
         `, params),
       ]);
 
@@ -1220,7 +1337,67 @@ async function startServer() {
       const beyondAdsSpend = amazonAdsSpend * BEYOND_ADS_MULTIPLIER;
       const advertisementCostTotal = amazonAdsSpend + beyondAdsSpend;
 
-      const returnLoss = Math.max(0, parseFloat(returnLossResult.rows[0].return_loss));
+      // Return Loss = COGS of bad-marked returned units minus matched claim reimbursement, resolved per
+      // (orderid, sku) pair with the same primary/fallback cost chain as Reimbursement Rate (see that
+      // endpoint's comment): most bad-disposition returns' orders were never in Amazon's own GST export
+      // (Amazon_GST_Master), so a plain LEFT JOIN silently treated their cost as 0 while still subtracting
+      // any matched reimbursement -- understating the loss. Pairs with no resolvable cost from either
+      // source are excluded entirely, not counted as zero-cost.
+      let returnLoss = 0;
+      if (badReturnsResult.rows.length > 0) {
+        const orderIds = badReturnsResult.rows.map((r: any) => r.orderid);
+        const skus = badReturnsResult.rows.map((r: any) => r.sku);
+
+        const [perUnitCogsResult, claimsResult] = await Promise.all([
+          client.query(`
+            SELECT order_id, sku,
+              CASE WHEN SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) > 0
+                THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
+                ELSE NULL END AS unit_cogs
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment'
+              AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY order_id, sku
+          `, [orderIds, skus]),
+          client.query(`
+            SELECT amazonorderid, sku, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
+            FROM "AmazonClaimsReimbursementsRow"
+            WHERE 1=1 ${claimDateFilter}
+              AND (amazonorderid, sku) IN (SELECT unnest($3::text[]), unnest($4::text[]))
+            GROUP BY amazonorderid, sku
+          `, claimDateFilter ? [...params, orderIds, skus] : [null, null, orderIds, skus]),
+        ]);
+
+        const gstUnitCogsByPair = new Map<string, number>();
+        for (const row of perUnitCogsResult.rows) {
+          if (row.unit_cogs === null) continue;
+          const unitCogs = parseFloat(row.unit_cogs);
+          if (!isNaN(unitCogs)) gstUnitCogsByPair.set(`${row.order_id}|||${row.sku}`, unitCogs);
+        }
+        const reimbursedByPair = new Map<string, number>();
+        for (const row of claimsResult.rows) {
+          reimbursedByPair.set(`${row.amazonorderid}|||${row.sku}`, parseFloat(row.reimbursed));
+        }
+
+        const easyEcomCostHistory = await loadEasyEcomCostHistory(client, Array.from(new Set(skus)));
+
+        for (const row of badReturnsResult.rows) {
+          const pairKey = `${row.orderid}|||${row.sku}`;
+          const badQty = parseFloat(row.bad_qty) || 0;
+
+          let unitCogs = gstUnitCogsByPair.get(pairKey);
+          if (unitCogs === undefined) {
+            const history = easyEcomCostHistory.get(String(row.sku).trim());
+            unitCogs = history ? costAsOf(history, (row.latest_returndate || "").slice(0, 10)) : undefined;
+          }
+
+          if (unitCogs !== undefined) {
+            const reimbursed = reimbursedByPair.get(pairKey) || 0;
+            returnLoss += badQty * unitCogs - reimbursed;
+          }
+        }
+        returnLoss = Math.max(0, returnLoss);
+      }
       const returnLossPct = netRevenue > 0 ? (returnLoss / netRevenue) * 100 : 0;
 
       const indirectExpenses = amazonCharges; // preserved alias, Amazon-charges-only meaning
@@ -1299,7 +1476,9 @@ async function startServer() {
 
       if (section === "advertisement") {
         // Advertisement Cost L2: Amazon Ads campaign-level breakdown + a single "Beyond Ads" estimate line.
-        // NOTE: AmazonAdsCampaignRow has no date column (lifetime total per account) -- not date-range filterable.
+        // AmazonAdsCampaignRow is a monthly snapshot per account (dateRange = "May 2026" etc) -- sum only
+        // the month(s) the selected range overlaps.
+        const adPeriodLabels = startDate && endDate ? monthLabelsInRange(startDate, endDate) : [];
         const adsResult = await client.query(`
           SELECT
             COALESCE(type, 'Unspecified') AS description,
@@ -1308,10 +1487,10 @@ async function startServer() {
             COALESCE(SUM(CAST(NULLIF(clicks, '') AS numeric)), 0) AS clicks,
             COALESCE(SUM(CAST(NULLIF(sales, '') AS numeric)), 0) AS sales
           FROM "AmazonAdsCampaignRow"
-          WHERE currency_code = 'INR'
+          WHERE currency_code = 'INR' ${adPeriodLabels.length > 0 ? "AND \"dateRange\" = ANY($1::text[])" : ""}
           GROUP BY type
           ORDER BY amount DESC
-        `);
+        `, adPeriodLabels.length > 0 ? [adPeriodLabels] : []);
         // CTR/ACOS/ROAS computed from the summed totals (weighted), not by averaging the per-row ratios.
         const amazonAdsBreakdown = adsResult.rows.map((r: any) => {
           const amount = parseFloat(r.amount);

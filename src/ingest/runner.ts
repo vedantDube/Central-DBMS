@@ -899,11 +899,15 @@ export async function ingestFileToTable(filePath: string, reportKey: string) {
           });
         }
       } else if (reportKey === "amazon_ads_campaign") {
+        // NOTE: this generic path has no way to inject a period label (the CSV itself carries no
+        // date range) -- prefer src/amazon/ingest-ads-campaign-report.ts with --file/--period for
+        // real per-month ingestion. This fallback exists only so the shared pipeline doesn't crash.
         for (const row of rowsToInsert) {
+          const dateRange = row.dateRange || "unspecified";
           await (supabasePrisma as any).amazonAdsCampaignRow.upsert({
-            where: { account_id: row.account_id },
-            update: row,
-            create: row,
+            where: { account_id_dateRange: { account_id: row.account_id, dateRange } },
+            update: { ...row, dateRange },
+            create: { ...row, dateRange },
           });
         }
       } else if (reportKey === "amazon_flat_file_open_listings_data") {
