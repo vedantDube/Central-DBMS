@@ -544,6 +544,8 @@ model AmazonClaimsReimbursementsRow {
   filedat                     String?
 
   @@index([reportKey, createdAt])
+  @@index([amazonorderid, sku])
+  @@index([approvaldate])
   @@unique([reimbursementid])
 }
 
@@ -589,6 +591,8 @@ model AmazonReturnsB2cRow {
   customercomments      String?
 
   @@index([reportKey, createdAt])
+  @@index([orderid, sku])
+  @@index([returndate])
   @@unique([orderid, sku, returndate, licenseplatenumber])
 }
 
@@ -1023,6 +1027,9 @@ model AmazonGstMasterRow {
   @@map("Amazon_GST_Master")
   @@index([reportKey, createdAt])
   @@index([order_id])
+  @@index([order_id, sku])
+  @@index([order_date])
+  @@index([sku])
   @@unique([flag, order_id, sku, transaction_type])
 }
 

@@ -931,7 +931,10 @@ async function startServer() {
             ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
         `),
         client.query(`
-          SELECT c.amazonorderid, c.sku, c.quantityreimbursedtotal, g.order_date AS shipment_order_date, c.approvaldate
+          SELECT c.amazonorderid, c.sku, c.approvaldate,
+            g.order_date AS shipment_order_date,
+            CAST(NULLIF(REPLACE(c.amounttotal, ',', ''), '') AS numeric) AS amount,
+            CAST(NULLIF(REPLACE(c.quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
           FROM "AmazonClaimsReimbursementsRow" c
           LEFT JOIN "Amazon_GST_Master" g
             ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment'
@@ -970,7 +973,7 @@ async function startServer() {
         return inAccrualRange(accrualDate);
       });
       const totalClaims = claimRowsInRangeRaw.length;
-      const successfulClaims = claimRowsInRangeRaw.filter((r: any) => (parseFloat(String(r.quantityreimbursedtotal).replace(/,/g, "")) || 0) > 0).length;
+      const successfulClaims = claimRowsInRangeRaw.filter((r: any) => (parseFloat(r.qty) || 0) > 0).length;
 
       // Reimbursement Rate: reimbursed amount / COGS of claimed units, restricted to claims we can
       // actually cost -- around two-thirds of claimed orders never got a Amazon_GST_Master row at all
@@ -985,18 +988,7 @@ async function startServer() {
       // from both sides, rather than left in the numerator alone.
       // Accrual basis: pulled un-dated and joined to the shipment's order_date, filtered in JS by accrual
       // date (falling back to approvaldate when unmatched), same pattern as returnRowsInRange above.
-      const claimRowsResult = await client.query(`
-        SELECT c.amazonorderid, c.sku, c.approvaldate, g.order_date AS shipment_order_date,
-          CAST(NULLIF(REPLACE(c.amounttotal, ',', ''), '') AS numeric) AS amount,
-          CAST(NULLIF(REPLACE(c.quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
-        FROM "AmazonClaimsReimbursementsRow" c
-        LEFT JOIN "Amazon_GST_Master" g
-          ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment'
-      `);
-      const claimRowsInRange = claimRowsResult.rows.filter((r: any) => {
-        const accrualDate = (r.shipment_order_date || r.approvaldate || "").slice(0, 10);
-        return inAccrualRange(accrualDate);
-      });
+      const claimRowsInRange = claimRowsInRangeRaw;
 
       // Group claim rows by (orderid, sku) pair first -- a pair can have multiple claim rows (partial/
       // repeat reimbursements), and COGS must be resolved once per pair, not once per claim row, or a
