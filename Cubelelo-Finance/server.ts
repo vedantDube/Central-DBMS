@@ -438,8 +438,8 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
-        returnDateFilter = `AND returndate >= $1 AND returndate <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -595,8 +595,8 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
-        returnDateFilter = `AND returndate >= $1 AND returndate <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -719,8 +719,8 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
-        returnDateFilter = `AND returndate >= $1 AND returndate <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -827,9 +827,9 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
-        returnDateFilter = `AND returndate >= $1 AND returndate <= $2`;
-        claimDateFilter = `AND approvaldate >= $1 AND approvaldate <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
+        claimDateFilter = `AND NULLIF(approvaldate, '')::date >= $1::date AND NULLIF(approvaldate, '')::date <= $2::date`;
       }
 
       const [ordersResult, listingsResult, returnsResult, returnsByDispositionResult, claimsResult] = await Promise.all([
@@ -1050,14 +1050,14 @@ async function startServer() {
 
       const [dailyUnitsResult, dailyStockResult] = await Promise.all([
         client.query(`
-          SELECT sku, TO_CHAR(order_date::date, 'YYYY-MM-DD') AS d,
+          SELECT sku, TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
             COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
             COALESCE(SUM(${revenueCol}), 0) AS revenue
           FROM "Amazon_GST_Master"
           WHERE transaction_type = 'Shipment'
             AND order_date IS NOT NULL AND order_date != ''
-            AND order_date::date >= $1::date AND order_date::date <= $2::date
-          GROUP BY sku, order_date::date
+            AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
+          GROUP BY sku, NULLIF(order_date, '')::date
         `, [lookbackStartStr, referenceDateStr]),
         client.query(`
           SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
@@ -1272,13 +1272,13 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
         settlementDateFilter = `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date`;
-        returnDateFilter = `AND returndate >= $1 AND returndate <= $2`;
+        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         // Previously the Return Loss "claims" CTE had no date filter at all, so reimbursements from any
         // point in time got matched against the selected period's bad-return quantities -- inconsistent
         // populations. Scope it to the same period as everything else in this endpoint.
-        claimDateFilter = `AND approvaldate >= $1 AND approvaldate <= $2`;
+        claimDateFilter = `AND NULLIF(approvaldate, '')::date >= $1::date AND NULLIF(approvaldate, '')::date <= $2::date`;
       }
 
       // Amazon Charges GST toggle: fba_fees/selling_fees/other_transaction_fees on Amazon_Unified_Transactions
@@ -1644,18 +1644,18 @@ async function startServer() {
       const params: string[] = [];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
       }
 
-      // order_date is stored as an ISO-sortable string (YYYY-MM-DD), so date_trunc requires a cast to date first.
+      // order_date is stored as a full timestamp string (not a bare date), so date_trunc requires a cast to date first.
       // Period is formatted to text via TO_CHAR (not left as a native date) so node-postgres never round-trips
       // it through a JS Date object -- pg parses SQL `date` in the server's local timezone, and calling
       // toISOString() on that (UTC) shifts the date backwards by the timezone offset (e.g. IST: -1 day).
       const periodExpr = granularity === "daily"
-        ? `TO_CHAR(order_date::date, 'YYYY-MM-DD')`
+        ? `TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD')`
         : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', order_date::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', order_date::date), 'YYYY-MM-DD')`;
+        ? `TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`;
 
       const gstTrendResult = await client.query(`
         SELECT
@@ -1698,8 +1698,101 @@ async function startServer() {
         chargesByPeriod[row.period] = parseFloat(row.amazon_charges);
       }
 
+      // Return Loss, bucketed to the same granularity as everything else -- resolved with the same
+      // per-(orderid, sku) cost chain as /api/amazon/financials (GST Master unit COGS, falling back to
+      // EasyEcom cost history), so a period's cm2 here is comparable to the headline financials cm2 for
+      // that same period. Bad-disposition returns are periodized by their own returndate, matching claim
+      // reimbursements are periodized by their own approvaldate -- so a return and its reimbursement can
+      // land in different periods if they were recorded weeks apart, same as the headline endpoint does
+      // implicitly when the two dates fall on either side of a requested range boundary.
+      const returnsPeriodExpr = granularity === "daily"
+        ? `TO_CHAR(NULLIF(returndate, '')::date, 'YYYY-MM-DD')`
+        : granularity === "weekly"
+        ? `TO_CHAR(date_trunc('week', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`;
+      const badReturnsTrendResult = await client.query(`
+        SELECT ${returnsPeriodExpr} AS period, orderid, sku,
+          SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS bad_qty,
+          MAX(returndate) AS latest_returndate
+        FROM "AmazonReturnsB2cRow"
+        WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${gstDateFilter.replace(/order_date/g, "returndate")}
+        GROUP BY period, orderid, sku
+      `, params);
+
+      const returnLossByPeriod: Record<string, number> = {};
+      if (badReturnsTrendResult.rows.length > 0) {
+        const orderIds = badReturnsTrendResult.rows.map((r: any) => r.orderid);
+        const skus = badReturnsTrendResult.rows.map((r: any) => r.sku);
+
+        const [perUnitCogsResult, claimsResult] = await Promise.all([
+          client.query(`
+            SELECT order_id, sku,
+              CASE WHEN SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) > 0
+                THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
+                ELSE NULL END AS unit_cogs
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment'
+              AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY order_id, sku
+          `, [orderIds, skus]),
+          client.query(`
+            SELECT amazonorderid, sku, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
+            FROM "AmazonClaimsReimbursementsRow"
+            WHERE 1=1 ${startDate && endDate ? `AND NULLIF(approvaldate, '')::date >= $3::date AND NULLIF(approvaldate, '')::date <= $4::date` : ""}
+              AND (amazonorderid, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY amazonorderid, sku
+          `, startDate && endDate ? [orderIds, skus, startDate, endDate] : [orderIds, skus]),
+        ]);
+
+        const gstUnitCogsByPair = new Map<string, number>();
+        for (const row of perUnitCogsResult.rows) {
+          if (row.unit_cogs === null) continue;
+          const unitCogs = parseFloat(row.unit_cogs);
+          if (!isNaN(unitCogs)) gstUnitCogsByPair.set(`${row.order_id}|||${row.sku}`, unitCogs);
+        }
+        const reimbursedByPair = new Map<string, number>();
+        for (const row of claimsResult.rows) {
+          reimbursedByPair.set(`${row.amazonorderid}|||${row.sku}`, parseFloat(row.reimbursed));
+        }
+
+        const easyEcomCostHistory = await loadEasyEcomCostHistory(client, Array.from(new Set(skus)));
+
+        for (const row of badReturnsTrendResult.rows) {
+          const pairKey = `${row.orderid}|||${row.sku}`;
+          const badQty = parseFloat(row.bad_qty) || 0;
+
+          let unitCogs = gstUnitCogsByPair.get(pairKey);
+          if (unitCogs === undefined) {
+            const history = easyEcomCostHistory.get(String(row.sku).trim());
+            unitCogs = history ? costAsOf(history, (row.latest_returndate || "").slice(0, 10)) : undefined;
+          }
+
+          if (unitCogs !== undefined) {
+            const reimbursed = reimbursedByPair.get(pairKey) || 0;
+            returnLossByPeriod[row.period] = (returnLossByPeriod[row.period] || 0) + (badQty * unitCogs - reimbursed);
+          }
+        }
+        for (const period of Object.keys(returnLossByPeriod)) {
+          returnLossByPeriod[period] = Math.max(0, returnLossByPeriod[period]);
+        }
+      }
+
+      // Rental Charges prorated per period's actual day span (30-day month basis, same as the headline
+      // financials endpoint) -- a monthly bucket's real length (28-31 days) is derived from its period
+      // key (the 1st of that month) rather than assumed to be a flat 30, so e.g. a 31-day month prorates
+      // to slightly more than one full month's rent, matching what /api/amazon/financials computes for
+      // the same range via dayCount.
+      const daysInPeriod = (periodKey: string): number => {
+        if (granularity === "daily") return 1;
+        if (granularity === "weekly") return 7;
+        const [y, m] = periodKey.split("-").map(Number);
+        return new Date(Date.UTC(y, m, 0)).getUTCDate(); // day 0 of next month = last day of this month
+      };
+
       // Advertisement Cost intentionally omitted -- AmazonAdsCampaignRow has no date column
-      // (lifetime total per account), so daily/weekly/monthly ad spend cannot be trended.
+      // (lifetime total per account), so daily/weekly/monthly ad spend cannot be trended. cm2/netProfit
+      // here is therefore CM1 minus Amazon Charges, Rental, and Return Loss only -- it will read higher
+      // than the headline /api/amazon/financials cm2 for the same range, which also subtracts ad spend.
       const data = gstTrendResult.rows.map((row: any) => {
         const periodKey = row.period;
         const grossRevenue = parseFloat(row.gross_revenue);
@@ -1708,7 +1801,9 @@ async function startServer() {
         const cogs = parseFloat(row.cogs);
         const cm1 = netRevenue - cogs;
         const amazonCharges = chargesByPeriod[periodKey] || 0;
-        const cm2 = cm1 - amazonCharges;
+        const returnLoss = returnLossByPeriod[periodKey] || 0;
+        const rentalCharges = RENTAL_CHARGES_PER_MONTH * (daysInPeriod(periodKey) / 30);
+        const cm2 = cm1 - amazonCharges - rentalCharges - returnLoss;
         return {
           period: periodKey,
           grossRevenue,
@@ -1717,6 +1812,8 @@ async function startServer() {
           cogs,
           cm1,
           amazonCharges,
+          rentalCharges,
+          returnLoss,
           cm2,
           netProfit: cm2,
           orders: parseInt(row.orders),
@@ -1763,13 +1860,13 @@ async function startServer() {
       const dates = periods.map((p) => p.date);
 
       const result = await client.query(`
-        SELECT TO_CHAR(order_date::date, 'YYYY-MM-DD') AS d,
+        SELECT TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
           COUNT(DISTINCT CASE WHEN transaction_type = 'Shipment' THEN order_id END) AS total_orders,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue
         FROM "Amazon_GST_Master"
-        WHERE order_date IS NOT NULL AND order_date != '' AND order_date::date = ANY($1::date[])
-        GROUP BY order_date::date
+        WHERE order_date IS NOT NULL AND order_date != '' AND NULLIF(order_date, '')::date = ANY($1::date[])
+        GROUP BY NULLIF(order_date, '')::date
       `, [dates]);
 
       const byDate: Record<string, { totalOrders: number; unitsSold: number; revenue: number }> = {};
@@ -1829,16 +1926,16 @@ async function startServer() {
 
       // Formatted to text via TO_CHAR so pg never round-trips through a JS Date (see comment in /api/amazon/trend).
       const periodExpr = granularity === "daily"
-        ? `TO_CHAR(order_date::date, 'YYYY-MM-DD')`
+        ? `TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD')`
         : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', order_date::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', order_date::date), 'YYYY-MM-DD')`;
+        ? `TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`;
 
       let gstDateFilter = "";
       const params: string[] = [sku];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $2 AND order_date <= $3`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $2::date AND NULLIF(order_date, '')::date <= $3::date`;
       }
 
       // Marketplace fees and returns bucketed to the same granularity, each on their own date column
@@ -1856,15 +1953,15 @@ async function startServer() {
       }
 
       const returnsPeriodExpr = granularity === "daily"
-        ? `TO_CHAR(returndate::date, 'YYYY-MM-DD')`
+        ? `TO_CHAR(NULLIF(returndate, '')::date, 'YYYY-MM-DD')`
         : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', returndate::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', returndate::date), 'YYYY-MM-DD')`;
+        ? `TO_CHAR(date_trunc('week', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`;
       let returnsDateFilter = "";
       const returnsParams: string[] = [sku];
       if (startDate && endDate) {
         returnsParams.push(startDate, endDate);
-        returnsDateFilter = `AND returndate >= $2 AND returndate <= $3`;
+        returnsDateFilter = `AND NULLIF(returndate, '')::date >= $2::date AND NULLIF(returndate, '')::date <= $3::date`;
       }
 
       const [result, feesResult, returnsResult] = await Promise.all([
@@ -1949,12 +2046,12 @@ async function startServer() {
       const params: string[] = [];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND order_date >= $1 AND order_date <= $2`;
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
       }
 
       const result = await client.query(`
         SELECT sku,
-          TO_CHAR(date_trunc('week', order_date::date), 'YYYY-MM-DD') AS period,
+          TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD') AS period,
           COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units_sold
         FROM "Amazon_GST_Master"
         WHERE transaction_type = 'Shipment' AND order_date IS NOT NULL AND order_date != '' ${gstDateFilter}
