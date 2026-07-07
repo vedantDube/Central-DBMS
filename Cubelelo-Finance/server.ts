@@ -1391,7 +1391,7 @@ async function startServer() {
       if (startDate && endDate) {
         params.push(startDate, endDate);
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
-        settlementDateFilter = `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date`;
+        settlementDateFilter = `AND safe_posteddate(posteddate) >= $1::date AND safe_posteddate(posteddate) <= $2::date`;
       }
 
       // Amazon Charges GST toggle: fba_fees/selling_fees/other_transaction_fees on Amazon_Unified_Transactions
@@ -1625,7 +1625,7 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        settlementDateFilter = `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date`;
+        settlementDateFilter = `AND safe_posteddate(posteddate) >= $1::date AND safe_posteddate(posteddate) <= $2::date`;
       }
 
       // See /api/amazon/financials for why Amazon Charges is settlement-based rather than Unified-Transactions-based:
@@ -1828,18 +1828,18 @@ async function startServer() {
         ? ""
         : `AND amountdescription NOT ILIKE '%cgst%' AND amountdescription NOT ILIKE '%sgst%' AND amountdescription NOT ILIKE '%igst%'`;
       const settlementPeriodExpr = granularity === "daily"
-        ? `TO_CHAR(TO_DATE(posteddate, 'DD.MM.YYYY'), 'YYYY-MM-DD')`
+        ? `TO_CHAR(safe_posteddate(posteddate), 'YYYY-MM-DD')`
         : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', TO_DATE(posteddate, 'DD.MM.YYYY')), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', TO_DATE(posteddate, 'DD.MM.YYYY')), 'YYYY-MM-DD')`;
+        ? `TO_CHAR(date_trunc('week', safe_posteddate(posteddate)), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', safe_posteddate(posteddate)), 'YYYY-MM-DD')`;
       const settlementTrendResult = await client.query(`
         SELECT period, COALESCE(SUM(ABS(CAST(NULLIF(REPLACE(amount, ',', ''), '') AS numeric))), 0) AS amazon_charges
         FROM (
           SELECT ${settlementPeriodExpr} AS period, amount FROM "Electronics_all_statements"
-          WHERE amounttype = 'ItemFees' ${startDate && endDate ? `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date` : ""} ${gstFeeFilter}
+          WHERE amounttype = 'ItemFees' ${startDate && endDate ? `AND safe_posteddate(posteddate) >= $1::date AND safe_posteddate(posteddate) <= $2::date` : ""} ${gstFeeFilter}
           UNION ALL
           SELECT ${settlementPeriodExpr} AS period, amount FROM "COD_ALL_Settlements"
-          WHERE amounttype = 'ItemFees' ${startDate && endDate ? `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date` : ""} ${gstFeeFilter}
+          WHERE amounttype = 'ItemFees' ${startDate && endDate ? `AND safe_posteddate(posteddate) >= $1::date AND safe_posteddate(posteddate) <= $2::date` : ""} ${gstFeeFilter}
         ) combined
         GROUP BY period
       `, params);

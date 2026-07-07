@@ -1125,6 +1125,7 @@ model AmazonElectronicsSettlementRow {
 
   @@map("Electronics_all_statements")
   @@index([reportKey, createdAt])
+  @@index([amounttype])
 }
 
 model AmazonCODSettlementRow {
@@ -1159,6 +1160,7 @@ model AmazonCODSettlementRow {
 
   @@map("COD_ALL_Settlements")
   @@index([reportKey, createdAt])
+  @@index([amounttype])
 }
 
 
