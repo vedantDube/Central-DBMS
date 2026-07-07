@@ -2026,6 +2026,33 @@ async function startServer() {
         return;
       }
 
+      // This whole endpoint is cached (1h TTL): it calls snapshotAt() once per period in range, and
+      // each call re-runs the full per-SKU/182-day ageing+dead-stock+OOS aggregation loop (the same
+      // computation /api/amazon/operational-metrics caches a single instance of) -- so a 30-day daily
+      // trend does ~30x that endpoint's already-heavy work in one request. Underlying daily snapshots
+      // only change a few times a day, so recomputing per page view is pure waste.
+      const cacheKey = `supply-chain-trend:${startDate}:${endDate}:${granularity}:${gstMode}`;
+      const cached = await withTtlCache(cacheKey, 60 * 60 * 1000, async () => {
+        return computeSupplyChainTrend(client!, startDate, endDate, granularity, gstMode, revenueCol);
+      });
+      res.json(cached);
+      return;
+    } catch (err: any) {
+      console.error("Amazon supply chain trend query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  async function computeSupplyChainTrend(
+    client: pg.PoolClient,
+    startDate: string,
+    endDate: string,
+    granularity: string,
+    gstMode: string,
+    revenueCol: string
+  ) {
       // Period boundaries within [startDate, endDate], clipped to the requested range at both ends --
       // the same daily/weekly(Mon-Sun)/monthly bucketing convention as /api/amazon/trend.
       const periodKeyOf = (d: string): string => {
@@ -2431,14 +2458,8 @@ async function startServer() {
         ...snapshotAt(periods[i].start, periods[i].end),
       }));
 
-      res.json({ success: true, data: dataWithSnapshots, granularity, gstMode });
-    } catch (err: any) {
-      console.error("Amazon supply chain trend query failed:", err);
-      res.status(500).json({ success: false, error: err?.message || String(err) });
-    } finally {
-      if (client) client.release();
-    }
-  });
+      return { success: true, data: dataWithSnapshots, granularity, gstMode };
+  }
 
   // Amazon Compare Sales Endpoint -- single-day metrics for a reference date vs the day before,
   // same day last week, and same day last year (mirrors Amazon Seller Central's own "Compare Sales" panel).
