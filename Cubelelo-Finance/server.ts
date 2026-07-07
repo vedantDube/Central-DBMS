@@ -157,6 +157,21 @@ export function parseConnectionString(uri: string) {
   }
 }
 
+// Generic in-memory TTL cache. Used for expensive per-request aggregations (e.g. the Supply Chain
+// metrics block) whose inputs change at most a few times a day, so recomputing on every dashboard
+// load is pure waste -- especially on Render's free tier, where the JS-side aggregation loop is the
+// dominant cost, not the DB query itself.
+const ttlCache = new Map<string, { expiresAt: number; value: any }>();
+async function withTtlCache<T>(key: string, ttlMs: number, compute: () => Promise<T>): Promise<T> {
+  const cached = ttlCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value as T;
+  }
+  const value = await compute();
+  ttlCache.set(key, { expiresAt: Date.now() + ttlMs, value });
+  return value;
+}
+
 // Initialize Database connection pool lazily & dynamically detect URL updates
 let dbPool: pg.Pool | null = null;
 let activeDbUrl: string | null = null;
@@ -1125,153 +1140,175 @@ async function startServer() {
       // lookback before it is pulled to run the week-over-week ageing state-machine and day-over-day dead-stock
       // check. (A SKU whose ageing flag was triggered further back than this window, and never recovered, will
       // read as un-flagged -- an accepted bound rather than pulling unbounded history on every request.)
+      //
+      // This block is cached (1h TTL, keyed by revenueCol/reportStartStr/reportEndStr): it pulls ~300K
+      // EasyEcomInventory rows and runs a per-SKU/per-day JS aggregation loop over them, which dominates
+      // this endpoint's latency on Render's free tier (fractional shared CPU) even though the underlying
+      // SQL itself runs in well under a second. The inputs (daily shipment/stock snapshots) only change
+      // once or so per day, so recomputing on every dashboard load is pure waste.
       const referenceDateStr = endDate || new Date().toISOString().slice(0, 10);
       const lookbackStartStr = new Date(new Date(referenceDateStr).getTime() - 182 * 24 * 60 * 60 * 1000)
         .toISOString().slice(0, 10);
       const reportStartStr = startDate || lookbackStartStr;
       const reportEndStr = referenceDateStr;
 
-      const [dailyUnitsResult, dailyStockResult] = await Promise.all([
-        client.query(`
-          SELECT sku, TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
-            COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
-            COALESCE(SUM(${revenueCol}), 0) AS revenue
-          FROM "Amazon_GST_Master"
-          WHERE transaction_type = 'Shipment'
-            AND order_date IS NOT NULL AND order_date != ''
-            AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
-          GROUP BY sku, NULLIF(order_date, '')::date
-        `, [lookbackStartStr, referenceDateStr]),
-        client.query(`
-          SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
-          FROM "EasyEcomInventory"
-          WHERE date IS NOT NULL AND date != ''
-            AND date::date >= $1::date AND date::date <= $2::date
-        `, [lookbackStartStr, referenceDateStr]),
-      ]);
+      const supplyChainCacheKey = `supply-chain:${revenueCol}:${lookbackStartStr}:${referenceDateStr}:${reportStartStr}:${reportEndStr}`;
+      const supplyChain = await withTtlCache(supplyChainCacheKey, 60 * 60 * 1000, async () => {
+        const [dailyUnitsResult, dailyStockResult] = await Promise.all([
+          client!.query(`
+            SELECT sku, TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+              COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
+              COALESCE(SUM(${revenueCol}), 0) AS revenue
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment'
+              AND order_date IS NOT NULL AND order_date != ''
+              AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
+            GROUP BY sku, NULLIF(order_date, '')::date
+          `, [lookbackStartStr, referenceDateStr]),
+          client!.query(`
+            SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
+            FROM "EasyEcomInventory"
+            WHERE date IS NOT NULL AND date != ''
+              AND date::date >= $1::date AND date::date <= $2::date
+          `, [lookbackStartStr, referenceDateStr]),
+        ]);
 
-      type DayNum = { units: number; revenue: number };
-      const unitsBySkuDate = new Map<string, Map<string, DayNum>>();
-      for (const row of dailyUnitsResult.rows) {
-        const d = row.d;
-        if (!unitsBySkuDate.has(row.sku)) unitsBySkuDate.set(row.sku, new Map());
-        unitsBySkuDate.get(row.sku)!.set(d, { units: parseFloat(row.units), revenue: parseFloat(row.revenue) });
-      }
-      const stockBySkuDate = new Map<string, Map<string, number>>();
-      for (const row of dailyStockResult.rows) {
-        const d = row.d;
-        if (!stockBySkuDate.has(row.sku)) stockBySkuDate.set(row.sku, new Map());
-        stockBySkuDate.get(row.sku)!.set(d, row.quantity == null ? 0 : parseFloat(row.quantity));
-      }
-
-      const allSkus = new Set<string>([...unitsBySkuDate.keys(), ...stockBySkuDate.keys()]);
-
-      let ageingFlaggedCount = 0;
-      let deadStockCriticalCount = 0;
-      let outOfStockDaysWeighted = 0;
-      let platformRevenueInRange = 0;
-      const perSkuRevenueInRange = new Map<string, number>();
-      const criticalSkus: { sku: string; prevRate: number; lastRate: number; dropPct: number }[] = [];
-      const ageingSkus: { sku: string; triggerWeek: string; prevRate: number; currRate: number; dropPct: number }[] = [];
-
-      for (const sku of allSkus) {
-        const stockMap = stockBySkuDate.get(sku) || new Map<string, number>();
-        const unitsMap = unitsBySkuDate.get(sku) || new Map<string, DayNum>();
-
-        // All dates this SKU has a stock snapshot for, ascending -- the timeline we can evaluate "stocked" on
-        const dates = [...stockMap.keys()].sort();
-
-        // Weekly avg run-rate over stocked days only (per spec footnote), for the ageing state-machine
-        const weekBuckets = new Map<string, { sum: number; count: number }>();
-        for (const d of dates) {
-          const qty = stockMap.get(d)!;
-          if (qty <= 0) continue; // not stocked -- excluded from run-rate per spec
-          const unitsSold = unitsMap.get(d)?.units ?? 0;
-          const wk = isoWeekStart(d);
-          const bucket = weekBuckets.get(wk) || { sum: 0, count: 0 };
-          bucket.sum += unitsSold;
-          bucket.count += 1;
-          weekBuckets.set(wk, bucket);
+        type DayNum = { units: number; revenue: number };
+        const unitsBySkuDate = new Map<string, Map<string, DayNum>>();
+        for (const row of dailyUnitsResult.rows) {
+          const d = row.d;
+          if (!unitsBySkuDate.has(row.sku)) unitsBySkuDate.set(row.sku, new Map());
+          unitsBySkuDate.get(row.sku)!.set(d, { units: parseFloat(row.units), revenue: parseFloat(row.revenue) });
         }
-        const weeks = [...weekBuckets.entries()]
-          .map(([wk, b]) => ({ wk, rate: b.sum / b.count }))
-          .sort((a, b) => (a.wk < b.wk ? -1 : 1));
+        const stockBySkuDate = new Map<string, Map<string, number>>();
+        for (const row of dailyStockResult.rows) {
+          const d = row.d;
+          if (!stockBySkuDate.has(row.sku)) stockBySkuDate.set(row.sku, new Map());
+          stockBySkuDate.get(row.sku)!.set(d, row.quantity == null ? 0 : parseFloat(row.quantity));
+        }
 
-        let flagged = false;
-        let triggerRate = 0;
-        let triggerWeek = "";
-        let triggerCurrRate = 0;
-        for (let i = 1; i < weeks.length; i++) {
-          const prevRate = weeks[i - 1].rate;
-          const currRate = weeks[i].rate;
-          if (!flagged) {
-            if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
-              flagged = true;
-              triggerRate = prevRate;
-              triggerWeek = weeks[i].wk;
-              triggerCurrRate = currRate;
-            }
-          } else if (currRate >= triggerRate) {
-            flagged = false;
+        const allSkus = new Set<string>([...unitsBySkuDate.keys(), ...stockBySkuDate.keys()]);
+
+        let ageingFlaggedCount = 0;
+        let deadStockCriticalCount = 0;
+        let outOfStockDaysWeighted = 0;
+        let platformRevenueInRange = 0;
+        const perSkuRevenueInRange = new Map<string, number>();
+        const criticalSkus: { sku: string; prevRate: number; lastRate: number; dropPct: number }[] = [];
+        const ageingSkus: { sku: string; triggerWeek: string; prevRate: number; currRate: number; dropPct: number }[] = [];
+
+        for (const sku of allSkus) {
+          const stockMap = stockBySkuDate.get(sku) || new Map<string, number>();
+          const unitsMap = unitsBySkuDate.get(sku) || new Map<string, DayNum>();
+
+          // All dates this SKU has a stock snapshot for, ascending -- the timeline we can evaluate "stocked" on
+          const dates = [...stockMap.keys()].sort();
+
+          // Weekly avg run-rate over stocked days only (per spec footnote), for the ageing state-machine
+          const weekBuckets = new Map<string, { sum: number; count: number }>();
+          for (const d of dates) {
+            const qty = stockMap.get(d)!;
+            if (qty <= 0) continue; // not stocked -- excluded from run-rate per spec
+            const unitsSold = unitsMap.get(d)?.units ?? 0;
+            const wk = isoWeekStart(d);
+            const bucket = weekBuckets.get(wk) || { sum: 0, count: 0 };
+            bucket.sum += unitsSold;
+            bucket.count += 1;
+            weekBuckets.set(wk, bucket);
           }
-        }
-        if (flagged) {
-          ageingFlaggedCount++;
-          ageingSkus.push({
-            sku,
-            triggerWeek,
-            prevRate: Math.round(triggerRate * 100) / 100,
-            currRate: Math.round(triggerCurrRate * 100) / 100,
-            dropPct: Math.round(((triggerRate - triggerCurrRate) / triggerRate) * 10000) / 100,
-          });
-        }
+          const weeks = [...weekBuckets.entries()]
+            .map(([wk, b]) => ({ wk, rate: b.sum / b.count }))
+            .sort((a, b) => (a.wk < b.wk ? -1 : 1));
 
-        // Dead Stock (critical): day-over-day run-rate drop >= 50%, checked on the most recent two stocked days
-        const stockedDatesInRange = dates.filter((d) => d >= reportStartStr && d <= reportEndStr && stockMap.get(d)! > 0);
-        if (stockedDatesInRange.length >= 2) {
-          const last = stockedDatesInRange[stockedDatesInRange.length - 1];
-          const prev = stockedDatesInRange[stockedDatesInRange.length - 2];
-          const lastRate = unitsMap.get(last)?.units ?? 0;
-          const prevRate = unitsMap.get(prev)?.units ?? 0;
-          if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) {
-            deadStockCriticalCount++;
-            criticalSkus.push({
+          let flagged = false;
+          let triggerRate = 0;
+          let triggerWeek = "";
+          let triggerCurrRate = 0;
+          for (let i = 1; i < weeks.length; i++) {
+            const prevRate = weeks[i - 1].rate;
+            const currRate = weeks[i].rate;
+            if (!flagged) {
+              if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
+                flagged = true;
+                triggerRate = prevRate;
+                triggerWeek = weeks[i].wk;
+                triggerCurrRate = currRate;
+              }
+            } else if (currRate >= triggerRate) {
+              flagged = false;
+            }
+          }
+          if (flagged) {
+            ageingFlaggedCount++;
+            ageingSkus.push({
               sku,
-              prevRate: Math.round(prevRate * 100) / 100,
-              lastRate: Math.round(lastRate * 100) / 100,
-              dropPct: Math.round(((prevRate - lastRate) / prevRate) * 10000) / 100,
+              triggerWeek,
+              prevRate: Math.round(triggerRate * 100) / 100,
+              currRate: Math.round(triggerCurrRate * 100) / 100,
+              dropPct: Math.round(((triggerRate - triggerCurrRate) / triggerRate) * 10000) / 100,
             });
           }
+
+          // Dead Stock (critical): day-over-day run-rate drop >= 50%, checked on the most recent two stocked days
+          const stockedDatesInRange = dates.filter((d) => d >= reportStartStr && d <= reportEndStr && stockMap.get(d)! > 0);
+          if (stockedDatesInRange.length >= 2) {
+            const last = stockedDatesInRange[stockedDatesInRange.length - 1];
+            const prev = stockedDatesInRange[stockedDatesInRange.length - 2];
+            const lastRate = unitsMap.get(last)?.units ?? 0;
+            const prevRate = unitsMap.get(prev)?.units ?? 0;
+            if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) {
+              deadStockCriticalCount++;
+              criticalSkus.push({
+                sku,
+                prevRate: Math.round(prevRate * 100) / 100,
+                lastRate: Math.round(lastRate * 100) / 100,
+                dropPct: Math.round(((prevRate - lastRate) / prevRate) * 10000) / 100,
+              });
+            }
+          }
+
+          // Out of Stock Days: count OOS days within the reporting range only, weighted by this SKU's revenue share
+          let oosDaysInRange = 0;
+          for (const d of dates) {
+            if (d < reportStartStr || d > reportEndStr) continue;
+            if (stockMap.get(d)! <= 0) oosDaysInRange++;
+          }
+          let skuRevenueInRange = 0;
+          for (const [d, dn] of unitsMap.entries()) {
+            if (d < reportStartStr || d > reportEndStr) continue;
+            skuRevenueInRange += dn.revenue;
+          }
+          perSkuRevenueInRange.set(sku, skuRevenueInRange);
+          platformRevenueInRange += skuRevenueInRange;
+
+          if (oosDaysInRange > 0) {
+            outOfStockDaysWeighted += oosDaysInRange * skuRevenueInRange; // divided by platform revenue below
+          }
         }
 
-        // Out of Stock Days: count OOS days within the reporting range only, weighted by this SKU's revenue share
-        let oosDaysInRange = 0;
-        for (const d of dates) {
-          if (d < reportStartStr || d > reportEndStr) continue;
-          if (stockMap.get(d)! <= 0) oosDaysInRange++;
-        }
-        let skuRevenueInRange = 0;
-        for (const [d, dn] of unitsMap.entries()) {
-          if (d < reportStartStr || d > reportEndStr) continue;
-          skuRevenueInRange += dn.revenue;
-        }
-        perSkuRevenueInRange.set(sku, skuRevenueInRange);
-        platformRevenueInRange += skuRevenueInRange;
+        const outOfStockDays = platformRevenueInRange > 0 ? outOfStockDaysWeighted / platformRevenueInRange : 0;
+        // Stockout Cost must multiply the day-count by an average DAILY revenue rate, not the whole period's
+        // total revenue -- multiplying by period-total revenue mismatches units (days x total-period-money
+        // produces a figure that can exceed the period's entire actual revenue several times over).
+        const reportDayCount = Math.max(1, Math.round(
+          (new Date(reportEndStr).getTime() - new Date(reportStartStr).getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1);
+        const avgDailyPlatformRevenue = platformRevenueInRange / reportDayCount;
+        const stockoutCost = outOfStockDays * avgDailyPlatformRevenue;
 
-        if (oosDaysInRange > 0) {
-          outOfStockDaysWeighted += oosDaysInRange * skuRevenueInRange; // divided by platform revenue below
-        }
-      }
+        return {
+          ageingFlaggedCount,
+          deadStockCriticalCount,
+          outOfStockDays,
+          stockoutCost,
+          criticalSkus,
+          ageingSkus,
+          perSkuRevenueInRange: Array.from(perSkuRevenueInRange.entries()),
+        };
+      });
 
-      const outOfStockDays = platformRevenueInRange > 0 ? outOfStockDaysWeighted / platformRevenueInRange : 0;
-      // Stockout Cost must multiply the day-count by an average DAILY revenue rate, not the whole period's
-      // total revenue -- multiplying by period-total revenue mismatches units (days x total-period-money
-      // produces a figure that can exceed the period's entire actual revenue several times over).
-      const reportDayCount = Math.max(1, Math.round(
-        (new Date(reportEndStr).getTime() - new Date(reportStartStr).getTime()) / (1000 * 60 * 60 * 24)
-      ) + 1);
-      const avgDailyPlatformRevenue = platformRevenueInRange / reportDayCount;
-      const stockoutCost = outOfStockDays * avgDailyPlatformRevenue;
+      const perSkuRevenueInRange = new Map<string, number>(supplyChain.perSkuRevenueInRange);
+      const { outOfStockDays, stockoutCost, criticalSkus, ageingSkus, ageingFlaggedCount, deadStockCriticalCount } = supplyChain;
       const ageingInventoryPct = activeListings > 0 ? (ageingFlaggedCount / activeListings) * 100 : 0;
       const deadStockPct = activeListings > 0 ? (deadStockCriticalCount / activeListings) * 100 : 0;
 
