@@ -51,12 +51,24 @@ import {
   initialSKUProfitability, 
   initialOrderReconciliation 
 } from "./data";
-import { 
-  ChannelFinancials, 
-  SKUProfitability, 
-  OrderReconciliation, 
-  SimulationParams 
+import {
+  ChannelFinancials,
+  SKUProfitability,
+  OrderReconciliation,
+  SimulationParams
 } from "./types";
+
+// Spinner overlay for any section fed by an in-flight database fetch -- dims the (possibly stale)
+// content underneath and centers a spinner, rather than blanking the section or leaving stale
+// numbers on screen with no indication a refresh is running.
+function LoadingOverlay({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-[1px] rounded-2xl">
+      <RefreshCw size={18} className="text-blue-600 animate-spin" />
+    </div>
+  );
+}
 
 export default function App() {
   // Tabs: "consolidated" | "channels" | "skus" | "reconciliation" | "configurer"
@@ -1797,9 +1809,10 @@ export default function App() {
         {/* TAB 1: CONSOLIDATED COCKPIT / EXECUTIVE OVERVIEW */}
         {activeTab === "consolidated" && (
           <div className="flex flex-col gap-6">
-            
+
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+              <LoadingOverlay active={isPageLoading} />
               <div className="bg-white border border-slate-200 p-5 rounded-2xl relative shadow-sm overflow-hidden" id="consolidated-revenue-kpi">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl translate-x-4 -translate-y-4"></div>
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
@@ -1869,8 +1882,9 @@ export default function App() {
             </div>
 
             {/* Charts Cockpit Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
+              <LoadingOverlay active={isPageLoading} />
+
               {/* Channel Revenue & Net Profit Comparison */}
               <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
@@ -1947,7 +1961,8 @@ export default function App() {
             </div>
 
             {/* Dynamic Daily Revenue & Profit Trend */}
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm" id="daily-timeseries-trend-card">
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative" id="daily-timeseries-trend-card">
+              <LoadingOverlay active={isPageLoading} />
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Dynamic Daily Revenue & Net Profit Trend</h3>
@@ -1989,7 +2004,8 @@ export default function App() {
             </div>
 
             {/* Channels Ledger Overview Summary Table */}
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative">
+              <LoadingOverlay active={isPageLoading} />
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Master Ledger Channels Dashboard (Summary)</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
@@ -2056,6 +2072,7 @@ export default function App() {
 
               {/* Channel Head info */}
               <div className="bg-white border border-slate-200 p-6 rounded-2xl relative shadow-sm overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <LoadingOverlay active={isPageLoading} />
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-600/10 p-3 rounded-xl border border-blue-500/15">
                     <Building className="text-blue-600" size={24} />
@@ -2079,7 +2096,8 @@ export default function App() {
 
               {/* Sales Snapshot -- mirrors Amazon Seller Central's own Sales Dashboard snapshot row */}
               {selectedChannelId === "amazon" && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative">
+                  <LoadingOverlay active={isPageLoading} />
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Sales Snapshot</h3>
                     <span className="text-[10px] font-mono text-slate-400">as of {endDateStr}</span>
@@ -2211,8 +2229,9 @@ export default function App() {
               )}
 
               {/* THREE SPREADSHEET TABLE CARD MODULES */}
-              <div className="bg-white border border-slate-205 rounded-2xl overflow-hidden shadow-sm">
-                
+              <div className="bg-white border border-slate-205 rounded-2xl overflow-hidden shadow-sm relative">
+                <LoadingOverlay active={isPageLoading} />
+
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <DollarSign size={16} className="text-blue-600" />
@@ -3349,7 +3368,8 @@ export default function App() {
           <div className="flex flex-col gap-6">
 
             {/* Deep Dive ASIN Performance -- mirrors Amazon Seller Central's own panel */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative">
+              <LoadingOverlay active={isPageLoading} />
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">Deep Dive ASIN Performance</h3>
               <div className="flex flex-col gap-4">
                 <div>
@@ -3379,7 +3399,8 @@ export default function App() {
             </div>
 
             {/* SKU Filters Dashboard Bar */}
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm relative">
+              <LoadingOverlay active={isPageLoading} />
               <div className="flex flex-col md:flex-row md:items-center gap-3">
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
@@ -3512,7 +3533,8 @@ export default function App() {
             )}
 
             {/* Detailed SKU Margin Spreadsheet Card */}
-            <div className="bg-white border border-slate-201 rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-slate-201 rounded-2xl overflow-hidden shadow-sm relative">
+              <LoadingOverlay active={isPageLoading} />
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200">
