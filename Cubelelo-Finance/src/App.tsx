@@ -151,6 +151,14 @@ export default function App() {
   const [skuTrendData, setSkuTrendData] = useState<any[]>([]);
   const [isLoadingSkuTrend, setIsLoadingSkuTrend] = useState<boolean>(false);
 
+  // Supply Chain & Returns Vulnerability trend (daily/weekly/monthly, reuses trendGranularity) -- click a
+  // metric card in Sub-Table 3/4 to see its trend line over the selected period
+  const [expandedSupplyChainMetric, setExpandedSupplyChainMetric] = useState<
+    "returnPct" | "goodReturnPct" | "badReturnPct" | "claimRatePct" | "claim24hPct" | "reimbursementPct" | "returnLossPct" | "stockoutCost" | "ageingInventoryPct" | "deadStockPct" | null
+  >(null);
+  const [supplyChainTrendData, setSupplyChainTrendData] = useState<any[]>([]);
+  const [isLoadingSupplyChainTrend, setIsLoadingSupplyChainTrend] = useState<boolean>(false);
+
   // Compare Sales panel (mirrors Amazon Seller Central's own "Compare Sales" -- Selected Day vs Previous Day
   // vs Same Day Last Week vs Same Day Last Year), and its graph/table view toggle
   const [compareSalesData, setCompareSalesData] = useState<any[]>([]);
@@ -466,6 +474,24 @@ export default function App() {
     }
   };
 
+  const fetchSupplyChainTrend = async (start: string, end: string, granularity: "daily" | "weekly" | "monthly", mode: "inclusive" | "exclusive") => {
+    setIsLoadingSupplyChainTrend(true);
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end, granularity, gstMode: mode });
+      const res = await fetch(`/api/amazon/supply-chain-trend?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setSupplyChainTrendData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Supply Chain trend:", err);
+    } finally {
+      setIsLoadingSupplyChainTrend(false);
+      endFetch();
+    }
+  };
+
   const fetchCompareSales = async (date: string, mode: "inclusive" | "exclusive") => {
     setIsLoadingCompareSales(true);
     beginFetch();
@@ -631,11 +657,21 @@ export default function App() {
     setShowIndirectBreakdown(false);
     setAdvertisementL2Fetched(false);
     setShowAdvertisementL2(false);
+    // Supply chain trend is fetched lazily on click (expensive query) -- clear any stale trend from a
+    // previous date range/GST mode, then re-fetch immediately if a metric panel is already expanded so
+    // it doesn't sit showing stale data until the user manually re-clicks it.
+    setSupplyChainTrendData([]);
+    if (expandedSupplyChainMetric) {
+      fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+    }
   }, [startDateStr, endDateStr, gstMode]);
 
   // Re-fetch the real trend view when granularity changes (independent of full date-range refetch)
   useEffect(() => {
     fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+    if (expandedSupplyChainMetric) {
+      fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+    }
   }, [trendGranularity]);
 
   // Ads Performance breakdown: per campaign type, scoped to the selected date range's month(s)
@@ -3031,6 +3067,88 @@ export default function App() {
                     )}
 
                   </div>
+
+                  {/* Supply Chain & Returns Vulnerability trend -- click a metric to plot it over the
+                      selected period (daily/weekly/monthly, shares trendGranularity with the main trend chart) */}
+                  {selectedChannelId === "amazon" && (
+                    <div className="mt-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          { key: "returnPct", label: "Return Rate" },
+                          { key: "goodReturnPct", label: "Good Return Rate" },
+                          { key: "badReturnPct", label: "Bad Return Rate" },
+                          { key: "claimRatePct", label: "Claim Rate" },
+                          { key: "claim24hPct", label: "Claim (<24h) Rate" },
+                          { key: "reimbursementPct", label: "Reimbursement Rate" },
+                          { key: "returnLossPct", label: "Return Loss Rate" },
+                          { key: "stockoutCost", label: "Stockout Cost" },
+                          { key: "ageingInventoryPct", label: "Ageing Inventory %" },
+                          { key: "deadStockPct", label: "Dead Stock %" },
+                        ] as const).map(m => (
+                          <button
+                            key={m.key}
+                            onClick={() => {
+                              const next = expandedSupplyChainMetric === m.key ? null : m.key;
+                              setExpandedSupplyChainMetric(next);
+                              if (next && supplyChainTrendData.length === 0) {
+                                fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+                              }
+                            }}
+                            className={`text-[10px] px-2.5 py-1 rounded-lg font-medium border ${
+                              expandedSupplyChainMetric === m.key
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                            }`}
+                          >
+                            {m.label} — Trend
+                          </button>
+                        ))}
+                      </div>
+
+                      {expandedSupplyChainMetric && (
+                        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                              {expandedSupplyChainMetric === "returnPct" ? "Return Rate"
+                                : expandedSupplyChainMetric === "goodReturnPct" ? "Good Return Rate"
+                                : expandedSupplyChainMetric === "badReturnPct" ? "Bad Return Rate"
+                                : expandedSupplyChainMetric === "claimRatePct" ? "Claim Rate"
+                                : expandedSupplyChainMetric === "claim24hPct" ? "Claim (<24h) Rate"
+                                : expandedSupplyChainMetric === "reimbursementPct" ? "Reimbursement Rate"
+                                : expandedSupplyChainMetric === "returnLossPct" ? "Return Loss Rate"
+                                : expandedSupplyChainMetric === "stockoutCost" ? "Stockout Cost"
+                                : expandedSupplyChainMetric === "ageingInventoryPct" ? "Ageing Inventory %"
+                                : "Dead Stock %"} Trend
+                            </span>
+                            <button onClick={() => setExpandedSupplyChainMetric(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                          </div>
+                          {isLoadingSupplyChainTrend ? (
+                            <div className="h-48 flex items-center justify-center gap-2 text-xs text-slate-400">
+                              <RefreshCw size={12} className="animate-spin" />
+                              <span>Loading trend...</span>
+                            </div>
+                          ) : supplyChainTrendData.length === 0 ? (
+                            <div className="h-48 flex items-center justify-center text-xs text-slate-400">No trend data for the selected range.</div>
+                          ) : (
+                            <div className="h-48">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={supplyChainTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                  <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
+                                  <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(v) : `${v}%`} />
+                                  <Tooltip
+                                    contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                                    formatter={(val: number) => [expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(val) : `${val}%`, ""]}
+                                  />
+                                  <Line type="monotone" dataKey={expandedSupplyChainMetric} stroke="#3b82f6" strokeWidth={2} dot={false} name={expandedSupplyChainMetric} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Sub-Table 5: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}

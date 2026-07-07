@@ -463,9 +463,11 @@ async function startServer() {
         // Accrual basis: pulled un-dated and joined to the shipment's order_date, then filtered/grouped
         // in JS below by accrual date (shipment date, falling back to the return's own returndate when
         // unmatched) -- same pattern as /api/amazon/financials, so a unit sold at period-end and returned
-        // early next period counts against the period it was SOLD in.
+        // early next period counts against the period it was SOLD in. Carries orderid/detaileddisposition
+        // (not just quantity) so Return Loss below can resolve real per-(orderid,sku) COGS and matched
+        // claim reimbursement, same as /api/amazon/financials, instead of a revenue-based approximation.
         client.query(`
-          SELECT r.sku, r.quantity, r.returndate, g.order_date AS shipment_order_date
+          SELECT r.orderid, r.sku, r.quantity, r.returndate, r.detaileddisposition, g.order_date AS shipment_order_date
           FROM "AmazonReturnsB2cRow" r
           LEFT JOIN "Amazon_GST_Master" g
             ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
@@ -497,13 +499,73 @@ async function startServer() {
         };
       }
 
-      const returnsMap: Record<string, number> = {};
-      for (const row of returnsResult.rows) {
+      // Return Loss = COGS of bad-disposition units minus matched claim reimbursement, resolved per
+      // (orderid, sku) pair exactly as /api/amazon/financials does -- not the revenue-share approximation
+      // this endpoint used previously. Accrual-filtered the same way: a return's reporting date is its
+      // matched shipment's order_date, falling back to the return's own returndate when unmatched.
+      const badReturnRows = returnsResult.rows.filter((row: any) => {
+        if (row.detaileddisposition === "SELLABLE") return false;
         const accrualDate = (row.shipment_order_date || row.returndate || "").slice(0, 10);
-        if (!accrualDate) continue;
-        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) continue;
-        const qty = parseFloat(String(row.quantity).replace(/,/g, "")) || 0;
-        returnsMap[row.sku] = (returnsMap[row.sku] || 0) + qty;
+        if (!accrualDate) return false;
+        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) return false;
+        return true;
+      });
+
+      const returnLossMap: Record<string, number> = {};
+      if (badReturnRows.length > 0) {
+        const orderIds = badReturnRows.map((r: any) => r.orderid);
+        const skus = badReturnRows.map((r: any) => r.sku);
+
+        const [perUnitCogsResult, claimsResult] = await Promise.all([
+          client.query(`
+            SELECT order_id, sku,
+              CASE WHEN SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) > 0
+                THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
+                ELSE NULL END AS unit_cogs
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment'
+              AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY order_id, sku
+          `, [orderIds, skus]),
+          client.query(`
+            SELECT amazonorderid, sku, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
+            FROM "AmazonClaimsReimbursementsRow"
+            WHERE (amazonorderid, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY amazonorderid, sku
+          `, [orderIds, skus]),
+        ]);
+
+        const gstUnitCogsByPair = new Map<string, number>();
+        for (const row of perUnitCogsResult.rows) {
+          if (row.unit_cogs === null) continue;
+          const unitCogs = parseFloat(row.unit_cogs);
+          if (!isNaN(unitCogs)) gstUnitCogsByPair.set(`${row.order_id}|||${row.sku}`, unitCogs);
+        }
+        const reimbursedByPair = new Map<string, number>();
+        for (const row of claimsResult.rows) {
+          reimbursedByPair.set(`${row.amazonorderid}|||${row.sku}`, parseFloat(row.reimbursed));
+        }
+
+        const easyEcomCostHistory = await loadEasyEcomCostHistory(client, Array.from(new Set(skus)));
+
+        for (const row of badReturnRows) {
+          const pairKey = `${row.orderid}|||${row.sku}`;
+          const badQty = parseFloat(String(row.quantity).replace(/,/g, "")) || 0;
+
+          let unitCogs = gstUnitCogsByPair.get(pairKey);
+          if (unitCogs === undefined) {
+            const history = easyEcomCostHistory.get(String(row.sku).trim());
+            unitCogs = history ? costAsOf(history, (row.returndate || "").slice(0, 10)) : undefined;
+          }
+
+          if (unitCogs !== undefined) {
+            const reimbursed = reimbursedByPair.get(pairKey) || 0;
+            returnLossMap[row.sku] = (returnLossMap[row.sku] || 0) + (badQty * unitCogs - reimbursed);
+          }
+        }
+        for (const sku of Object.keys(returnLossMap)) {
+          returnLossMap[sku] = Math.max(0, returnLossMap[sku]);
+        }
       }
 
       const productMap: Record<string, { name: string; category: string }> = {};
@@ -539,8 +601,7 @@ async function startServer() {
           const cogs = parseFloat(row.cogs);
           const fees = feesMap[sku] || { fba: 0, selling: 0, other: 0 };
           const marketplaceFees = fees.fba + fees.selling + fees.other;
-          const returnedQty = returnsMap[sku] || 0;
-          const returnLoss = unitsSold > 0 ? (returnedQty / unitsSold) * revenue * 0.5 : 0;
+          const returnLoss = returnLossMap[sku] || 0;
           const cm1 = revenue - cogs - marketplaceFees - returnLoss;
           const product = productMap[sku];
           const traffic = trafficMap[sku];
@@ -1015,12 +1076,13 @@ async function startServer() {
         .filter((r: any) => claimedPairSet.has(`${r.orderid}|||${r.sku}`))
         .reduce((sum: number, r: any) => sum + (parseFloat(String(r.quantity).replace(/,/g, "")) || 0), 0);
 
-      // Claim (<24h) Rate: claims filed within 24h of the matching bad-disposition return, over total
-      // bad-returned units (both accrual-filtered as above). filedat is backfilled from the returns-ops
-      // DB's Reimbursement.filedAt -- Amazon's own export has no claim-raised timestamp.
+      // Claim (<24h) Rate: bad-returned UNITS for which a claim was filed within 24h of the return, over
+      // total bad-returned units (both accrual-filtered as above) -- a unit-for-unit ratio matching the
+      // spec definition, not a count of claim records (a pair with 2 claims, or a claim covering multiple
+      // units, must not skew the ratio away from actual unit counts). filedat is backfilled from the
+      // returns-ops DB's Reimbursement.filedAt -- Amazon's own export has no claim-raised timestamp.
       const claim24hResult = await client.query(`
-        SELECT r.orderid, r.sku, r.returndate, r.detaileddisposition, g.order_date AS shipment_order_date,
-          c.filedat, c.reimbursementid
+        SELECT DISTINCT r.orderid, r.sku, r.returndate, g.order_date AS shipment_order_date
         FROM "AmazonReturnsB2cRow" r
         LEFT JOIN "Amazon_GST_Master" g
           ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
@@ -1029,13 +1091,15 @@ async function startServer() {
           AND c.filedat IS NOT NULL
           AND EXTRACT(EPOCH FROM (c.filedat::timestamptz - r.returndate::timestamptz)) / 3600 BETWEEN 0 AND 24
       `);
-      const claimsWithin24hIds = new Set(
+      const pairsWithin24h = new Set(
         claim24hResult.rows
           .filter((r: any) => inAccrualRange((r.shipment_order_date || r.returndate || "").slice(0, 10)))
-          .map((r: any) => r.reimbursementid)
+          .map((r: any) => `${r.orderid}|||${r.sku}`)
       );
-      const claimsWithin24h = claimsWithin24hIds.size;
-      const claim24hPct = badReturnQty > 0 ? (claimsWithin24h / badReturnQty) * 100 : 0;
+      const claimsWithin24hUnits = badReturnRowsInRange
+        .filter((r: any) => pairsWithin24h.has(`${r.orderid}|||${r.sku}`))
+        .reduce((sum: number, r: any) => sum + (parseFloat(String(r.quantity).replace(/,/g, "")) || 0), 0);
+      const claim24hPct = badReturnQty > 0 ? (claimsWithin24hUnits / badReturnQty) * 100 : 0;
 
       const dayCount = startDate && endDate
         ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
@@ -1401,6 +1465,11 @@ async function startServer() {
       const badReturnsInRange = badReturnsResult.rows.filter(accrualDateInRange);
 
       let returnLoss = 0;
+      // Return Loss Rate = (Total COGS of bad-disposition units - Total reimbursed for those units) /
+      // Total COGS of bad-disposition units -- tracked as its own numerator/denominator (not derived from
+      // netRevenue) because the spec defines this as a recovery-rate on the loss itself, not a % of sales.
+      let totalBadUnitsCogs = 0;
+      let totalReimbursedForBadUnits = 0;
       if (badReturnsInRange.length > 0) {
         const orderIds = badReturnsInRange.map((r: any) => r.orderid);
         const skus = badReturnsInRange.map((r: any) => r.sku);
@@ -1453,12 +1522,15 @@ async function startServer() {
 
           if (unitCogs !== undefined) {
             const reimbursed = reimbursedByPair.get(pairKey) || 0;
-            returnLoss += badQty * unitCogs - reimbursed;
+            const badCogs = badQty * unitCogs;
+            returnLoss += badCogs - reimbursed;
+            totalBadUnitsCogs += badCogs;
+            totalReimbursedForBadUnits += reimbursed;
           }
         }
         returnLoss = Math.max(0, returnLoss);
       }
-      const returnLossPct = netRevenue > 0 ? (returnLoss / netRevenue) * 100 : 0;
+      const returnLossPct = totalBadUnitsCogs > 0 ? ((totalBadUnitsCogs - totalReimbursedForBadUnits) / totalBadUnitsCogs) * 100 : 0;
 
       const indirectExpenses = amazonCharges; // preserved alias, Amazon-charges-only meaning
       const advertisingSpend = amazonAdsSpend; // preserved alias, pre-Beyond-Ads meaning
@@ -1902,6 +1974,443 @@ async function startServer() {
     }
   });
 
+  // Amazon Supply Chain & Returns Vulnerability Trend Endpoint -- daily/weekly/monthly series for the
+  // Return %, Good/Bad Return Rate, Claim Rate, Claim (<24h) Rate, Reimbursement Rate, Return Loss Rate,
+  // Stockout Cost, Ageing Inventory %, and Dead Stock % metrics that /api/amazon/operational-metrics
+  // otherwise only reports as a single collapsed figure for the whole selected range.
+  app.get("/api/amazon/supply-chain-trend", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+      const granularity = (req.query.granularity as string) === "weekly" || (req.query.granularity as string) === "monthly"
+        ? (req.query.granularity as string)
+        : "daily";
+      const gstMode = (req.query.gstMode as string) === "inclusive" ? "inclusive" : "exclusive";
+      const revenueCol = gstMode === "inclusive" ? "invoice_amount" : "tax_exclusive_gross";
+
+      if (!startDate || !endDate) {
+        res.status(400).json({ success: false, error: "startDate and endDate are required" });
+        return;
+      }
+
+      // Period boundaries within [startDate, endDate], clipped to the requested range at both ends --
+      // the same daily/weekly(Mon-Sun)/monthly bucketing convention as /api/amazon/trend.
+      const periodKeyOf = (d: string): string => {
+        if (granularity === "daily") return d;
+        if (granularity === "weekly") return isoWeekStart(d);
+        return d.slice(0, 7) + "-01";
+      };
+      const periods: { key: string; start: string; end: string }[] = [];
+      {
+        const seen = new Map<string, { start: string; end: string }>();
+        let cursor = new Date(startDate + "T00:00:00Z");
+        const end = new Date(endDate + "T00:00:00Z");
+        while (cursor <= end) {
+          const d = cursor.toISOString().slice(0, 10);
+          const key = periodKeyOf(d);
+          const existing = seen.get(key);
+          if (existing) {
+            if (d > existing.end) existing.end = d;
+          } else {
+            seen.set(key, { start: d, end: d });
+          }
+          cursor.setUTCDate(cursor.getUTCDate() + 1);
+        }
+        for (const [key, { start, end }] of seen) periods.push({ key, start, end });
+        periods.sort((a, b) => (a.key < b.key ? -1 : 1));
+      }
+
+      // --- Return / Claim ratio metrics: fetch un-dated (as in /api/amazon/operational-metrics), resolve
+      // COGS + reimbursement ONCE globally, then bucket by each row's accrual period instead of collapsing
+      // to a single range-wide total. ---
+      const [shipmentsResult, returnsResult, claimsResult] = await Promise.all([
+        client.query(`
+          SELECT TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+            COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS shipped_qty
+          FROM "Amazon_GST_Master"
+          WHERE transaction_type = 'Shipment' AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
+          GROUP BY d
+        `, [startDate, endDate]),
+        client.query(`
+          SELECT r.orderid, r.sku, r.quantity, r.detaileddisposition, r.returndate, g.order_date AS shipment_order_date
+          FROM "AmazonReturnsB2cRow" r
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+        `),
+        client.query(`
+          SELECT c.amazonorderid, c.sku, c.approvaldate, g.order_date AS shipment_order_date,
+            CAST(NULLIF(REPLACE(c.amounttotal, ',', ''), '') AS numeric) AS amount,
+            CAST(NULLIF(REPLACE(c.quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
+          FROM "AmazonClaimsReimbursementsRow" c
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment'
+        `),
+      ]);
+
+      const shippedQtyByPeriod: Record<string, number> = {};
+      for (const row of shipmentsResult.rows) {
+        const key = periodKeyOf(row.d);
+        shippedQtyByPeriod[key] = (shippedQtyByPeriod[key] || 0) + parseFloat(row.shipped_qty);
+      }
+
+      const accrualDateOf = (row: any, fallbackCol: string): string | null => {
+        const d = (row.shipment_order_date || row[fallbackCol] || "").slice(0, 10);
+        return d || null;
+      };
+      const inRequestedRange = (d: string | null): boolean => !!d && d >= startDate && d <= endDate;
+
+      const returnRowsInRange = returnsResult.rows
+        .map((r: any) => ({ row: r, accrualDate: accrualDateOf(r, "returndate") }))
+        .filter((x: any) => inRequestedRange(x.accrualDate));
+      const claimRowsInRange = claimsResult.rows
+        .map((r: any) => ({ row: r, accrualDate: accrualDateOf(r, "approvaldate") }))
+        .filter((x: any) => inRequestedRange(x.accrualDate));
+
+      // Claim Rate / Claim(<24h) Rate need to know, per bad-returned unit, whether a claim was ever raised
+      // for that (orderid, sku) pair, and whether it was raised within 24h -- both matched at the pair level.
+      const claimedPairSet = new Set(claimRowsInRange.map(({ row }: any) => `${row.amazonorderid}|||${row.sku}`));
+      const claim24hResult = await client.query(`
+        SELECT DISTINCT r.orderid, r.sku, r.returndate, g.order_date AS shipment_order_date
+        FROM "AmazonReturnsB2cRow" r
+        LEFT JOIN "Amazon_GST_Master" g
+          ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+        JOIN "AmazonClaimsReimbursementsRow" c ON c.amazonorderid = r.orderid AND c.sku = r.sku
+        WHERE r.detaileddisposition IS DISTINCT FROM 'SELLABLE'
+          AND c.filedat IS NOT NULL
+          AND EXTRACT(EPOCH FROM (c.filedat::timestamptz - r.returndate::timestamptz)) / 3600 BETWEEN 0 AND 24
+      `);
+      const pairsWithin24h = new Set(
+        claim24hResult.rows
+          .filter((r: any) => inRequestedRange((r.shipment_order_date || r.returndate || "").slice(0, 10)))
+          .map((r: any) => `${r.orderid}|||${r.sku}`)
+      );
+
+      // Reimbursement Rate + Return Loss Rate need real per-(orderid,sku) COGS -- resolved ONCE globally
+      // across every claimed/bad-returned pair in range, same primary/fallback chain as /api/amazon/financials
+      // and /api/amazon/operational-metrics (GST Master unit COGS, falling back to EasyEcom cost history).
+      const badReturnRowsInRange = returnRowsInRange.filter(({ row }: any) => row.detaileddisposition !== "SELLABLE");
+      const allPairOrderIds = [
+        ...badReturnRowsInRange.map(({ row }: any) => row.orderid),
+        ...claimRowsInRange.map(({ row }: any) => row.amazonorderid),
+      ];
+      const allPairSkus = [
+        ...badReturnRowsInRange.map(({ row }: any) => row.sku),
+        ...claimRowsInRange.map(({ row }: any) => row.sku),
+      ];
+
+      // Two distinct, already-established COGS conventions in this codebase, both preserved here:
+      // - Return Loss Rate (/api/amazon/financials) uses PER-UNIT cost (SUM(cost_inventory)/SUM(quantity))
+      //   times the bad-returned quantity.
+      // - Reimbursement Rate (/api/amazon/operational-metrics) uses the shipment's RAW TOTAL cost_inventory
+      //   for the pair, un-divided, treating a claim as backed by the full shipment cost regardless of the
+      //   claimed quantity. Using per-unit cost here instead would silently change the metric's meaning
+      //   and produce numbers inconsistent with the headline operational-metrics figure.
+      const gstUnitCogsByPair = new Map<string, number>();
+      const gstTotalCogsByPair = new Map<string, number>();
+      if (allPairOrderIds.length > 0) {
+        const [perUnitCogsResult, totalCogsResult] = await Promise.all([
+          client.query(`
+            SELECT order_id, sku,
+              CASE WHEN SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) > 0
+                THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
+                ELSE NULL END AS unit_cogs
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment'
+              AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY order_id, sku
+          `, [allPairOrderIds, allPairSkus]),
+          client.query(`
+            SELECT order_id, sku, COALESCE(SUM(cost_inventory), 0) AS total_cost
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment'
+              AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            GROUP BY order_id, sku
+          `, [allPairOrderIds, allPairSkus]),
+        ]);
+        for (const row of perUnitCogsResult.rows) {
+          if (row.unit_cogs === null) continue;
+          const v = parseFloat(row.unit_cogs);
+          if (!isNaN(v)) gstUnitCogsByPair.set(`${row.order_id}|||${row.sku}`, v);
+        }
+        for (const row of totalCogsResult.rows) {
+          const v = parseFloat(row.total_cost);
+          if (!isNaN(v)) gstTotalCogsByPair.set(`${row.order_id}|||${row.sku}`, v);
+        }
+      }
+      // Reimbursed amount / claimed qty per pair summed from claimRowsInRange itself (already accrual-
+      // filtered), NOT a fresh unscoped SQL aggregate -- a pair with claim rows both inside and outside
+      // the requested range must only count the in-range rows here, same as /api/amazon/operational-metrics.
+      const reimbursedByPair = new Map<string, number>();
+      const claimedQtyByPair = new Map<string, number>();
+      for (const { row } of claimRowsInRange) {
+        const key = `${row.amazonorderid}|||${row.sku}`;
+        reimbursedByPair.set(key, (reimbursedByPair.get(key) || 0) + (parseFloat(row.amount) || 0));
+        claimedQtyByPair.set(key, (claimedQtyByPair.get(key) || 0) + (parseFloat(row.qty) || 0));
+      }
+      const easyEcomCostHistory = await loadEasyEcomCostHistory(
+        client,
+        Array.from(new Set(allPairSkus))
+      );
+      const unitCogsFor = (orderId: string, sku: string, fallbackDate: string): number | undefined => {
+        const pairKey = `${orderId}|||${sku}`;
+        let unitCogs = gstUnitCogsByPair.get(pairKey);
+        if (unitCogs === undefined) {
+          const history = easyEcomCostHistory.get(String(sku).trim());
+          unitCogs = history ? costAsOf(history, fallbackDate.slice(0, 10)) : undefined;
+        }
+        return unitCogs;
+      };
+      // Total shipment COGS for a pair, falling back to EasyEcom unit cost x claimed qty (matching
+      // /api/amazon/operational-metrics' Reimbursement Rate fallback exactly) when no GST Master row exists.
+      const totalCogsFor = (orderId: string, sku: string, claimedQty: number, fallbackDate: string): number | undefined => {
+        const pairKey = `${orderId}|||${sku}`;
+        const total = gstTotalCogsByPair.get(pairKey);
+        if (total !== undefined) return total;
+        const history = easyEcomCostHistory.get(String(sku).trim());
+        const unitCost = history ? costAsOf(history, fallbackDate.slice(0, 10)) : undefined;
+        return unitCost !== undefined ? unitCost * claimedQty : undefined;
+      };
+
+      // --- Bucket everything by period and compute each period's ratios ---
+      const data = periods.map(({ key, start, end }) => {
+        const inThisPeriod = (accrualDate: string | null) => !!accrualDate && accrualDate >= start && accrualDate <= end;
+
+        const periodReturns = returnRowsInRange.filter((x: any) => inThisPeriod(x.accrualDate));
+        const qtyOf = (r: any) => parseFloat(String(r.quantity).replace(/,/g, "")) || 0;
+        const returnedQty = periodReturns.reduce((sum: number, x: any) => sum + qtyOf(x.row), 0);
+        const goodReturnQty = periodReturns.filter((x: any) => x.row.detaileddisposition === "SELLABLE").reduce((sum: number, x: any) => sum + qtyOf(x.row), 0);
+        const badReturnRows = periodReturns.filter((x: any) => x.row.detaileddisposition !== "SELLABLE");
+        const badReturnQty = badReturnRows.reduce((sum: number, x: any) => sum + qtyOf(x.row), 0);
+
+        const shippedQty = shippedQtyByPeriod[key] || 0;
+        const returnPct = shippedQty > 0 ? (returnedQty / shippedQty) * 100 : 0;
+        const goodReturnPct = shippedQty > 0 ? (goodReturnQty / shippedQty) * 100 : 0;
+        const badReturnPct = shippedQty > 0 ? (badReturnQty / shippedQty) * 100 : 0;
+
+        const claimedBadReturnQty = badReturnRows
+          .filter((x: any) => claimedPairSet.has(`${x.row.orderid}|||${x.row.sku}`))
+          .reduce((sum: number, x: any) => sum + qtyOf(x.row), 0);
+        const claimRatePct = badReturnQty > 0 ? (claimedBadReturnQty / badReturnQty) * 100 : 0;
+
+        const claimsWithin24hUnits = badReturnRows
+          .filter((x: any) => pairsWithin24h.has(`${x.row.orderid}|||${x.row.sku}`))
+          .reduce((sum: number, x: any) => sum + qtyOf(x.row), 0);
+        const claim24hPct = badReturnQty > 0 ? (claimsWithin24hUnits / badReturnQty) * 100 : 0;
+
+        // Reimbursement Rate: reimbursed amount / COGS of claimed units, restricted to resolvable-cost
+        // claims. Reimbursed amount and claimed qty are summed from THIS period's own claim rows only
+        // (a pair with claim rows spread across multiple periods must not have another period's amount
+        // bleed into this one).
+        const periodClaims = claimRowsInRange.filter((x: any) => inThisPeriod(x.accrualDate));
+        const periodReimbursedByPair = new Map<string, number>();
+        const periodClaimedQtyByPair = new Map<string, number>();
+        const periodLatestApprovaldateByPair = new Map<string, string>();
+        for (const { row } of periodClaims) {
+          const pairKey = `${row.amazonorderid}|||${row.sku}`;
+          periodReimbursedByPair.set(pairKey, (periodReimbursedByPair.get(pairKey) || 0) + (parseFloat(row.amount) || 0));
+          periodClaimedQtyByPair.set(pairKey, (periodClaimedQtyByPair.get(pairKey) || 0) + (parseFloat(row.qty) || 0));
+          const approvaldate = row.approvaldate || "";
+          if (approvaldate > (periodLatestApprovaldateByPair.get(pairKey) || "")) periodLatestApprovaldateByPair.set(pairKey, approvaldate);
+        }
+        // Reimbursement Rate uses the pair's RAW TOTAL shipment COGS (totalCogsFor), not per-unit cost --
+        // matching /api/amazon/operational-metrics' existing convention exactly (see comment above totalCogsFor).
+        let totalReimbursed = 0;
+        let cogsOfClaimedUnits = 0;
+        for (const pairKey of periodClaimedQtyByPair.keys()) {
+          const [orderId, claimSku] = pairKey.split("|||");
+          const claimedQty = periodClaimedQtyByPair.get(pairKey) || 0;
+          const rowCogs = totalCogsFor(orderId, claimSku, claimedQty, periodLatestApprovaldateByPair.get(pairKey) || "");
+          if (rowCogs !== undefined) {
+            totalReimbursed += periodReimbursedByPair.get(pairKey) || 0;
+            cogsOfClaimedUnits += rowCogs;
+          }
+        }
+        const reimbursementPct = cogsOfClaimedUnits > 0 ? (totalReimbursed / cogsOfClaimedUnits) * 100 : 0;
+
+        // Return Loss Rate: (COGS of bad-disposition units - reimbursed for those units) / COGS of those
+        // units, reimbursement again drawn only from this period's own claim rows (periodReimbursedByPair).
+        let totalBadUnitsCogs = 0;
+        let totalReimbursedForBadUnits = 0;
+        const badQtyByPair = new Map<string, number>();
+        for (const { row } of badReturnRows) {
+          const pairKey = `${row.orderid}|||${row.sku}`;
+          badQtyByPair.set(pairKey, (badQtyByPair.get(pairKey) || 0) + qtyOf(row));
+        }
+        for (const [pairKey, badQty] of badQtyByPair) {
+          const [orderId, returnSku] = pairKey.split("|||");
+          const matchingRow = badReturnRows.find((x: any) => `${x.row.orderid}|||${x.row.sku}` === pairKey)?.row;
+          const unitCogs = unitCogsFor(orderId, returnSku, matchingRow?.returndate || "");
+          if (unitCogs !== undefined) {
+            totalBadUnitsCogs += badQty * unitCogs;
+            totalReimbursedForBadUnits += periodReimbursedByPair.get(pairKey) || 0;
+          }
+        }
+        const returnLossPct = totalBadUnitsCogs > 0 ? ((totalBadUnitsCogs - totalReimbursedForBadUnits) / totalBadUnitsCogs) * 100 : 0;
+
+        return {
+          period: key,
+          returnPct: Math.round(returnPct * 100) / 100,
+          goodReturnPct: Math.round(goodReturnPct * 100) / 100,
+          badReturnPct: Math.round(badReturnPct * 100) / 100,
+          claimRatePct: Math.round(claimRatePct * 100) / 100,
+          claim24hPct: Math.round(claim24hPct * 100) / 100,
+          reimbursementPct: Math.round(reimbursementPct * 100) / 100,
+          returnLossPct: Math.round(returnLossPct * 100) / 100,
+        };
+      });
+
+      // --- Ageing Inventory %, Dead Stock %, Stockout Cost: snapshot metrics, recomputed as of each
+      // period's end date using the same 182-day trailing lookback + week-over-week/day-over-day state
+      // machine as /api/amazon/operational-metrics, just evaluated at multiple points along the timeline
+      // instead of once at the overall range's end. ---
+      const earliestPeriodEnd = periods[0]?.end || endDate;
+      const widestLookbackStart = new Date(new Date(earliestPeriodEnd).getTime() - 182 * 24 * 60 * 60 * 1000)
+        .toISOString().slice(0, 10);
+
+      const [dailyUnitsResult, dailyStockResult] = await Promise.all([
+        client.query(`
+          SELECT sku, TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+            COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
+            COALESCE(SUM(${revenueCol}), 0) AS revenue
+          FROM "Amazon_GST_Master"
+          WHERE transaction_type = 'Shipment'
+            AND order_date IS NOT NULL AND order_date != ''
+            AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
+          GROUP BY sku, NULLIF(order_date, '')::date
+        `, [widestLookbackStart, endDate]),
+        client.query(`
+          SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
+          FROM "EasyEcomInventory"
+          WHERE date IS NOT NULL AND date != ''
+            AND date::date >= $1::date AND date::date <= $2::date
+        `, [widestLookbackStart, endDate]),
+      ]);
+
+      type DayNum = { units: number; revenue: number };
+      const unitsBySkuDate = new Map<string, Map<string, DayNum>>();
+      for (const row of dailyUnitsResult.rows) {
+        if (!unitsBySkuDate.has(row.sku)) unitsBySkuDate.set(row.sku, new Map());
+        unitsBySkuDate.get(row.sku)!.set(row.d, { units: parseFloat(row.units), revenue: parseFloat(row.revenue) });
+      }
+      const stockBySkuDate = new Map<string, Map<string, number>>();
+      for (const row of dailyStockResult.rows) {
+        if (!stockBySkuDate.has(row.sku)) stockBySkuDate.set(row.sku, new Map());
+        stockBySkuDate.get(row.sku)!.set(row.d, row.quantity == null ? 0 : parseFloat(row.quantity));
+      }
+      const allSkus = new Set<string>([...unitsBySkuDate.keys(), ...stockBySkuDate.keys()]);
+
+      const listingsCountResult = await client.query(`
+        SELECT COUNT(DISTINCT CASE WHEN LOWER(status) = 'active' THEN sellersku END) AS active_listings
+        FROM "AmazonMtrRow"
+      `);
+      const activeListings = parseInt(listingsCountResult.rows[0].active_listings);
+
+      // Computes ageing-flag / dead-stock-flag counts and OOS-days as of a given reference (period-end) date,
+      // reusing the exact state-machine logic from /api/amazon/operational-metrics.
+      const snapshotAt = (periodStart: string, periodEnd: string) => {
+        const lookbackStart = new Date(new Date(periodEnd).getTime() - 182 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        let ageingFlaggedCount = 0;
+        let deadStockCriticalCount = 0;
+        let outOfStockDaysWeighted = 0;
+        let platformRevenueInPeriod = 0;
+
+        for (const sku of allSkus) {
+          const stockMap = stockBySkuDate.get(sku) || new Map<string, number>();
+          const unitsMap = unitsBySkuDate.get(sku) || new Map<string, DayNum>();
+          const dates = [...stockMap.keys()].filter((d) => d <= periodEnd).sort();
+
+          const weekBuckets = new Map<string, { sum: number; count: number }>();
+          for (const d of dates) {
+            if (d < lookbackStart) continue;
+            const qty = stockMap.get(d)!;
+            if (qty <= 0) continue;
+            const unitsSold = unitsMap.get(d)?.units ?? 0;
+            const wk = isoWeekStart(d);
+            const bucket = weekBuckets.get(wk) || { sum: 0, count: 0 };
+            bucket.sum += unitsSold;
+            bucket.count += 1;
+            weekBuckets.set(wk, bucket);
+          }
+          const weeks = [...weekBuckets.entries()].map(([wk, b]) => ({ wk, rate: b.sum / b.count })).sort((a, b) => (a.wk < b.wk ? -1 : 1));
+
+          let flagged = false;
+          let triggerRate = 0;
+          for (let i = 1; i < weeks.length; i++) {
+            const prevRate = weeks[i - 1].rate;
+            const currRate = weeks[i].rate;
+            if (!flagged) {
+              if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
+                flagged = true;
+                triggerRate = prevRate;
+              }
+            } else if (currRate >= triggerRate) {
+              flagged = false;
+            }
+          }
+          if (flagged) ageingFlaggedCount++;
+
+          const stockedDatesInPeriod = dates.filter((d) => d >= periodStart && d <= periodEnd && stockMap.get(d)! > 0);
+          if (stockedDatesInPeriod.length >= 2) {
+            const last = stockedDatesInPeriod[stockedDatesInPeriod.length - 1];
+            const prev = stockedDatesInPeriod[stockedDatesInPeriod.length - 2];
+            const lastRate = unitsMap.get(last)?.units ?? 0;
+            const prevRate = unitsMap.get(prev)?.units ?? 0;
+            if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) deadStockCriticalCount++;
+          }
+
+          // OOS day-count depends on stock snapshots (dates), but revenue-in-period is summed from ALL
+          // units/revenue records independently (unitsMap.entries()) -- a day can have a sale with no
+          // stock snapshot logged, and that day's revenue must still count, same as
+          // /api/amazon/operational-metrics.
+          let oosDaysInPeriod = 0;
+          for (const d of dates) {
+            if (d < periodStart || d > periodEnd) continue;
+            if (stockMap.get(d)! <= 0) oosDaysInPeriod++;
+          }
+          let skuRevenueInPeriod = 0;
+          for (const [d, dn] of unitsMap.entries()) {
+            if (d < periodStart || d > periodEnd) continue;
+            skuRevenueInPeriod += dn.revenue;
+          }
+          platformRevenueInPeriod += skuRevenueInPeriod;
+          if (oosDaysInPeriod > 0) outOfStockDaysWeighted += oosDaysInPeriod * skuRevenueInPeriod;
+        }
+
+        const outOfStockDays = platformRevenueInPeriod > 0 ? outOfStockDaysWeighted / platformRevenueInPeriod : 0;
+        const periodDayCount = Math.max(1, Math.round(
+          (new Date(periodEnd).getTime() - new Date(periodStart).getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1);
+        const avgDailyRevenue = platformRevenueInPeriod / periodDayCount;
+        const stockoutCost = outOfStockDays * avgDailyRevenue;
+        const ageingInventoryPct = activeListings > 0 ? (ageingFlaggedCount / activeListings) * 100 : 0;
+        const deadStockPct = activeListings > 0 ? (deadStockCriticalCount / activeListings) * 100 : 0;
+
+        return {
+          outOfStockDays: Math.round(outOfStockDays * 100) / 100,
+          stockoutCost: Math.round(stockoutCost * 100) / 100,
+          ageingInventoryPct: Math.round(ageingInventoryPct * 100) / 100,
+          deadStockPct: Math.round(deadStockPct * 100) / 100,
+        };
+      };
+
+      const dataWithSnapshots = data.map((row, i) => ({
+        ...row,
+        ...snapshotAt(periods[i].start, periods[i].end),
+      }));
+
+      res.json({ success: true, data: dataWithSnapshots, granularity, gstMode });
+    } catch (err: any) {
+      console.error("Amazon supply chain trend query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
   // Amazon Compare Sales Endpoint -- single-day metrics for a reference date vs the day before,
   // same day last week, and same day last year (mirrors Amazon Seller Central's own "Compare Sales" panel).
   // "Reference date" is whatever date the dashboard's selected range ends on -- this app has no live "today"
@@ -2048,9 +2557,12 @@ async function startServer() {
         // Accrual basis: pulled un-dated (per this SKU) and joined to the shipment's order_date, then
         // bucketed in JS below by accrual date (shipment date, falling back to the return's own returndate
         // when unmatched) using the same periodOf() logic as the revenue query above, so a unit sold at
-        // period-end and returned early next period counts against the period it was SOLD in.
+        // period-end and returned early next period counts against the period it was SOLD in. Carries
+        // orderid/detaileddisposition so Return Loss below can resolve real per-(orderid,sku) COGS and
+        // matched claim reimbursement -- same formula as /api/amazon/financials and /api/amazon/sku-profitability,
+        // not a revenue-based approximation.
         client.query(`
-          SELECT r.quantity, r.returndate, g.order_date AS shipment_order_date
+          SELECT r.orderid, r.quantity, r.returndate, r.detaileddisposition, g.order_date AS shipment_order_date
           FROM "AmazonReturnsB2cRow" r
           LEFT JOIN "Amazon_GST_Master" g
             ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
@@ -2067,25 +2579,79 @@ async function startServer() {
         const [y, m] = dateStr.split("-");
         return `${y}-${m}-01`;
       };
-      const returnedQtyByPeriod: Record<string, number> = {};
-      for (const row of returnsResult.rows) {
+
+      const badReturnRows = returnsResult.rows.filter((row: any) => {
+        if (row.detaileddisposition === "SELLABLE") return false;
         const accrualDate = (row.shipment_order_date || row.returndate || "").slice(0, 10);
-        if (!accrualDate) continue;
-        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) continue;
-        const period = periodOf(accrualDate);
-        const qty = parseFloat(String(row.quantity).replace(/,/g, "")) || 0;
-        returnedQtyByPeriod[period] = (returnedQtyByPeriod[period] || 0) + qty;
+        if (!accrualDate) return false;
+        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) return false;
+        return true;
+      });
+
+      const returnLossByPeriod: Record<string, number> = {};
+      if (badReturnRows.length > 0) {
+        const orderIds = badReturnRows.map((r: any) => r.orderid);
+
+        const [perUnitCogsResult, claimsResult] = await Promise.all([
+          client.query(`
+            SELECT order_id,
+              CASE WHEN SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) > 0
+                THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
+                ELSE NULL END AS unit_cogs
+            FROM "Amazon_GST_Master"
+            WHERE transaction_type = 'Shipment' AND sku = $1
+              AND order_id = ANY($2::text[])
+            GROUP BY order_id
+          `, [sku, orderIds]),
+          client.query(`
+            SELECT amazonorderid, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
+            FROM "AmazonClaimsReimbursementsRow"
+            WHERE sku = $1 AND amazonorderid = ANY($2::text[])
+            GROUP BY amazonorderid
+          `, [sku, orderIds]),
+        ]);
+
+        const gstUnitCogsByOrder = new Map<string, number>();
+        for (const row of perUnitCogsResult.rows) {
+          if (row.unit_cogs === null) continue;
+          const unitCogs = parseFloat(row.unit_cogs);
+          if (!isNaN(unitCogs)) gstUnitCogsByOrder.set(row.order_id, unitCogs);
+        }
+        const reimbursedByOrder = new Map<string, number>();
+        for (const row of claimsResult.rows) {
+          reimbursedByOrder.set(row.amazonorderid, parseFloat(row.reimbursed));
+        }
+
+        const easyEcomCostHistory = await loadEasyEcomCostHistory(client, [sku]);
+
+        for (const row of badReturnRows) {
+          const badQty = parseFloat(String(row.quantity).replace(/,/g, "")) || 0;
+
+          let unitCogs = gstUnitCogsByOrder.get(row.orderid);
+          if (unitCogs === undefined) {
+            const history = easyEcomCostHistory.get(sku.trim());
+            unitCogs = history ? costAsOf(history, (row.returndate || "").slice(0, 10)) : undefined;
+          }
+
+          if (unitCogs !== undefined) {
+            const accrualDate = (row.shipment_order_date || row.returndate || "").slice(0, 10);
+            const period = periodOf(accrualDate);
+            const reimbursed = reimbursedByOrder.get(row.orderid) || 0;
+            returnLossByPeriod[period] = (returnLossByPeriod[period] || 0) + (badQty * unitCogs - reimbursed);
+          }
+        }
+        for (const period of Object.keys(returnLossByPeriod)) {
+          returnLossByPeriod[period] = Math.max(0, returnLossByPeriod[period]);
+        }
       }
 
-      // returnLoss formula matches /api/amazon/sku-profitability: (returnedQty/unitsSold) * revenue * 0.5, per period
       const data = result.rows.map((row: any) => {
         const period = row.period;
         const revenue = parseFloat(row.revenue);
         const cogs = parseFloat(row.cogs);
         const unitsSold = parseFloat(row.units_sold);
         const marketplaceFees = feesByPeriod[period] || 0;
-        const returnedQty = returnedQtyByPeriod[period] || 0;
-        const returnLoss = unitsSold > 0 ? (returnedQty / unitsSold) * revenue * 0.5 : 0;
+        const returnLoss = returnLossByPeriod[period] || 0;
         const netProfit = revenue - cogs - marketplaceFees - returnLoss;
         return {
           period,
