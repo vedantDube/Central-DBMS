@@ -432,14 +432,12 @@ async function startServer() {
       const revenueCol = gstMode === "inclusive" ? "invoice_amount" : "tax_exclusive_gross";
 
       let gstDateFilter = "";
-      let returnDateFilter = "";
       let utDateFilter = "";
       const params: string[] = [];
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
-        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -462,12 +460,16 @@ async function startServer() {
           WHERE 1=1 ${utDateFilter}
           GROUP BY sku
         `, params),
+        // Accrual basis: pulled un-dated and joined to the shipment's order_date, then filtered/grouped
+        // in JS below by accrual date (shipment date, falling back to the return's own returndate when
+        // unmatched) -- same pattern as /api/amazon/financials, so a unit sold at period-end and returned
+        // early next period counts against the period it was SOLD in.
         client.query(`
-          SELECT sku, COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS returned_qty
-          FROM "AmazonReturnsB2cRow"
-          WHERE 1=1 ${returnDateFilter}
-          GROUP BY sku
-        `, params),
+          SELECT r.sku, r.quantity, r.returndate, g.order_date AS shipment_order_date
+          FROM "AmazonReturnsB2cRow" r
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+        `),
         client.query(`SELECT sku, product_name, category_name, brand FROM "EasyEcomProductMaster"`),
         client.query(`SELECT sku, MIN(date) AS first_seen FROM "EasyEcomInventory" GROUP BY sku`),
         // Glance Views / Conversion Rate: real data from the Sales & Traffic report, joined SKU -> ASIN -> traffic.
@@ -497,7 +499,11 @@ async function startServer() {
 
       const returnsMap: Record<string, number> = {};
       for (const row of returnsResult.rows) {
-        returnsMap[row.sku] = parseFloat(row.returned_qty);
+        const accrualDate = (row.shipment_order_date || row.returndate || "").slice(0, 10);
+        if (!accrualDate) continue;
+        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) continue;
+        const qty = parseFloat(String(row.quantity).replace(/,/g, "")) || 0;
+        returnsMap[row.sku] = (returnsMap[row.sku] || 0) + qty;
       }
 
       const productMap: Record<string, { name: string; category: string }> = {};
@@ -589,14 +595,12 @@ async function startServer() {
       const endDate = (req.query.endDate as string) || null;
 
       let gstDateFilter = "";
-      let returnDateFilter = "";
       let utDateFilter = "";
       const params: string[] = [];
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
-        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -615,16 +619,23 @@ async function startServer() {
           LIMIT 10
         `, params),
 
+        // Accrual basis: returns are joined to their ORIGINAL SHIPMENT's order_date (via orderid+sku),
+        // not filtered by their own returndate -- so a unit shipped in-range and returned just after the
+        // range boundary still counts against the shipment it belongs to, matching the same accrual logic
+        // as /api/amazon/financials' Return Loss. r.shipment_order_date falls back to r.returndate only
+        // when no matching Shipment row exists in Amazon_GST_Master.
         client.query(`
           SELECT g.sku,
             COALESCE(SUM(CASE WHEN g.transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(g.quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS shipped,
             COALESCE(r.returned, 0) AS returned
           FROM "Amazon_GST_Master" g
           LEFT JOIN (
-            SELECT sku, SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS returned
-            FROM "AmazonReturnsB2cRow"
-            WHERE 1=1 ${returnDateFilter}
-            GROUP BY sku
+            SELECT r.sku, SUM(CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)) AS returned
+            FROM "AmazonReturnsB2cRow" r
+            LEFT JOIN "Amazon_GST_Master" sg
+              ON sg.order_id = r.orderid AND sg.sku = r.sku AND sg.transaction_type = 'Shipment'
+            WHERE 1=1 ${gstDateFilter.replace(/order_date/g, "COALESCE(sg.order_date, r.returndate)")}
+            GROUP BY r.sku
           ) r ON g.sku = r.sku
           WHERE g.transaction_type = 'Shipment' ${gstDateFilter}
           GROUP BY g.sku, r.returned
@@ -713,14 +724,12 @@ async function startServer() {
       const type = (req.query.type as string) || "unreconciled";
 
       let gstDateFilter = "";
-      let returnDateFilter = "";
       let utDateFilter = "";
       const params: string[] = [];
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
-        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -744,14 +753,20 @@ async function startServer() {
         filename = "unreconciled_discrepancies.csv";
 
       } else if (type === "highReturns") {
+        // Accrual basis: see the same query in /api/amazon/anomalies -- returns are joined to their
+        // original shipment's order_date rather than filtered by their own returndate.
         const result = await client.query(`
           SELECT g.sku,
             COALESCE(SUM(CASE WHEN g.transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(g.quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS shipped,
             COALESCE(r.returned, 0) AS returned
           FROM "Amazon_GST_Master" g
           LEFT JOIN (
-            SELECT sku, SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS returned
-            FROM "AmazonReturnsB2cRow" WHERE 1=1 ${returnDateFilter} GROUP BY sku
+            SELECT r.sku, SUM(CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)) AS returned
+            FROM "AmazonReturnsB2cRow" r
+            LEFT JOIN "Amazon_GST_Master" sg
+              ON sg.order_id = r.orderid AND sg.sku = r.sku AND sg.transaction_type = 'Shipment'
+            WHERE 1=1 ${gstDateFilter.replace(/order_date/g, "COALESCE(sg.order_date, r.returndate)")}
+            GROUP BY r.sku
           ) r ON g.sku = r.sku
           WHERE g.transaction_type = 'Shipment' ${gstDateFilter}
           GROUP BY g.sku, r.returned
@@ -821,18 +836,14 @@ async function startServer() {
       const revenueCol = gstMode === "inclusive" ? "invoice_amount" : "tax_exclusive_gross";
 
       let gstDateFilter = "";
-      let returnDateFilter = "";
-      let claimDateFilter = "";
       const params: string[] = [];
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
-        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
-        claimDateFilter = `AND NULLIF(approvaldate, '')::date >= $1::date AND NULLIF(approvaldate, '')::date <= $2::date`;
       }
 
-      const [ordersResult, listingsResult, returnsResult, returnsByDispositionResult, claimsResult] = await Promise.all([
+      const [ordersResult, listingsResult, returnsResult, claimsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS total_revenue,
@@ -847,26 +858,23 @@ async function startServer() {
             COUNT(DISTINCT CASE WHEN LOWER(status) = 'active' THEN sellersku END) AS active_listings
           FROM "AmazonMtrRow"
         `),
+        // Accrual basis: every return row is pulled un-dated and joined to its shipment's order_date, then
+        // filtered/aggregated in JS below by accrual date (shipment date, falling back to the return's own
+        // returndate when unmatched) -- so a unit sold at period-end and returned early next period counts
+        // against the period it was SOLD in, not the period it happened to be returned in. See the same
+        // pattern's comment in /api/amazon/financials.
         client.query(`
-          SELECT COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS returned_qty
-          FROM "AmazonReturnsB2cRow"
-          WHERE 1=1 ${returnDateFilter}
-        `, params),
-        // Good/Bad Return split via Amazon's own detaileddisposition field (SELLABLE = good/reinventorisable, else bad)
+          SELECT r.orderid, r.sku, r.quantity, r.detaileddisposition, r.returndate, g.order_date AS shipment_order_date
+          FROM "AmazonReturnsB2cRow" r
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+        `),
         client.query(`
-          SELECT
-            COALESCE(SUM(CASE WHEN detaileddisposition = 'SELLABLE' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS good_return_qty,
-            COALESCE(SUM(CASE WHEN detaileddisposition IS DISTINCT FROM 'SELLABLE' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS bad_return_qty
-          FROM "AmazonReturnsB2cRow"
-          WHERE 1=1 ${returnDateFilter}
-        `, params),
-        client.query(`
-          SELECT
-            COUNT(*) AS total_claims,
-            COUNT(CASE WHEN CAST(NULLIF(REPLACE(quantityreimbursedtotal, ',', ''), '') AS numeric) > 0 THEN 1 END) AS successful_claims
-          FROM "AmazonClaimsReimbursementsRow"
-          WHERE 1=1 ${claimDateFilter}
-        `, params),
+          SELECT c.amazonorderid, c.sku, c.quantityreimbursedtotal, g.order_date AS shipment_order_date, c.approvaldate
+          FROM "AmazonClaimsReimbursementsRow" c
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment'
+        `),
       ]);
 
       const totalRevenue = parseFloat(ordersResult.rows[0].total_revenue);
@@ -876,12 +884,32 @@ async function startServer() {
       const totalListings = parseInt(listingsResult.rows[0].total_listings);
       const activeListings = parseInt(listingsResult.rows[0].active_listings);
 
-      const returnedQty = parseFloat(returnsResult.rows[0].returned_qty);
-      const goodReturnQty = parseFloat(returnsByDispositionResult.rows[0].good_return_qty);
-      const badReturnQty = parseFloat(returnsByDispositionResult.rows[0].bad_return_qty);
+      // A row's accrual date is its matched shipment's order_date, falling back to its own event date
+      // (returndate / approvaldate) only when no matching Shipment row exists in Amazon_GST_Master.
+      const inAccrualRange = (accrualDate: string | null): boolean => {
+        if (!accrualDate) return false;
+        if (!startDate || !endDate) return true;
+        return accrualDate >= startDate && accrualDate <= endDate;
+      };
 
-      const totalClaims = parseInt(claimsResult.rows[0].total_claims);
-      const successfulClaims = parseInt(claimsResult.rows[0].successful_claims);
+      const returnRowsInRange = returnsResult.rows.filter((r: any) => {
+        const accrualDate = (r.shipment_order_date || r.returndate || "").slice(0, 10);
+        return inAccrualRange(accrualDate);
+      });
+      const returnedQty = returnRowsInRange.reduce((sum: number, r: any) => sum + (parseFloat(String(r.quantity).replace(/,/g, "")) || 0), 0);
+      const goodReturnQty = returnRowsInRange
+        .filter((r: any) => r.detaileddisposition === "SELLABLE")
+        .reduce((sum: number, r: any) => sum + (parseFloat(String(r.quantity).replace(/,/g, "")) || 0), 0);
+      const badReturnQty = returnRowsInRange
+        .filter((r: any) => r.detaileddisposition !== "SELLABLE")
+        .reduce((sum: number, r: any) => sum + (parseFloat(String(r.quantity).replace(/,/g, "")) || 0), 0);
+
+      const claimRowsInRangeRaw = claimsResult.rows.filter((r: any) => {
+        const accrualDate = (r.shipment_order_date || r.approvaldate || "").slice(0, 10);
+        return inAccrualRange(accrualDate);
+      });
+      const totalClaims = claimRowsInRangeRaw.length;
+      const successfulClaims = claimRowsInRangeRaw.filter((r: any) => (parseFloat(String(r.quantityreimbursedtotal).replace(/,/g, "")) || 0) > 0).length;
 
       // Reimbursement Rate: reimbursed amount / COGS of claimed units, restricted to claims we can
       // actually cost -- around two-thirds of claimed orders never got a Amazon_GST_Master row at all
@@ -894,19 +922,26 @@ async function startServer() {
       // built from), since COGS is a SKU-level cost basis, not something that requires the order to
       // appear in Amazon's GST export. Claims with no cost available from either source are excluded
       // from both sides, rather than left in the numerator alone.
+      // Accrual basis: pulled un-dated and joined to the shipment's order_date, filtered in JS by accrual
+      // date (falling back to approvaldate when unmatched), same pattern as returnRowsInRange above.
       const claimRowsResult = await client.query(`
-        SELECT amazonorderid, sku, approvaldate,
-          CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric) AS amount,
-          CAST(NULLIF(REPLACE(quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
-        FROM "AmazonClaimsReimbursementsRow"
-        WHERE 1=1 ${claimDateFilter}
-      `, params);
+        SELECT c.amazonorderid, c.sku, c.approvaldate, g.order_date AS shipment_order_date,
+          CAST(NULLIF(REPLACE(c.amounttotal, ',', ''), '') AS numeric) AS amount,
+          CAST(NULLIF(REPLACE(c.quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
+        FROM "AmazonClaimsReimbursementsRow" c
+        LEFT JOIN "Amazon_GST_Master" g
+          ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment'
+      `);
+      const claimRowsInRange = claimRowsResult.rows.filter((r: any) => {
+        const accrualDate = (r.shipment_order_date || r.approvaldate || "").slice(0, 10);
+        return inAccrualRange(accrualDate);
+      });
 
       // Group claim rows by (orderid, sku) pair first -- a pair can have multiple claim rows (partial/
       // repeat reimbursements), and COGS must be resolved once per pair, not once per claim row, or a
       // pair with 2 claims would have its cost counted twice.
       const claimsByPair = new Map<string, { amount: number; qty: number; sku: string; latestApprovaldate: string }>();
-      for (const row of claimRowsResult.rows) {
+      for (const row of claimRowsInRange) {
         const pairKey = `${row.amazonorderid}|||${row.sku}`;
         const existing = claimsByPair.get(pairKey);
         const amount = parseFloat(row.amount) || 0;
@@ -969,45 +1004,37 @@ async function startServer() {
       }
 
       // Claim Rate: bad-returned units for which a claim was actually raised (matched by orderid+sku),
-      // over total bad-returned units. Previously this compared independent totals (claim COUNT filtered
-      // by approvaldate vs return quantity filtered by returndate on a different table) with no join --
-      // a claim approved in the period could match a return received outside it, or no return at all
-      // (e.g. CustomerServiceIssue claims), and claim-count was compared against unit-quantity. That let
-      // the rate exceed 100%. This join keeps both sides in the same unit (returned quantity) and requires
-      // an actual matching claim record, so it's naturally bounded at 100%.
-      const claimedBadReturnQtyResult = await client.query(`
-        WITH claimed_pairs AS (
-          SELECT DISTINCT amazonorderid, sku FROM "AmazonClaimsReimbursementsRow" WHERE 1=1 ${claimDateFilter}
-        )
-        SELECT COALESCE(SUM(
-          CASE WHEN cp.amazonorderid IS NOT NULL
-            THEN CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)
-            ELSE 0
-          END
-        ), 0) AS claimed_bad_return_qty
-        FROM "AmazonReturnsB2cRow" r
-        LEFT JOIN claimed_pairs cp ON cp.amazonorderid = r.orderid AND cp.sku = r.sku
-        WHERE r.detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
-      `, params);
-      const claimedBadReturnQty = parseFloat(claimedBadReturnQtyResult.rows[0].claimed_bad_return_qty);
+      // over total bad-returned units, both restricted to the accrual-filtered rows already resolved above
+      // (returnRowsInRange / claimRowsInRange), so both sides of the ratio share the same accrual-period
+      // population instead of being independently date-filtered on different columns.
+      const claimedPairSet = new Set(claimRowsInRange.map((r: any) => `${r.amazonorderid}|||${r.sku}`));
+      const badReturnRowsInRange = returnRowsInRange.filter((r: any) => r.detaileddisposition !== "SELLABLE");
+      // Return rows don't carry a sku-qualified orderid pairing column of their own name here, so match
+      // via the same orderid/sku fields returnsResult already selected alongside quantity/disposition.
+      const claimedBadReturnQty = badReturnRowsInRange
+        .filter((r: any) => claimedPairSet.has(`${r.orderid}|||${r.sku}`))
+        .reduce((sum: number, r: any) => sum + (parseFloat(String(r.quantity).replace(/,/g, "")) || 0), 0);
 
       // Claim (<24h) Rate: claims filed within 24h of the matching bad-disposition return, over total
-      // bad-returned units. filedat is backfilled from the returns-ops DB's Reimbursement.filedAt --
-      // Amazon's own export has no claim-raised timestamp.
+      // bad-returned units (both accrual-filtered as above). filedat is backfilled from the returns-ops
+      // DB's Reimbursement.filedAt -- Amazon's own export has no claim-raised timestamp.
       const claim24hResult = await client.query(`
-        WITH bad_returns AS (
-          SELECT orderid, sku, returndate
-          FROM "AmazonReturnsB2cRow"
-          WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
-        )
-        SELECT COUNT(DISTINCT (c.reimbursementid)) AS claims_within_24h
-        FROM "AmazonClaimsReimbursementsRow" c
-        JOIN bad_returns r ON r.orderid = c.amazonorderid AND r.sku = c.sku
-        WHERE c.filedat IS NOT NULL
+        SELECT r.orderid, r.sku, r.returndate, r.detaileddisposition, g.order_date AS shipment_order_date,
+          c.filedat, c.reimbursementid
+        FROM "AmazonReturnsB2cRow" r
+        LEFT JOIN "Amazon_GST_Master" g
+          ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+        JOIN "AmazonClaimsReimbursementsRow" c ON c.amazonorderid = r.orderid AND c.sku = r.sku
+        WHERE r.detaileddisposition IS DISTINCT FROM 'SELLABLE'
+          AND c.filedat IS NOT NULL
           AND EXTRACT(EPOCH FROM (c.filedat::timestamptz - r.returndate::timestamptz)) / 3600 BETWEEN 0 AND 24
-          ${claimDateFilter}
-      `, params);
-      const claimsWithin24h = parseInt(claim24hResult.rows[0].claims_within_24h);
+      `);
+      const claimsWithin24hIds = new Set(
+        claim24hResult.rows
+          .filter((r: any) => inAccrualRange((r.shipment_order_date || r.returndate || "").slice(0, 10)))
+          .map((r: any) => r.reimbursementid)
+      );
+      const claimsWithin24h = claimsWithin24hIds.size;
       const claim24hPct = badReturnQty > 0 ? (claimsWithin24h / badReturnQty) * 100 : 0;
 
       const dayCount = startDate && endDate
@@ -1266,19 +1293,12 @@ async function startServer() {
 
       let gstDateFilter = "";
       let settlementDateFilter = "";
-      let returnDateFilter = "";
-      let claimDateFilter = "";
       const params: string[] = [];
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
         settlementDateFilter = `AND TO_DATE(posteddate, 'DD.MM.YYYY') >= $1::date AND TO_DATE(posteddate, 'DD.MM.YYYY') <= $2::date`;
-        returnDateFilter = `AND NULLIF(returndate, '')::date >= $1::date AND NULLIF(returndate, '')::date <= $2::date`;
-        // Previously the Return Loss "claims" CTE had no date filter at all, so reimbursements from any
-        // point in time got matched against the selected period's bad-return quantities -- inconsistent
-        // populations. Scope it to the same period as everything else in this endpoint.
-        claimDateFilter = `AND NULLIF(approvaldate, '')::date >= $1::date AND NULLIF(approvaldate, '')::date <= $2::date`;
       }
 
       // Amazon Charges GST toggle: fba_fees/selling_fees/other_transaction_fees on Amazon_Unified_Transactions
@@ -1320,13 +1340,25 @@ async function startServer() {
           WHERE currency_code = 'INR' ${adPeriodLabels.length > 0 ? "AND \"dateRange\" = ANY($1::text[])" : ""}
         `, adPeriodLabels.length > 0 ? [adPeriodLabels] : []),
         // Return Loss raw ingredients -- resolved and combined in JS below (see comment there for why).
+        // Accrual basis: a return is attributed to the month its ORIGINAL SALE shipped in, not the month
+        // it was returned. Without this, a unit sold on the last day of a month and returned early the
+        // next month would inflate that month's revenue/profit with no offsetting loss, and dump the
+        // loss on the following month instead -- a pure timing artifact, not a real month-over-month
+        // profit change. So this queries ALL bad-disposition returns (no returndate filter) and later
+        // buckets them in JS by their matched shipment's order_date, falling back to the return's own
+        // returndate only for the ~15-20% of returns with no matching Shipment row in Amazon_GST_Master
+        // (genuinely no shipment month to accrue back to).
         client.query(`
-          SELECT orderid, sku, SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS bad_qty,
-            MAX(returndate) AS latest_returndate
-          FROM "AmazonReturnsB2cRow"
-          WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${returnDateFilter}
-          GROUP BY orderid, sku
-        `, params),
+          SELECT r.orderid, r.sku,
+            SUM(CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)) AS bad_qty,
+            MAX(r.returndate) AS latest_returndate,
+            MAX(g.order_date) AS shipment_order_date
+          FROM "AmazonReturnsB2cRow" r
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+          WHERE r.detaileddisposition IS DISTINCT FROM 'SELLABLE'
+          GROUP BY r.orderid, r.sku
+        `),
       ]);
 
       const grossRevenue = parseFloat(gstResult.rows[0].revenue);
@@ -1353,10 +1385,25 @@ async function startServer() {
       // (Amazon_GST_Master), so a plain LEFT JOIN silently treated their cost as 0 while still subtracting
       // any matched reimbursement -- understating the loss. Pairs with no resolvable cost from either
       // source are excluded entirely, not counted as zero-cost.
+      //
+      // Accrual month resolution: a return's "reporting date" for range-filtering purposes is its
+      // shipment_order_date (the original sale's order_date), NOT its own returndate -- so a unit sold
+      // May 31 and returned June 14 counts against MAY's profit, matching the revenue it's offsetting,
+      // instead of silently inflating May and dumping an unrelated loss on June. Falls back to the
+      // return's own returndate only when no matching Shipment row exists in Amazon_GST_Master (no
+      // shipment month to accrue back to).
+      const accrualDateInRange = (row: any): boolean => {
+        if (!startDate || !endDate) return true;
+        const accrualDate = (row.shipment_order_date || row.latest_returndate || "").slice(0, 10);
+        if (!accrualDate) return false;
+        return accrualDate >= startDate && accrualDate <= endDate;
+      };
+      const badReturnsInRange = badReturnsResult.rows.filter(accrualDateInRange);
+
       let returnLoss = 0;
-      if (badReturnsResult.rows.length > 0) {
-        const orderIds = badReturnsResult.rows.map((r: any) => r.orderid);
-        const skus = badReturnsResult.rows.map((r: any) => r.sku);
+      if (badReturnsInRange.length > 0) {
+        const orderIds = badReturnsInRange.map((r: any) => r.orderid);
+        const skus = badReturnsInRange.map((r: any) => r.sku);
 
         const [perUnitCogsResult, claimsResult] = await Promise.all([
           client.query(`
@@ -1369,13 +1416,16 @@ async function startServer() {
               AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY order_id, sku
           `, [orderIds, skus]),
+          // Claim reimbursements are matched to the same accrual period as the return loss they offset
+          // (not filtered by their own approvaldate) -- a reimbursement approved in a later month for a
+          // return that's been accrued back to an earlier month must net against that same earlier
+          // month, or the loss and its offsetting reimbursement would land in different periods.
           client.query(`
             SELECT amazonorderid, sku, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
             FROM "AmazonClaimsReimbursementsRow"
-            WHERE 1=1 ${claimDateFilter}
-              AND (amazonorderid, sku) IN (SELECT unnest($3::text[]), unnest($4::text[]))
+            WHERE (amazonorderid, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY amazonorderid, sku
-          `, claimDateFilter ? [...params, orderIds, skus] : [null, null, orderIds, skus]),
+          `, [orderIds, skus]),
         ]);
 
         const gstUnitCogsByPair = new Map<string, number>();
@@ -1391,7 +1441,7 @@ async function startServer() {
 
         const easyEcomCostHistory = await loadEasyEcomCostHistory(client, Array.from(new Set(skus)));
 
-        for (const row of badReturnsResult.rows) {
+        for (const row of badReturnsInRange) {
           const pairKey = `${row.orderid}|||${row.sku}`;
           const badQty = parseFloat(row.bad_qty) || 0;
 
@@ -1701,28 +1751,50 @@ async function startServer() {
       // Return Loss, bucketed to the same granularity as everything else -- resolved with the same
       // per-(orderid, sku) cost chain as /api/amazon/financials (GST Master unit COGS, falling back to
       // EasyEcom cost history), so a period's cm2 here is comparable to the headline financials cm2 for
-      // that same period. Bad-disposition returns are periodized by their own returndate, matching claim
-      // reimbursements are periodized by their own approvaldate -- so a return and its reimbursement can
-      // land in different periods if they were recorded weeks apart, same as the headline endpoint does
-      // implicitly when the two dates fall on either side of a requested range boundary.
-      const returnsPeriodExpr = granularity === "daily"
-        ? `TO_CHAR(NULLIF(returndate, '')::date, 'YYYY-MM-DD')`
-        : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`;
+      // that same period.
+      //
+      // Accrual basis: periodized by the ORIGINAL SHIPMENT's order_date (matching /api/amazon/financials'
+      // accrual logic), not the return's own returndate -- a unit sold on the last day of one period and
+      // returned early in the next would otherwise inflate that period's profit with no offsetting loss,
+      // dumping an unrelated loss on the following period. Falls back to the return's own returndate only
+      // when no matching Shipment row exists in Amazon_GST_Master (no shipment period to accrue back to).
+      // Claim reimbursements are matched to this same accrual period, not their own approvaldate, so a
+      // loss and its offsetting reimbursement always net together in the period they're accrued to.
       const badReturnsTrendResult = await client.query(`
-        SELECT ${returnsPeriodExpr} AS period, orderid, sku,
-          SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)) AS bad_qty,
-          MAX(returndate) AS latest_returndate
-        FROM "AmazonReturnsB2cRow"
-        WHERE detaileddisposition IS DISTINCT FROM 'SELLABLE' ${gstDateFilter.replace(/order_date/g, "returndate")}
-        GROUP BY period, orderid, sku
-      `, params);
+        SELECT r.orderid, r.sku,
+          SUM(CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)) AS bad_qty,
+          MAX(r.returndate) AS latest_returndate,
+          MAX(g.order_date) AS shipment_order_date
+        FROM "AmazonReturnsB2cRow" r
+        LEFT JOIN "Amazon_GST_Master" g
+          ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+        WHERE r.detaileddisposition IS DISTINCT FROM 'SELLABLE'
+        GROUP BY r.orderid, r.sku
+      `);
+
+      const periodOf = (dateStr: string): string => {
+        const d = dateStr.slice(0, 10);
+        if (granularity === "daily") return d;
+        const [y, m, day] = d.split("-").map(Number);
+        if (granularity === "weekly") {
+          return isoWeekStart(d);
+        }
+        return `${y}-${String(m).padStart(2, "0")}-01`;
+      };
+      const accrualDateInRange = (row: any): string | null => {
+        const accrualDate = (row.shipment_order_date || row.latest_returndate || "").slice(0, 10);
+        if (!accrualDate) return null;
+        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) return null;
+        return accrualDate;
+      };
+      const badReturnsInRange = badReturnsTrendResult.rows
+        .map((row: any) => ({ row, accrualDate: accrualDateInRange(row) }))
+        .filter((x: any): x is { row: any; accrualDate: string } => x.accrualDate !== null);
 
       const returnLossByPeriod: Record<string, number> = {};
-      if (badReturnsTrendResult.rows.length > 0) {
-        const orderIds = badReturnsTrendResult.rows.map((r: any) => r.orderid);
-        const skus = badReturnsTrendResult.rows.map((r: any) => r.sku);
+      if (badReturnsInRange.length > 0) {
+        const orderIds = badReturnsInRange.map(({ row }) => row.orderid);
+        const skus = badReturnsInRange.map(({ row }) => row.sku);
 
         const [perUnitCogsResult, claimsResult] = await Promise.all([
           client.query(`
@@ -1738,10 +1810,9 @@ async function startServer() {
           client.query(`
             SELECT amazonorderid, sku, SUM(CAST(NULLIF(REPLACE(amounttotal, ',', ''), '') AS numeric)) AS reimbursed
             FROM "AmazonClaimsReimbursementsRow"
-            WHERE 1=1 ${startDate && endDate ? `AND NULLIF(approvaldate, '')::date >= $3::date AND NULLIF(approvaldate, '')::date <= $4::date` : ""}
-              AND (amazonorderid, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
+            WHERE (amazonorderid, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY amazonorderid, sku
-          `, startDate && endDate ? [orderIds, skus, startDate, endDate] : [orderIds, skus]),
+          `, [orderIds, skus]),
         ]);
 
         const gstUnitCogsByPair = new Map<string, number>();
@@ -1757,7 +1828,7 @@ async function startServer() {
 
         const easyEcomCostHistory = await loadEasyEcomCostHistory(client, Array.from(new Set(skus)));
 
-        for (const row of badReturnsTrendResult.rows) {
+        for (const { row, accrualDate } of badReturnsInRange) {
           const pairKey = `${row.orderid}|||${row.sku}`;
           const badQty = parseFloat(row.bad_qty) || 0;
 
@@ -1768,8 +1839,9 @@ async function startServer() {
           }
 
           if (unitCogs !== undefined) {
+            const period = periodOf(accrualDate);
             const reimbursed = reimbursedByPair.get(pairKey) || 0;
-            returnLossByPeriod[row.period] = (returnLossByPeriod[row.period] || 0) + (badQty * unitCogs - reimbursed);
+            returnLossByPeriod[period] = (returnLossByPeriod[period] || 0) + (badQty * unitCogs - reimbursed);
           }
         }
         for (const period of Object.keys(returnLossByPeriod)) {
@@ -1952,18 +2024,6 @@ async function startServer() {
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $2::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $3::date`;
       }
 
-      const returnsPeriodExpr = granularity === "daily"
-        ? `TO_CHAR(NULLIF(returndate, '')::date, 'YYYY-MM-DD')`
-        : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', NULLIF(returndate, '')::date), 'YYYY-MM-DD')`;
-      let returnsDateFilter = "";
-      const returnsParams: string[] = [sku];
-      if (startDate && endDate) {
-        returnsParams.push(startDate, endDate);
-        returnsDateFilter = `AND NULLIF(returndate, '')::date >= $2::date AND NULLIF(returndate, '')::date <= $3::date`;
-      }
-
       const [result, feesResult, returnsResult] = await Promise.all([
         client.query(`
           SELECT
@@ -1985,19 +2045,37 @@ async function startServer() {
           WHERE sku = $1 ${utDateFilter}
           GROUP BY period
         `, utParams),
+        // Accrual basis: pulled un-dated (per this SKU) and joined to the shipment's order_date, then
+        // bucketed in JS below by accrual date (shipment date, falling back to the return's own returndate
+        // when unmatched) using the same periodOf() logic as the revenue query above, so a unit sold at
+        // period-end and returned early next period counts against the period it was SOLD in.
         client.query(`
-          SELECT ${returnsPeriodExpr} AS period,
-            COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS returned_qty
-          FROM "AmazonReturnsB2cRow"
-          WHERE sku = $1 ${returnsDateFilter}
-          GROUP BY period
-        `, returnsParams),
+          SELECT r.quantity, r.returndate, g.order_date AS shipment_order_date
+          FROM "AmazonReturnsB2cRow" r
+          LEFT JOIN "Amazon_GST_Master" g
+            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+          WHERE r.sku = $1
+        `, [sku]),
       ]);
 
       const feesByPeriod: Record<string, number> = {};
       for (const row of feesResult.rows) feesByPeriod[row.period] = parseFloat(row.marketplace_fees);
+
+      const periodOf = (dateStr: string): string => {
+        if (granularity === "daily") return dateStr;
+        if (granularity === "weekly") return isoWeekStart(dateStr);
+        const [y, m] = dateStr.split("-");
+        return `${y}-${m}-01`;
+      };
       const returnedQtyByPeriod: Record<string, number> = {};
-      for (const row of returnsResult.rows) returnedQtyByPeriod[row.period] = parseFloat(row.returned_qty);
+      for (const row of returnsResult.rows) {
+        const accrualDate = (row.shipment_order_date || row.returndate || "").slice(0, 10);
+        if (!accrualDate) continue;
+        if (startDate && endDate && (accrualDate < startDate || accrualDate > endDate)) continue;
+        const period = periodOf(accrualDate);
+        const qty = parseFloat(String(row.quantity).replace(/,/g, "")) || 0;
+        returnedQtyByPeriod[period] = (returnedQtyByPeriod[period] || 0) + qty;
+      }
 
       // returnLoss formula matches /api/amazon/sku-profitability: (returnedQty/unitsSold) * revenue * 0.5, per period
       const data = result.rows.map((row: any) => {
