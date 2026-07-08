@@ -166,7 +166,6 @@ async function main() {
           refunds: order.refunds ?? null,
           shippingAddress: order.shipping_address ?? null,
           shippingLines: order.shipping_lines ?? null,
-          rawJson: order,
         };
 
         // Save order and its line items inside a Prisma transaction

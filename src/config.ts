@@ -82,6 +82,8 @@ const schema = z.object({
   CRON_AMAZON_INGEST: z.string().default("0 2 * * *"),
   CRON_EASYECOM_METADATA: z.string().default("0 3 * * *"),
   CRON_AMAZON_GST_SYNC: z.string().default("0 4 * * *"),
+  CRON_SHOPIFY_ORDER_REFUNDS: z.string().default("40 * * * *"),
+  CRON_SHOPIFY_GST_SYNC: z.string().default("45 * * * *"),
   CRON_AMAZON_MAP_COST: z.string().default("0 5 * * *"),
 });
 

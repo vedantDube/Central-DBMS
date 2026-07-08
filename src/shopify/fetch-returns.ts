@@ -123,7 +123,7 @@ async function main() {
   dateMin.setDate(dateMin.getDate() - days);
   // Format: YYYY-MM-DD
   const dateMinStr = dateMin.toISOString().slice(0, 10);
-  const filterQuery = `updated_at:>=${dateMinStr} AND (return_status:returned OR return_status:in_progress OR return_status:return_requested)`;
+  const filterQuery = `updated_at:>=${dateMinStr} AND (return_status:returned OR return_status:in_progress OR return_status:return_requested OR return_status:inspection_complete OR return_status:return_failed)`;
 
   let cursor: string | null = null;
   let hasNextPage = true;
@@ -166,7 +166,6 @@ async function main() {
             returnShippingFees: ret.returnShippingFees ?? null,
             reverseFulfillmentOrders: ret.reverseFulfillmentOrders ?? null,
             suggestedFinancialOutcome: ret.suggestedFinancialOutcome ?? null,
-            rawJson: ret,
           };
 
           // Save return and its line items inside a transaction

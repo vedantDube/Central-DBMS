@@ -76,6 +76,18 @@ const ALL_TASKS: ScriptTask[] = [
     description: "Fetches orders data from Shopify Admin API"
   },
   {
+    name: "Shopify Sync Order Refunds",
+    command: "tsx",
+    args: ["src/shopify/sync-order-refunds.ts"],
+    description: "Extracts order-level refunds (order.refunds JSON) into ShopifyOrderRefund/ShopifyOrderRefundLineItem tables"
+  },
+  {
+    name: "Shopify GST Master Sync",
+    command: "tsx",
+    args: ["src/shopify/sync-gst-master.ts"],
+    description: "Maps Shopify orders and refunds (filtered by Shiprocket RTO/cancellation status) into the Amazon GST Master table"
+  },
+  {
     name: "Shopify Fetch Returns",
     command: "tsx",
     args: ["src/shopify/fetch-returns.ts"],

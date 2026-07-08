@@ -209,7 +209,6 @@ async function saveInventoryItem(item: any, dateStr: string, snapshotType: strin
           onHandQty,
           committedQty,
           reservedQty,
-          rawJson: lvl,
         },
         create: {
           shopifyLevelId: lvl.id,
@@ -230,7 +229,6 @@ async function saveInventoryItem(item: any, dateStr: string, snapshotType: strin
           onHandQty,
           committedQty,
           reservedQty,
-          rawJson: lvl,
         },
       });
     })

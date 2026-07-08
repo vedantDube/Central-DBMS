@@ -17,20 +17,17 @@ type ShiprocketOrderItem = {
     return_awb?: string | null;
     etd?: string | null;
     rto_initiated_date?: string | null;
-    items?: Array<{
-      sku?: string | null;
-      product_id?: string | number | null;
-      product_name?: string | null;
-      price?: string | number | null;
-      package_id?: string | number | null;
-    }>;
   }>;
-  order_items?: Array<{
-    sku?: string | null;
-    price?: string | number | null;
-    product_name?: string | null;
+  // Per-item product data actually lives here on this endpoint's response (verified against a real
+  // payload) -- `shipments[].items` and top-level `order_items` (previously assumed) don't exist,
+  // which meant every order's flat productId/productName/price/orderItemSku column was silently
+  // null. `others.package_list.packages[].package_id` is the closest package reference available;
+  // Shiprocket doesn't return a per-item package_id on this endpoint.
+  products?: Array<{
+    channel_sku?: string | null;
     product_id?: string | number | null;
-    package_id?: string | number | null;
+    name?: string | null;
+    price?: string | number | null;
   }>;
 };
 
@@ -59,11 +56,12 @@ function pickFirstShipment(item: ShiprocketOrderItem) {
   return item.shipments?.[0] ?? {};
 }
 
-function pickFirstOrderItem(
-  item: ShiprocketOrderItem,
-  shipment: ReturnType<typeof pickFirstShipment>,
-) {
-  return shipment.items?.[0] ?? item.order_items?.[0] ?? {};
+function pickAllItems(item: ShiprocketOrderItem) {
+  return item.products ?? [];
+}
+
+function pickFirstOrderItem(item: ShiprocketOrderItem) {
+  return pickAllItems(item)[0] ?? {};
 }
 
 function getArgValue(flag: string): string | undefined {
@@ -220,7 +218,7 @@ async function fetchAllOrders() {
 
       for (const item of records) {
         const shipment = pickFirstShipment(item);
-        const orderItem = pickFirstOrderItem(item, shipment);
+        const orderItem = pickFirstOrderItem(item);
 
         const shiprocketOrderId =
           toStringOrNull(item.id) ??
@@ -238,7 +236,7 @@ async function fetchAllOrders() {
             toStringOrNull(item.awb) ??
             toStringOrNull(shipment.awb),
           productId: toStringOrNull(orderItem.product_id),
-          productName: orderItem.product_name ?? null,
+          productName: orderItem.name ?? null,
           price: toDecimalOrNull(orderItem.price),
           shipmentId: toStringOrNull(shipment.id),
           rtoAwb: toStringOrNull(shipment.rto_awb),
@@ -247,22 +245,43 @@ async function fetchAllOrders() {
           rtoInitiatedAt: toDateOrNull(
             shipment.rto_initiated_date,
           ),
-          orderItemSku: orderItem.sku ?? null,
-          packageId: toStringOrNull(orderItem.package_id),
+          orderItemSku: orderItem.channel_sku ?? null,
+          packageId: null,
           rawPayload: item,
           rawContent: JSON.stringify(item),
         };
 
-        await prisma.shiprocketOrder.upsert({
-          where: {
-            shiprocketOrderId,
-          },
-          update: data,
-          create: {
-            shiprocketOrderId,
-            ...data,
-          },
-        });
+        const allItems = pickAllItems(item);
+
+        await prisma.$transaction(async (tx) => {
+          const savedOrder = await tx.shiprocketOrder.upsert({
+            where: {
+              shiprocketOrderId,
+            },
+            update: data,
+            create: {
+              shiprocketOrderId,
+              ...data,
+            },
+          });
+
+          // Items carry no stable id in Shiprocket's payload, so replace the full set on each sync
+          // rather than trying to diff/upsert individual rows.
+          await tx.shiprocketOrderItem.deleteMany({ where: { orderId: savedOrder.id } });
+
+          if (allItems.length > 0) {
+            await tx.shiprocketOrderItem.createMany({
+              data: allItems.map((product) => ({
+                orderId: savedOrder.id,
+                sku: product.channel_sku ?? null,
+                productId: toStringOrNull(product.product_id),
+                productName: product.name ?? null,
+                price: toDecimalOrNull(product.price),
+                packageId: null,
+              })),
+            });
+          }
+        }, { timeout: 30000 });
 
         totalProcessed++;
       }
