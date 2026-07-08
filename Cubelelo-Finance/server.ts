@@ -2411,6 +2411,16 @@ async function startServer() {
         FROM "AmazonMtrRow"
       `);
       const activeListings = parseInt(listingsCountResult.rows[0].active_listings);
+      // Ageing/dead-stock flags must only be evaluated (and counted) against SKUs that are actually
+      // active Amazon listings -- see the identical population-mismatch fix and rationale in
+      // computeSupplyChainHealth. Without this, allSkus spans every channel's EasyEcomInventory SKU,
+      // which can wildly outnumber activeListings and produce a percentage that exceeds 100%.
+      const activeListingSkusResult = await client.query(`
+        SELECT DISTINCT sellersku FROM "AmazonMtrRow" WHERE LOWER(status) = 'active'
+      `);
+      const activeListingSkus = new Set<string>(
+        activeListingSkusResult.rows.map((r: any) => r.sellersku).filter((sku: string) => allSkus.has(sku))
+      );
 
       // Computes ageing-flag / dead-stock-flag counts and OOS-days as of a given reference (period-end) date,
       // reusing the exact state-machine logic from /api/amazon/operational-metrics.
@@ -2440,29 +2450,31 @@ async function startServer() {
           }
           const weeks = [...weekBuckets.entries()].map(([wk, b]) => ({ wk, rate: b.sum / b.count })).sort((a, b) => (a.wk < b.wk ? -1 : 1));
 
-          let flagged = false;
-          let triggerRate = 0;
-          for (let i = 1; i < weeks.length; i++) {
-            const prevRate = weeks[i - 1].rate;
-            const currRate = weeks[i].rate;
-            if (!flagged) {
-              if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
-                flagged = true;
-                triggerRate = prevRate;
+          if (activeListingSkus.has(sku)) {
+            let flagged = false;
+            let triggerRate = 0;
+            for (let i = 1; i < weeks.length; i++) {
+              const prevRate = weeks[i - 1].rate;
+              const currRate = weeks[i].rate;
+              if (!flagged) {
+                if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
+                  flagged = true;
+                  triggerRate = prevRate;
+                }
+              } else if (currRate >= triggerRate) {
+                flagged = false;
               }
-            } else if (currRate >= triggerRate) {
-              flagged = false;
             }
-          }
-          if (flagged) ageingFlaggedCount++;
+            if (flagged) ageingFlaggedCount++;
 
-          const stockedDatesInPeriod = dates.filter((d) => d >= periodStart && d <= periodEnd && stockMap.get(d)! > 0);
-          if (stockedDatesInPeriod.length >= 2) {
-            const last = stockedDatesInPeriod[stockedDatesInPeriod.length - 1];
-            const prev = stockedDatesInPeriod[stockedDatesInPeriod.length - 2];
-            const lastRate = unitsMap.get(last)?.units ?? 0;
-            const prevRate = unitsMap.get(prev)?.units ?? 0;
-            if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) deadStockCriticalCount++;
+            const stockedDatesInPeriod = dates.filter((d) => d >= periodStart && d <= periodEnd && stockMap.get(d)! > 0);
+            if (stockedDatesInPeriod.length >= 2) {
+              const last = stockedDatesInPeriod[stockedDatesInPeriod.length - 1];
+              const prev = stockedDatesInPeriod[stockedDatesInPeriod.length - 2];
+              const lastRate = unitsMap.get(last)?.units ?? 0;
+              const prevRate = unitsMap.get(prev)?.units ?? 0;
+              if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) deadStockCriticalCount++;
+            }
           }
 
           // OOS day-count depends on stock snapshots (dates), but revenue-in-period is summed from ALL
@@ -3039,7 +3051,7 @@ async function startServer() {
         return computeSupplyChainHealth(dailyUnitsRows, dailyStockRows, reportStartStr, reportEndStr, activeListingSkuSet);
       });
 
-      const { outOfStockDays, ageingFlaggedCount, deadStockCriticalCount } = supplyChain;
+      const { outOfStockDays, stockoutCost, ageingFlaggedCount, deadStockCriticalCount } = supplyChain;
       const ageingInventoryPct = activeSkus > 0 ? (ageingFlaggedCount / activeSkus) * 100 : 0;
       const deadStockPct = activeSkus > 0 ? (deadStockCriticalCount / activeSkus) * 100 : 0;
 
@@ -3050,6 +3062,7 @@ async function startServer() {
           ordersPerDay,
           unitsPerOrder: Math.round(unitsPerOrder * 100) / 100,
           totalOrders,
+          unitsSold: totalQty,
           listingsCount: totalListings,
           activeListingCount: activeListings,
           revenuePerSku,
@@ -3057,6 +3070,7 @@ async function startServer() {
           claimPct: 0,
           reimbursementPct: 0,
           outOfStockDays: Math.round(outOfStockDays * 100) / 100,
+          stockoutCost: Math.round(stockoutCost * 100) / 100,
           ageingInventoryPct: Math.round(ageingInventoryPct * 100) / 100,
           deadStockPct: Math.round(deadStockPct * 100) / 100,
         },
@@ -3071,6 +3085,642 @@ async function startServer() {
       if (client) {
         client.release();
       }
+    }
+  });
+
+  // Shopify SKU Profitability Endpoint -- mirrors /api/amazon/sku-profitability's shape, but Shopify has
+  // no equivalent of Amazon's per-SKU marketplace fees (FBA/selling/other transaction fees) or ASIN-level
+  // Sales & Traffic glance views/conversion rate, so those fields are left null/0 rather than fabricated.
+  app.get("/api/shopify/sku-profitability", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+
+      let dateFilter = "";
+      const params: string[] = [];
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
+      }
+
+      const [lineItemsResult, refundLineItemsResult, productsResult, firstSeenResult] = await Promise.all([
+        client.query(`
+          SELECT li.sku,
+            COALESCE(SUM(li.quantity), 0) AS units_sold,
+            COALESCE(SUM(li.price * li.quantity - li."totalDiscount"), 0) AS revenue,
+            o."createdAt"::date AS order_date
+          FROM "ShopifyOrderLineItem" li
+          JOIN "ShopifyOrder" o ON o."id" = li."orderId"
+          WHERE o."cancelledAt" IS NULL
+            AND o."financialStatus" NOT IN ('voided', 'refunded')
+            AND li.sku IS NOT NULL AND li.sku != ''
+            ${dateFilter}
+          GROUP BY li.sku, o."createdAt"::date
+        `, params),
+        // Return Loss = COGS of refunded units -- real refund data (order.refunds via
+        // ShopifyOrderRefund/ShopifyOrderRefundLineItem), not a revenue-share approximation.
+        client.query(`
+          SELECT rli.sku, rli.quantity, r."createdAt"::date AS refund_date
+          FROM "ShopifyOrderRefundLineItem" rli
+          JOIN "ShopifyOrderRefund" r ON r.id = rli."refundId"
+          WHERE rli.sku IS NOT NULL AND rli.sku != ''
+            ${startDate && endDate ? `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')` : ""}
+        `, params),
+        client.query(`SELECT sku, product_name, category_name, brand FROM "EasyEcomProductMaster"`),
+        client.query(`SELECT sku, MIN(date) AS first_seen FROM "EasyEcomInventory" GROUP BY sku`),
+      ]);
+
+      // Aggregate revenue/units per SKU across the date-grouped rows above (grouped by date too, for COGS lookup)
+      const perSkuDateRows = lineItemsResult.rows.map((row: any) => ({
+        sku: String(row.sku).trim(),
+        unitsSold: parseFloat(row.units_sold),
+        revenue: parseFloat(row.revenue),
+        orderDate: row.order_date instanceof Date ? row.order_date.toISOString().slice(0, 10) : String(row.order_date).slice(0, 10),
+      }));
+
+      const allSkus = Array.from(new Set([
+        ...perSkuDateRows.map((r) => r.sku),
+        ...refundLineItemsResult.rows.map((r: any) => String(r.sku).trim()),
+      ]));
+      const easyEcomCostHistory = await loadEasyEcomCostHistory(client, allSkus);
+
+      const revenueBySku = new Map<string, number>();
+      const unitsBySku = new Map<string, number>();
+      const cogsBySku = new Map<string, number>();
+      for (const row of perSkuDateRows) {
+        revenueBySku.set(row.sku, (revenueBySku.get(row.sku) || 0) + row.revenue);
+        unitsBySku.set(row.sku, (unitsBySku.get(row.sku) || 0) + row.unitsSold);
+        const history = easyEcomCostHistory.get(row.sku);
+        const unitCost = history ? costAsOf(history, row.orderDate) : undefined;
+        if (unitCost !== undefined) {
+          cogsBySku.set(row.sku, (cogsBySku.get(row.sku) || 0) + unitCost * row.unitsSold);
+        }
+      }
+
+      const returnLossBySku = new Map<string, number>();
+      for (const row of refundLineItemsResult.rows) {
+        const sku = String(row.sku).trim();
+        const qty = Number(row.quantity ?? 0);
+        const refundDate = row.refund_date instanceof Date ? row.refund_date.toISOString().slice(0, 10) : String(row.refund_date).slice(0, 10);
+        const history = easyEcomCostHistory.get(sku);
+        const unitCost = history ? costAsOf(history, refundDate) : undefined;
+        if (unitCost !== undefined) {
+          returnLossBySku.set(sku, (returnLossBySku.get(sku) || 0) + unitCost * qty);
+        }
+      }
+
+      const productMap: Record<string, { name: string; category: string }> = {};
+      for (const row of productsResult.rows) {
+        productMap[row.sku] = {
+          name: row.product_name || row.sku,
+          category: row.category_name || "Uncategorized",
+        };
+      }
+
+      const newListingCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const firstSeenMap: Record<string, string> = {};
+      for (const row of firstSeenResult.rows) {
+        firstSeenMap[row.sku] = row.first_seen;
+      }
+
+      const skus = Array.from(revenueBySku.keys())
+        .map((sku) => {
+          const revenue = revenueBySku.get(sku) || 0;
+          const unitsSold = unitsBySku.get(sku) || 0;
+          const cogs = cogsBySku.get(sku) || 0;
+          const returnLoss = returnLossBySku.get(sku) || 0;
+          const cm1 = revenue - cogs - returnLoss;
+          const product = productMap[sku];
+
+          let status: "Profitable" | "Borderline" | "Loss Making" = "Profitable";
+          if (cm1 < 0) status = "Loss Making";
+          else if (revenue > 0 && cm1 < revenue * 0.08) status = "Borderline";
+
+          return {
+            sku,
+            name: product?.name || sku,
+            category: product?.category || "Uncategorized",
+            unitsSold,
+            revenue: Math.round(revenue * 100) / 100,
+            landingCost: Math.round(cogs * 100) / 100,
+            marketplaceFees: 0,
+            packagingCost: 0,
+            shippingCost: 0,
+            returnLoss: Math.round(returnLoss * 100) / 100,
+            adsSpend: 0,
+            netProfit: Math.round(cm1 * 100) / 100,
+            contributionMargin1: Math.round(cm1 * 100) / 100,
+            contributionMargin2: Math.round(cm1 * 100) / 100,
+            status,
+            glanceViews: null,
+            conversionRate: null,
+            isNewListing: firstSeenMap[sku] ? firstSeenMap[sku] > newListingCutoff : false,
+          };
+        })
+        .filter((s) => s.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue);
+
+      res.json({ success: true, data: skus });
+    } catch (err: any) {
+      console.error("Shopify SKU profitability query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  // Shopify Trend Endpoint -- mirrors /api/amazon/trend's revenue/COGS/CM1/CM2 series, but Shopify has
+  // no equivalent of Amazon's per-period settlement charges or the fixed PPOB rental charge, so
+  // amazonCharges/rentalCharges are omitted and cm2 here is netRevenue - cogs - returnLoss only.
+  app.get("/api/shopify/trend", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+      const granularity = (req.query.granularity as string) === "weekly" || (req.query.granularity as string) === "monthly"
+        ? (req.query.granularity as string)
+        : "daily";
+
+      let dateFilter = "";
+      const params: string[] = [];
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
+      }
+
+      const periodExpr = granularity === "daily"
+        ? `TO_CHAR(o."createdAt"::date, 'YYYY-MM-DD')`
+        : granularity === "weekly"
+        ? `TO_CHAR(date_trunc('week', o."createdAt"::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', o."createdAt"::date), 'YYYY-MM-DD')`;
+
+      const [revenueTrendResult, lineItemsResult, refundsResult] = await Promise.all([
+        client.query(`
+          SELECT ${periodExpr} AS period,
+            COALESCE(SUM("totalPrice"), 0) AS revenue,
+            COUNT(*) AS orders
+          FROM "ShopifyOrder" o
+          WHERE "cancelledAt" IS NULL
+            AND "financialStatus" NOT IN ('voided', 'refunded')
+            ${dateFilter}
+          GROUP BY period
+          ORDER BY period ASC
+        `, params),
+        client.query(`
+          SELECT li.sku, li.quantity, o."createdAt"::date AS order_date, ${periodExpr} AS period
+          FROM "ShopifyOrderLineItem" li
+          JOIN "ShopifyOrder" o ON o."id" = li."orderId"
+          WHERE o."cancelledAt" IS NULL
+            AND o."financialStatus" NOT IN ('voided', 'refunded')
+            AND li.sku IS NOT NULL AND li.sku != ''
+            ${dateFilter}
+        `, params),
+        client.query(`
+          SELECT rli.sku, rli.quantity, r."createdAt"::date AS refund_date,
+            ${granularity === "daily"
+              ? `TO_CHAR(r."createdAt"::date, 'YYYY-MM-DD')`
+              : granularity === "weekly"
+              ? `TO_CHAR(date_trunc('week', r."createdAt"::date), 'YYYY-MM-DD')`
+              : `TO_CHAR(date_trunc('month', r."createdAt"::date), 'YYYY-MM-DD')`} AS period
+          FROM "ShopifyOrderRefundLineItem" rli
+          JOIN "ShopifyOrderRefund" r ON r.id = rli."refundId"
+          WHERE rli.sku IS NOT NULL AND rli.sku != ''
+            ${startDate && endDate ? `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')` : ""}
+        `, params),
+      ]);
+
+      const allSkus = Array.from(new Set([
+        ...lineItemsResult.rows.map((r: any) => String(r.sku).trim()),
+        ...refundsResult.rows.map((r: any) => String(r.sku).trim()),
+      ]));
+      const easyEcomCostHistory = await loadEasyEcomCostHistory(client, allSkus);
+
+      const cogsByPeriod: Record<string, number> = {};
+      const unitsByPeriod: Record<string, number> = {};
+      for (const row of lineItemsResult.rows) {
+        const sku = String(row.sku).trim();
+        const qty = Number(row.quantity ?? 0);
+        const orderDate = row.order_date instanceof Date ? row.order_date.toISOString().slice(0, 10) : String(row.order_date).slice(0, 10);
+        const history = easyEcomCostHistory.get(sku);
+        const unitCost = history ? costAsOf(history, orderDate) : undefined;
+        if (unitCost !== undefined) {
+          cogsByPeriod[row.period] = (cogsByPeriod[row.period] || 0) + unitCost * qty;
+        }
+        unitsByPeriod[row.period] = (unitsByPeriod[row.period] || 0) + qty;
+      }
+
+      const returnLossByPeriod: Record<string, number> = {};
+      for (const row of refundsResult.rows) {
+        const sku = String(row.sku).trim();
+        const qty = Number(row.quantity ?? 0);
+        const refundDate = row.refund_date instanceof Date ? row.refund_date.toISOString().slice(0, 10) : String(row.refund_date).slice(0, 10);
+        const history = easyEcomCostHistory.get(sku);
+        const unitCost = history ? costAsOf(history, refundDate) : undefined;
+        if (unitCost !== undefined) {
+          returnLossByPeriod[row.period] = (returnLossByPeriod[row.period] || 0) + unitCost * qty;
+        }
+      }
+
+      const data = revenueTrendResult.rows.map((row: any) => {
+        const periodKey = row.period;
+        const grossRevenue = parseFloat(row.revenue);
+        const returnLoss = returnLossByPeriod[periodKey] || 0;
+        const cogs = cogsByPeriod[periodKey] || 0;
+        const cm1 = grossRevenue - cogs;
+        const cm2 = cm1 - returnLoss;
+        return {
+          period: periodKey,
+          grossRevenue,
+          saleReturns: returnLoss,
+          netRevenue: grossRevenue - returnLoss,
+          cogs,
+          cm1,
+          amazonCharges: 0,
+          rentalCharges: 0,
+          returnLoss,
+          cm2,
+          netProfit: cm2,
+          orders: parseInt(row.orders),
+          unitsSold: unitsByPeriod[periodKey] || 0,
+        };
+      });
+
+      res.json({ success: true, data, granularity });
+    } catch (err: any) {
+      console.error("Shopify trend query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  // Shopify Compare-Sales Endpoint -- mirrors /api/amazon/compare-sales (Selected Day / Previous Day /
+  // Same Day Last Week / Same Day Last Year), sourced from ShopifyOrder instead of Amazon_GST_Master.
+  app.get("/api/shopify/compare-sales", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const refDateStr = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+      const refDate = new Date(refDateStr + "T00:00:00Z");
+      const addDays = (d: Date, n: number) => {
+        const copy = new Date(d);
+        copy.setUTCDate(copy.getUTCDate() + n);
+        return copy.toISOString().slice(0, 10);
+      };
+
+      const periods = [
+        { key: "reference", label: "Selected Day", date: refDateStr },
+        { key: "previousDay", label: "Previous Day", date: addDays(refDate, -1) },
+        { key: "sameDayLastWeek", label: "Same Day Last Week", date: addDays(refDate, -7) },
+        { key: "sameDayLastYear", label: "Same Day Last Year", date: addDays(refDate, -365) },
+      ];
+      const dates = periods.map((p) => p.date);
+
+      const result = await client.query(`
+        SELECT o."createdAt"::date::text AS d,
+          COUNT(*) AS total_orders,
+          COALESCE(SUM((SELECT COALESCE(SUM(li."quantity"), 0) FROM "ShopifyOrderLineItem" li WHERE li."orderId" = o."id")), 0) AS units_sold,
+          COALESCE(SUM("totalPrice"), 0) AS revenue
+        FROM "ShopifyOrder" o
+        WHERE "cancelledAt" IS NULL
+          AND "financialStatus" NOT IN ('voided', 'refunded')
+          AND o."createdAt"::date = ANY($1::date[])
+        GROUP BY o."createdAt"::date
+      `, [dates]);
+
+      const byDate: Record<string, { totalOrders: number; unitsSold: number; revenue: number }> = {};
+      for (const row of result.rows) {
+        byDate[row.d] = {
+          totalOrders: parseInt(row.total_orders),
+          unitsSold: parseFloat(row.units_sold),
+          revenue: parseFloat(row.revenue),
+        };
+      }
+
+      const data = periods.map((p) => {
+        const stats = byDate[p.date] || { totalOrders: 0, unitsSold: 0, revenue: 0 };
+        return {
+          key: p.key,
+          label: p.label,
+          date: p.date,
+          totalOrders: stats.totalOrders,
+          unitsSold: stats.unitsSold,
+          revenue: Math.round(stats.revenue * 100) / 100,
+          avgUnitsPerOrder: stats.totalOrders > 0 ? Math.round((stats.unitsSold / stats.totalOrders) * 100) / 100 : 0,
+          avgSalesPerOrder: stats.totalOrders > 0 ? Math.round((stats.revenue / stats.totalOrders) * 100) / 100 : 0,
+          hasData: !!byDate[p.date],
+        };
+      });
+
+      res.json({ success: true, data });
+    } catch (err: any) {
+      console.error("Shopify compare-sales query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  // Shopify SKU-level Trend Endpoint -- mirrors /api/amazon/sku-trend, scoped to a single SKU on demand.
+  app.get("/api/shopify/sku-trend", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const sku = (req.query.sku as string) || null;
+      if (!sku) {
+        res.status(400).json({ success: false, error: "sku query param is required" });
+        return;
+      }
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+      const granularity = (req.query.granularity as string) === "weekly" || (req.query.granularity as string) === "monthly"
+        ? (req.query.granularity as string)
+        : "daily";
+
+      const periodExpr = granularity === "daily"
+        ? `TO_CHAR(o."createdAt"::date, 'YYYY-MM-DD')`
+        : granularity === "weekly"
+        ? `TO_CHAR(date_trunc('week', o."createdAt"::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', o."createdAt"::date), 'YYYY-MM-DD')`;
+
+      let dateFilter = "";
+      const params: string[] = [sku];
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        dateFilter = `AND o."createdAt" >= $2::timestamp AND o."createdAt" <= ($3::date + interval '1 day')`;
+      }
+
+      const refundPeriodExpr = granularity === "daily"
+        ? `TO_CHAR(r."createdAt"::date, 'YYYY-MM-DD')`
+        : granularity === "weekly"
+        ? `TO_CHAR(date_trunc('week', r."createdAt"::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', r."createdAt"::date), 'YYYY-MM-DD')`;
+      let refundDateFilter = "";
+      const refundParams: string[] = [sku];
+      if (startDate && endDate) {
+        refundParams.push(startDate, endDate);
+        refundDateFilter = `AND r."createdAt" >= $2::timestamp AND r."createdAt" <= ($3::date + interval '1 day')`;
+      }
+
+      const [result, refundsResult] = await Promise.all([
+        client.query(`
+          SELECT
+            ${periodExpr} AS period,
+            COALESCE(SUM(li.price * li.quantity - li."totalDiscount"), 0) AS revenue,
+            COALESCE(SUM(li.quantity), 0) AS units_sold,
+            o."createdAt"::date AS order_date
+          FROM "ShopifyOrderLineItem" li
+          JOIN "ShopifyOrder" o ON o."id" = li."orderId"
+          WHERE li.sku = $1
+            AND o."cancelledAt" IS NULL
+            AND o."financialStatus" NOT IN ('voided', 'refunded')
+            ${dateFilter}
+          GROUP BY period, o."createdAt"::date
+          ORDER BY period ASC
+        `, params),
+        client.query(`
+          SELECT ${refundPeriodExpr} AS period, rli.quantity, r."createdAt"::date AS refund_date
+          FROM "ShopifyOrderRefundLineItem" rli
+          JOIN "ShopifyOrderRefund" r ON r.id = rli."refundId"
+          WHERE rli.sku = $1 ${refundDateFilter}
+        `, refundParams),
+      ]);
+
+      const easyEcomCostHistory = await loadEasyEcomCostHistory(client, [sku]);
+
+      const revenueByPeriod: Record<string, number> = {};
+      const unitsByPeriod: Record<string, number> = {};
+      const cogsByPeriod: Record<string, number> = {};
+      for (const row of result.rows) {
+        const period = row.period;
+        const revenue = parseFloat(row.revenue);
+        const units = parseFloat(row.units_sold);
+        revenueByPeriod[period] = (revenueByPeriod[period] || 0) + revenue;
+        unitsByPeriod[period] = (unitsByPeriod[period] || 0) + units;
+        const orderDate = row.order_date instanceof Date ? row.order_date.toISOString().slice(0, 10) : String(row.order_date).slice(0, 10);
+        const history = easyEcomCostHistory.get(sku.trim());
+        const unitCost = history ? costAsOf(history, orderDate) : undefined;
+        if (unitCost !== undefined) {
+          cogsByPeriod[period] = (cogsByPeriod[period] || 0) + unitCost * units;
+        }
+      }
+
+      const returnLossByPeriod: Record<string, number> = {};
+      for (const row of refundsResult.rows) {
+        const qty = Number(row.quantity ?? 0);
+        const refundDate = row.refund_date instanceof Date ? row.refund_date.toISOString().slice(0, 10) : String(row.refund_date).slice(0, 10);
+        const history = easyEcomCostHistory.get(sku.trim());
+        const unitCost = history ? costAsOf(history, refundDate) : undefined;
+        if (unitCost !== undefined) {
+          returnLossByPeriod[row.period] = (returnLossByPeriod[row.period] || 0) + unitCost * qty;
+        }
+      }
+
+      const data = Object.keys(revenueByPeriod).sort().map((period) => {
+        const revenue = revenueByPeriod[period];
+        const cogs = cogsByPeriod[period] || 0;
+        const unitsSold = unitsByPeriod[period];
+        const returnLoss = returnLossByPeriod[period] || 0;
+        const netProfit = revenue - cogs - returnLoss;
+        return {
+          period,
+          revenue,
+          cogs,
+          unitsSold,
+          marketplaceFees: 0,
+          returnLoss: Math.round(returnLoss * 100) / 100,
+          cm1: Math.round((revenue - cogs) * 100) / 100,
+          netProfit: Math.round(netProfit * 100) / 100,
+        };
+      });
+
+      res.json({ success: true, data, granularity, sku });
+    } catch (err: any) {
+      console.error("Shopify SKU trend query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  // Shopify SKU Sparklines Endpoint -- mirrors /api/amazon/sku-sparklines (weekly units-sold series for
+  // ALL SKUs in one query, avoiding an N+1 fetch-per-SKU for the profitability table's inline glance).
+  app.get("/api/shopify/sku-sparklines", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+
+      let dateFilter = "";
+      const params: string[] = [];
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
+      }
+
+      const result = await client.query(`
+        SELECT li.sku,
+          TO_CHAR(date_trunc('week', o."createdAt"::date), 'YYYY-MM-DD') AS period,
+          COALESCE(SUM(li.quantity), 0) AS units_sold
+        FROM "ShopifyOrderLineItem" li
+        JOIN "ShopifyOrder" o ON o."id" = li."orderId"
+        WHERE o."cancelledAt" IS NULL
+          AND o."financialStatus" NOT IN ('voided', 'refunded')
+          AND li.sku IS NOT NULL AND li.sku != ''
+          ${dateFilter}
+        GROUP BY li.sku, period
+        ORDER BY li.sku, period ASC
+      `, params);
+
+      const bySku: Record<string, { period: string; unitsSold: number }[]> = {};
+      for (const row of result.rows) {
+        if (!bySku[row.sku]) bySku[row.sku] = [];
+        bySku[row.sku].push({ period: row.period, unitsSold: parseFloat(row.units_sold) });
+      }
+
+      res.json({ success: true, data: bySku });
+    } catch (err: any) {
+      console.error("Shopify SKU sparklines query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  // Shopify Supply Chain Trend Endpoint -- Ageing Inventory %, Dead Stock %, Out of Stock Days, and
+  // Stockout Cost as a time series, reusing computeSupplyChainHealth once per period (unlike Amazon's
+  // computeSupplyChainTrend, this doesn't also trend return/claim ratios -- Shopify has real refund data
+  // via ShopifyOrderRefund but no "claims" concept at all, so there's nothing analogous to trend there).
+  app.get("/api/shopify/supply-chain-trend", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+      const granularity = (req.query.granularity as string) === "weekly" || (req.query.granularity as string) === "monthly"
+        ? (req.query.granularity as string)
+        : "daily";
+
+      if (!startDate || !endDate) {
+        res.status(400).json({ success: false, error: "startDate and endDate are required" });
+        return;
+      }
+
+      const cacheKey = `shopify-supply-chain-trend:${startDate}:${endDate}:${granularity}`;
+      const cached = await withTtlCache(cacheKey, 60 * 60 * 1000, async () => {
+        const periodKeyOf = (d: string): string => {
+          if (granularity === "daily") return d;
+          if (granularity === "weekly") return isoWeekStart(d);
+          return d.slice(0, 7) + "-01";
+        };
+        const periods: { key: string; start: string; end: string }[] = [];
+        {
+          const seen = new Map<string, { start: string; end: string }>();
+          let cursor = new Date(startDate + "T00:00:00Z");
+          const end = new Date(endDate + "T00:00:00Z");
+          while (cursor <= end) {
+            const d = cursor.toISOString().slice(0, 10);
+            const key = periodKeyOf(d);
+            const existing = seen.get(key);
+            if (existing) {
+              if (d > existing.end) existing.end = d;
+            } else {
+              seen.set(key, { start: d, end: d });
+            }
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+          }
+          for (const [key, { start, end }] of seen) periods.push({ key, start, end });
+          periods.sort((a, b) => (a.key < b.key ? -1 : 1));
+        }
+
+        const earliestPeriodEnd = periods[0]?.end || endDate;
+        const widestLookbackStart = new Date(new Date(earliestPeriodEnd).getTime() - 182 * 24 * 60 * 60 * 1000)
+          .toISOString().slice(0, 10);
+
+        const [dailyUnitsResult, dailyStockResult, activeSkusResult] = await Promise.all([
+          client!.query(`
+            SELECT li.sku, TO_CHAR(o."createdAt"::date, 'YYYY-MM-DD') AS d,
+              COALESCE(SUM(li.quantity), 0) AS units,
+              COALESCE(SUM(li.price * li.quantity), 0) AS revenue
+            FROM "ShopifyOrderLineItem" li
+            JOIN "ShopifyOrder" o ON o."id" = li."orderId"
+            WHERE o."cancelledAt" IS NULL
+              AND o."financialStatus" NOT IN ('voided', 'refunded')
+              AND li.sku IS NOT NULL AND li.sku != ''
+              AND o."createdAt" IS NOT NULL
+              AND o."createdAt"::date >= $1::date AND o."createdAt"::date <= $2::date
+            GROUP BY li.sku, o."createdAt"::date
+          `, [widestLookbackStart, endDate]),
+          client!.query(`
+            SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
+            FROM "EasyEcomInventory"
+            WHERE date IS NOT NULL AND date != ''
+              AND date::date >= $1::date AND date::date <= $2::date
+          `, [widestLookbackStart, endDate]),
+          client!.query(`
+            SELECT DISTINCT sku FROM "ShopifyInventoryItem"
+            WHERE "productStatus" = 'ACTIVE' AND sku IS NOT NULL AND sku != ''
+          `),
+        ]);
+
+        const dailyUnitsRows: DailyUnitsRow[] = dailyUnitsResult.rows.map((row) => ({
+          sku: row.sku,
+          d: row.d,
+          units: parseFloat(row.units),
+          revenue: parseFloat(row.revenue),
+        }));
+        const dailyStockRows: DailyStockRow[] = dailyStockResult.rows.map((row) => ({
+          sku: row.sku,
+          d: row.d,
+          quantity: row.quantity == null ? 0 : parseFloat(row.quantity),
+        }));
+        const activeListingSkuSet = new Set<string>(activeSkusResult.rows.map((r) => r.sku));
+        const activeSkuCount = activeListingSkuSet.size;
+
+        // computeSupplyChainHealth's ageing state-machine looks at every date in dailyStockRows with no
+        // upper bound of its own (it's designed for a single as-of-now snapshot) -- so evaluating a
+        // TREND means re-slicing the input rows to each period's own end date before calling it, the
+        // same way Amazon's computeSupplyChainTrend/snapshotAt filters dates <= periodEnd internally.
+        // Without this, every period would see the exact same (full-range) ageing/dead-stock result.
+        const data = periods.map(({ key, start, end }) => {
+          const clippedUnitsRows = dailyUnitsRows.filter((row) => row.d <= end);
+          const clippedStockRows = dailyStockRows.filter((row) => row.d <= end);
+          const snapshot = computeSupplyChainHealth(clippedUnitsRows, clippedStockRows, start, end, activeListingSkuSet);
+          return {
+            period: key,
+            outOfStockDays: Math.round(snapshot.outOfStockDays * 100) / 100,
+            stockoutCost: Math.round(snapshot.stockoutCost * 100) / 100,
+            ageingInventoryPct: activeSkuCount > 0 ? Math.round((snapshot.ageingFlaggedCount / activeSkuCount) * 10000) / 100 : 0,
+            deadStockPct: activeSkuCount > 0 ? Math.round((snapshot.deadStockCriticalCount / activeSkuCount) * 10000) / 100 : 0,
+          };
+        });
+
+        return { success: true, data, granularity };
+      });
+
+      res.json(cached);
+    } catch (err: any) {
+      console.error("Shopify supply chain trend query failed:", err);
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    } finally {
+      if (client) client.release();
     }
   });
 

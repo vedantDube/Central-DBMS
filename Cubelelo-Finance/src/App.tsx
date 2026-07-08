@@ -172,6 +172,14 @@ export default function App() {
   // Bulk SKU sparklines (weekly units-sold per SKU) -- avoids fetching sku-trend per row just for a glance
   const [skuSparklines, setSkuSparklines] = useState<Record<string, { period: string; unitsSold: number }[]>>({});
 
+  // Shopify equivalents of the Amazon-only real-data state above -- same shape, own endpoints
+  // (/api/shopify/sku-profitability, /trend, /supply-chain-trend, /compare-sales, /sku-sparklines).
+  const [shopifySkus, setShopifySkus] = useState<SKUProfitability[]>([]);
+  const [shopifyTrendData, setShopifyTrendData] = useState<any[]>([]);
+  const [shopifySupplyChainTrendData, setShopifySupplyChainTrendData] = useState<any[]>([]);
+  const [shopifyCompareSalesData, setShopifyCompareSalesData] = useState<any[]>([]);
+  const [shopifySkuSparklines, setShopifySkuSparklines] = useState<Record<string, { period: string; unitsSold: number }[]>>({});
+
   // Indirect expense breakdown state
   const [showIndirectBreakdown, setShowIndirectBreakdown] = useState<boolean>(false);
   const [indirectSummaryData, setIndirectSummaryData] = useState<{description: string, amount: number}[]>([]);
@@ -290,6 +298,8 @@ export default function App() {
             ...ch,
             aov: data.data.aov ?? 0,
             ordersPerDay: data.data.ordersPerDay ?? 0,
+            totalOrders: data.data.totalOrders ?? 0,
+            unitsSold: data.data.unitsSold ?? 0,
             listingsCount: data.data.listingsCount ?? 0,
             activeListingCount: data.data.activeListingCount ?? 0,
             revenuePerSku: data.data.revenuePerSku ?? 0,
@@ -297,6 +307,7 @@ export default function App() {
             claimPct: data.data.claimSuccessPct ?? 0,
             reimbursementPct: data.data.reimbursementPct ?? 0,
             outOfStockDays: data.data.outOfStockDays ?? 0,
+            stockoutCost: data.data.stockoutCost ?? 0,
             ageingInventoryPct: data.data.ageingInventoryPct ?? 0,
             deadStockPct: data.data.deadStockPct ?? 0,
           };
@@ -353,6 +364,8 @@ export default function App() {
             aov: data.data.aov ?? 0,
             ordersPerDay: data.data.ordersPerDay ?? 0,
             unitsPerOrder: data.data.unitsPerOrder ?? 0,
+            totalOrders: data.data.totalOrders ?? 0,
+            unitsSold: data.data.unitsSold ?? 0,
             listingsCount: data.data.listingsCount ?? 0,
             activeListingCount: data.data.activeListingCount ?? 0,
             revenuePerSku: data.data.revenuePerSku ?? 0,
@@ -360,6 +373,7 @@ export default function App() {
             claimPct: data.data.claimPct ?? 0,
             reimbursementPct: data.data.reimbursementPct ?? 0,
             outOfStockDays: data.data.outOfStockDays ?? 0,
+            stockoutCost: data.data.stockoutCost ?? 0,
             ageingInventoryPct: data.data.ageingInventoryPct ?? 0,
             deadStockPct: data.data.deadStockPct ?? 0,
           };
@@ -547,6 +561,110 @@ export default function App() {
     }
   };
 
+  // Shopify equivalents of the fetch functions above -- same shape, own endpoints, no gstMode (Shopify
+  // orders carry a single tax total, not a separate inclusive/exclusive GST toggle like Amazon's report).
+  const fetchShopifySkuProfitability = async (start: string, end: string) => {
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const res = await fetch(`/api/shopify/sku-profitability?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setShopifySkus(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify SKU profitability:", err);
+    } finally {
+      endFetch();
+    }
+  };
+
+  const fetchShopifyTrend = async (start: string, end: string, granularity: "daily" | "weekly" | "monthly") => {
+    setIsLoadingTrend(true);
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end, granularity });
+      const res = await fetch(`/api/shopify/trend?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setShopifyTrendData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify trend:", err);
+    } finally {
+      setIsLoadingTrend(false);
+      endFetch();
+    }
+  };
+
+  const fetchShopifySupplyChainTrend = async (start: string, end: string, granularity: "daily" | "weekly" | "monthly") => {
+    setIsLoadingSupplyChainTrend(true);
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end, granularity });
+      const res = await fetch(`/api/shopify/supply-chain-trend?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setShopifySupplyChainTrendData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify Supply Chain trend:", err);
+    } finally {
+      setIsLoadingSupplyChainTrend(false);
+      endFetch();
+    }
+  };
+
+  const fetchShopifyCompareSales = async (date: string) => {
+    setIsLoadingCompareSales(true);
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ date });
+      const res = await fetch(`/api/shopify/compare-sales?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setShopifyCompareSalesData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify Compare Sales:", err);
+    } finally {
+      setIsLoadingCompareSales(false);
+      endFetch();
+    }
+  };
+
+  const fetchShopifySkuSparklines = async (start: string, end: string) => {
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end });
+      const res = await fetch(`/api/shopify/sku-sparklines?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setShopifySkuSparklines(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify SKU sparklines:", err);
+    } finally {
+      endFetch();
+    }
+  };
+
+  const fetchShopifySkuTrend = async (sku: string, start: string, end: string, granularity: "daily" | "weekly" | "monthly") => {
+    setIsLoadingSkuTrend(true);
+    try {
+      const params = new URLSearchParams({ sku, startDate: start, endDate: end, granularity });
+      const res = await fetch(`/api/shopify/sku-trend?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setSkuTrendData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Shopify SKU trend:", err);
+    } finally {
+      setIsLoadingSkuTrend(false);
+    }
+  };
+
   // Run on load
   useEffect(() => {
     checkDbStatus();
@@ -658,6 +776,10 @@ export default function App() {
     fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
     fetchCompareSales(endDateStr, gstMode);
     fetchSkuSparklines(startDateStr, endDateStr);
+    fetchShopifySkuProfitability(startDateStr, endDateStr);
+    fetchShopifyTrend(startDateStr, endDateStr, trendGranularity);
+    fetchShopifyCompareSales(endDateStr);
+    fetchShopifySkuSparklines(startDateStr, endDateStr);
     setBreakdownFetched(false);
     setShowIndirectBreakdown(false);
     setAdvertisementL2Fetched(false);
@@ -666,16 +788,20 @@ export default function App() {
     // previous date range/GST mode, then re-fetch immediately if a metric panel is already expanded so
     // it doesn't sit showing stale data until the user manually re-clicks it.
     setSupplyChainTrendData([]);
+    setShopifySupplyChainTrendData([]);
     if (expandedSupplyChainMetric) {
       fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+      fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
     }
   }, [startDateStr, endDateStr, gstMode]);
 
   // Re-fetch the real trend view when granularity changes (independent of full date-range refetch)
   useEffect(() => {
     fetchAmazonTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+    fetchShopifyTrend(startDateStr, endDateStr, trendGranularity);
     if (expandedSupplyChainMetric) {
       fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+      fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
     }
   }, [trendGranularity]);
 
@@ -1083,8 +1209,10 @@ export default function App() {
   // Count are NOT included here -- AmazonMtrRow (their source) has no date column, it's a current-catalog
   // snapshot only, so there is no real historical series to plot for them.
   const listingVolumeTrendData = useMemo(() => {
-    const activeListingCount = amazonOperationalMetrics?.activeListingCount ?? 0;
-    return realTrendData.map((p: any) => {
+    const isShopify = selectedChannelId === "shopify";
+    const activeListingCount = isShopify ? (selectedChannel.activeListingCount ?? 0) : (amazonOperationalMetrics?.activeListingCount ?? 0);
+    const sourceTrendData = isShopify ? shopifyTrendData : realTrendData;
+    return sourceTrendData.map((p: any) => {
       const orders = p.orders ?? 0;
       const grossRevenue = p.grossRevenue ?? 0;
       const unitsSold = p.unitsSold ?? 0;
@@ -1096,7 +1224,7 @@ export default function App() {
         revenuePerSku: activeListingCount > 0 ? Math.round((grossRevenue / activeListingCount) * 100) / 100 : 0,
       };
     });
-  }, [realTrendData, amazonOperationalMetrics?.activeListingCount]);
+  }, [selectedChannelId, realTrendData, shopifyTrendData, amazonOperationalMetrics?.activeListingCount, selectedChannel.activeListingCount]);
 
   // Format currency helpers (INR / standard numeric fallback)
   const formatCurrency = (val: number) => {
@@ -1184,7 +1312,8 @@ export default function App() {
 
   // Filter SKUs
   const filteredSKUs = useMemo(() => {
-    return skus.map(s => {
+    const sourceSkus = skuChannelFilter === "shopify" ? shopifySkus : skuChannelFilter === "amazon" ? skus : [];
+    return sourceSkus.map(s => {
       // Adjust SKU metrics based on multipliers
       const adjustedCOGS = s.landingCost * simulationParams.landingCostMultiplier;
       const adjustedShipping = s.shippingCost * simulationParams.shippingCostMultiplier;
@@ -1207,7 +1336,7 @@ export default function App() {
         status
       };
     }).filter(s => {
-      if (skuChannelFilter !== "amazon") return false;
+      if (skuChannelFilter !== "amazon" && skuChannelFilter !== "shopify") return false;
 
       const matchesSearch = s.sku.toLowerCase().includes(skuSearch.toLowerCase()) ||
                             s.name.toLowerCase().includes(skuSearch.toLowerCase());
@@ -1221,7 +1350,9 @@ export default function App() {
 
       return true;
     });
-  }, [skus, skuSearch, skuFilter, skuMoverFilter, skuChannelFilter, simulationParams]);
+  }, [skus, shopifySkus, skuSearch, skuFilter, skuMoverFilter, skuChannelFilter, simulationParams]);
+
+  const activeSkuSparklines = skuChannelFilter === "shopify" ? shopifySkuSparklines : skuSparklines;
 
   // Deep Dive ASIN performance buckets -- mirrors Amazon Seller Central's own "Deep dive your ASIN
   // performance" panel (Top Sales Products).
@@ -1376,10 +1507,13 @@ export default function App() {
       aov: aovVal,
       ordersPerDay: Math.ceil(rev / (30 * aovVal)),
       unitsPerOrder: 1.5,
+      totalOrders: Math.round(rev / aovVal),
+      unitsSold: Math.round((rev / aovVal) * 1.5),
       listingsCount: 15,
       activeListingCount: 12,
       revenuePerSku: Math.round(rev / 15),
       outOfStockDays: 3.5,
+      stockoutCost: 0,
       ageingInventoryPct: 10.0,
       deadStockPct: 2.0,
       returnPct: 5.0,
@@ -2144,7 +2278,14 @@ export default function App() {
               </div>
 
               {/* Sales Snapshot -- mirrors Amazon Seller Central's own Sales Dashboard snapshot row */}
-              {selectedChannelId === "amazon" && (
+              {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (() => {
+                const isShopify = selectedChannelId === "shopify";
+                const totalOrders = isShopify ? selectedChannel.totalOrders : (amazonOperationalMetrics?.totalOrders ?? 0);
+                const unitsSold = isShopify ? selectedChannel.unitsSold : (amazonOperationalMetrics?.unitsSold ?? 0);
+                const grossRevenue = isShopify ? selectedChannel.revenue : (amazonFinancials?.grossRevenue ?? 0);
+                const unitsPerOrder = isShopify ? selectedChannel.unitsPerOrder : (amazonOperationalMetrics?.unitsPerOrder ?? 0);
+                const aov = isShopify ? selectedChannel.aov : (amazonOperationalMetrics?.aov ?? 0);
+                return (
                 <SectionCard
                   id="channels-sales-snapshot"
                   title="Sales Snapshot"
@@ -2156,30 +2297,33 @@ export default function App() {
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                       <span className="text-[10px] text-slate-500 uppercase font-medium block">Total Order Items</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{(amazonOperationalMetrics?.totalOrders ?? 0).toLocaleString()}</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{totalOrders.toLocaleString()}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                       <span className="text-[10px] text-slate-500 uppercase font-medium block">Units Ordered</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{(amazonOperationalMetrics?.unitsSold ?? 0).toLocaleString()}</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{unitsSold.toLocaleString()}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                       <span className="text-[10px] text-slate-500 uppercase font-medium block">Ordered Product Sales</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(amazonFinancials?.grossRevenue ?? 0)}</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(grossRevenue)}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                       <span className="text-[10px] text-slate-500 uppercase font-medium block">Avg Units/Order</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{(amazonOperationalMetrics?.unitsPerOrder ?? 0).toFixed(2)}</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{unitsPerOrder.toFixed(2)}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                       <span className="text-[10px] text-slate-500 uppercase font-medium block">Avg Sales/Order</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(amazonOperationalMetrics?.aov ?? 0)}</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(aov)}</span>
                     </div>
                   </div>
                 </SectionCard>
-              )}
+                );
+              })()}
 
               {/* Compare Sales -- Selected Day vs Previous Day vs Same Day Last Week vs Same Day Last Year */}
-              {selectedChannelId === "amazon" && (
+              {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (() => {
+                const activeCompareSalesData = selectedChannelId === "shopify" ? shopifyCompareSalesData : compareSalesData;
+                return (
                 <SectionCard
                   id="channels-compare-sales"
                   title="Compare Sales"
@@ -2206,12 +2350,12 @@ export default function App() {
                       <RefreshCw size={12} className="animate-spin" />
                       <span>Loading comparison...</span>
                     </div>
-                  ) : compareSalesData.length === 0 ? (
+                  ) : activeCompareSalesData.length === 0 ? (
                     <div className="h-40 flex items-center justify-center text-xs text-slate-400">No comparison data available.</div>
                   ) : compareSalesView === "graph" ? (
                     <div className="h-56">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={compareSalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <BarChart data={activeCompareSalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                           <XAxis dataKey="label" stroke="#64748b" fontSize={9} />
                           <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
@@ -2231,7 +2375,7 @@ export default function App() {
                         <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
                           <tr>
                             <th className="py-2 pr-4"></th>
-                            {compareSalesData.map((p) => (
+                            {activeCompareSalesData.map((p) => (
                               <th key={p.key} className="py-2 px-3 text-right">{p.label}<br /><span className="text-slate-400 normal-case">{p.date}</span></th>
                             ))}
                           </tr>
@@ -2239,28 +2383,28 @@ export default function App() {
                         <tbody className="divide-y divide-slate-100 text-slate-700">
                           <tr>
                             <td className="py-2 pr-4 font-sans text-slate-600">Total Order Items</td>
-                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.totalOrders.toLocaleString() : "—"}</td>)}
+                            {activeCompareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.totalOrders.toLocaleString() : "—"}</td>)}
                           </tr>
                           <tr>
                             <td className="py-2 pr-4 font-sans text-slate-600">Units Ordered</td>
-                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.unitsSold.toLocaleString() : "—"}</td>)}
+                            {activeCompareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.unitsSold.toLocaleString() : "—"}</td>)}
                           </tr>
                           <tr>
                             <td className="py-2 pr-4 font-sans text-slate-600">Ordered Product Sales</td>
-                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? formatCurrency(p.revenue) : "—"}</td>)}
+                            {activeCompareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? formatCurrency(p.revenue) : "—"}</td>)}
                           </tr>
                           <tr>
                             <td className="py-2 pr-4 font-sans text-slate-600">Avg Units/Order</td>
-                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.avgUnitsPerOrder.toFixed(2) : "—"}</td>)}
+                            {activeCompareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? p.avgUnitsPerOrder.toFixed(2) : "—"}</td>)}
                           </tr>
                           <tr>
                             <td className="py-2 pr-4 font-sans text-slate-600">Avg Sales/Order</td>
-                            {compareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? formatCurrency(p.avgSalesPerOrder) : "—"}</td>)}
+                            {activeCompareSalesData.map((p) => <td key={p.key} className="py-2 px-3 text-right">{p.hasData ? formatCurrency(p.avgSalesPerOrder) : "—"}</td>)}
                           </tr>
                           <tr className="bg-slate-50/60">
                             <td className="py-2 pr-4 font-sans text-slate-600 font-semibold">% Change vs Selected Day</td>
-                            {compareSalesData.map((p) => {
-                              const ref = compareSalesData[0];
+                            {activeCompareSalesData.map((p) => {
+                              const ref = activeCompareSalesData[0];
                               if (p.key === "reference" || !p.hasData || !ref.hasData || ref.revenue === 0) {
                                 return <td key={p.key} className="py-2 px-3 text-right text-slate-400">—</td>;
                               }
@@ -2280,7 +2424,8 @@ export default function App() {
                     "Selected Day" is the end of your chosen date range, not live-today — this dashboard reflects ingested historical data, not a real-time feed.
                   </p>
                 </SectionCard>
-              )}
+                );
+              })()}
 
               {/* THREE SPREADSHEET TABLE CARD MODULES */}
               <SectionCard
@@ -2636,11 +2781,14 @@ export default function App() {
                 </div>
 
                 {/* Real Trend View (daily / WoW / MoM) -- backend-driven, distinct from the "Simulated" chart on the Consolidated tab */}
-                {selectedChannelId === "amazon" && (
+                {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (() => {
+                  const isShopify = selectedChannelId === "shopify";
+                  const trendData = isShopify ? shopifyTrendData : realTrendData;
+                  return (
                   <div className="bg-white px-6 py-4 border-b border-slate-200">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Amazon Trend (Real Data)</h3>
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">{isShopify ? "Shopify" : "Amazon"} Trend (Real Data)</h3>
                         <p className="text-xs text-slate-500">Net Revenue, CM1, CM2 and Net Profit over the selected period</p>
                       </div>
                       <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
@@ -2662,12 +2810,12 @@ export default function App() {
                         <RefreshCw size={12} className="animate-spin" />
                         <span>Loading trend...</span>
                       </div>
-                    ) : realTrendData.length === 0 ? (
+                    ) : trendData.length === 0 ? (
                       <div className="h-56 flex items-center justify-center text-xs text-slate-400">No trend data for the selected range.</div>
                     ) : (
                       <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={realTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
                             <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
@@ -2683,9 +2831,14 @@ export default function App() {
                         </ResponsiveContainer>
                       </div>
                     )}
-                    <p className="text-[10px] text-slate-400 mt-2">Advertisement Cost is omitted from this trend — Amazon ad spend is only available as a lifetime total, not per-day.</p>
+                    <p className="text-[10px] text-slate-400 mt-2">
+                      {isShopify
+                        ? "Amazon Charges and Rental Charges are omitted from this trend — Shopify has no equivalent per-period settlement/PPOB rental data."
+                        : "Advertisement Cost is omitted from this trend — Amazon ad spend is only available as a lifetime total, not per-day."}
+                    </p>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Sub-Table 2: Efficiency & Listing Metrics */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
@@ -2697,12 +2850,12 @@ export default function App() {
 
                 <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "aov" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
-                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "aov" ? null : "aov")}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "aov" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "aov" ? null : "aov")}
                   >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Average Order Value (AOV)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Average checkout ticket price{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Average checkout ticket price{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.aov, comparativeOperationalMetrics?.aov)}
@@ -2711,12 +2864,12 @@ export default function App() {
                   </div>
 
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "ordersPerDay" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
-                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "ordersPerDay" ? null : "ordersPerDay")}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "ordersPerDay" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "ordersPerDay" ? null : "ordersPerDay")}
                   >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Orders Per Day (OPD)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Daily shipment run counts{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Daily shipment run counts{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.ordersPerDay, comparativeOperationalMetrics?.ordersPerDay)}
@@ -2761,12 +2914,12 @@ export default function App() {
                   </div>
 
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "revenuePerSku" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
-                    onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "revenuePerSku" ? null : "revenuePerSku")}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "revenuePerSku" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "revenuePerSku" ? null : "revenuePerSku")}
                   >
                     <div>
                       <span className="text-[10.5px] text-slate-500 uppercase font-medium">Revenue Per SKU (ASIN Performance)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Average output yielded per logged catalog element{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
+                      <p className="text-xs text-slate-405 mt-0.5">Average output yielded per logged catalog element{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.revenuePerSku, comparativeOperationalMetrics?.revenuePerSku)}
@@ -2851,10 +3004,10 @@ export default function App() {
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Average monthly lag</span>
                     </div>
 
-                    {selectedChannelId === "amazon" && (
+                    {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
                       <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
                         <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Stockout Cost</span>
-                        {renderMetricOrPending(amazonOperationalMetrics?.stockoutCost ?? null, formatCurrency)}
+                        {renderMetricOrPending(selectedChannel.stockoutCost ?? null, formatCurrency)}
                         <span className="text-[9px] text-slate-405 font-sans mt-0.5">Opportunity lost to out-of-stock inventory</span>
                       </div>
                     )}
@@ -3095,11 +3248,19 @@ export default function App() {
                   </div>
 
                   {/* Supply Chain & Returns Vulnerability trend -- click a metric to plot it over the
-                      selected period (daily/weekly/monthly, shares trendGranularity with the main trend chart) */}
-                  {selectedChannelId === "amazon" && (
-                    <div className="mt-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {([
+                      selected period (daily/weekly/monthly, shares trendGranularity with the main trend chart).
+                      Shopify only supports the inventory-health subset (Stockout Cost / Ageing / Dead Stock) --
+                      it has no claims data, so Return/Claim/Reimbursement rate trends stay Amazon-only. */}
+                  {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (() => {
+                    const isShopify = selectedChannelId === "shopify";
+                    const activeSupplyChainTrendData = isShopify ? shopifySupplyChainTrendData : supplyChainTrendData;
+                    const metricOptions = isShopify
+                      ? ([
+                          { key: "stockoutCost", label: "Stockout Cost" },
+                          { key: "ageingInventoryPct", label: "Ageing Inventory %" },
+                          { key: "deadStockPct", label: "Dead Stock %" },
+                        ] as const)
+                      : ([
                           { key: "returnPct", label: "Return Rate" },
                           { key: "goodReturnPct", label: "Good Return Rate" },
                           { key: "badReturnPct", label: "Bad Return Rate" },
@@ -3110,14 +3271,22 @@ export default function App() {
                           { key: "stockoutCost", label: "Stockout Cost" },
                           { key: "ageingInventoryPct", label: "Ageing Inventory %" },
                           { key: "deadStockPct", label: "Dead Stock %" },
-                        ] as const).map(m => (
+                        ] as const);
+                    return (
+                    <div className="mt-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {metricOptions.map(m => (
                           <button
                             key={m.key}
                             onClick={() => {
                               const next = expandedSupplyChainMetric === m.key ? null : m.key;
                               setExpandedSupplyChainMetric(next);
-                              if (next && supplyChainTrendData.length === 0) {
-                                fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+                              if (next && activeSupplyChainTrendData.length === 0) {
+                                if (isShopify) {
+                                  fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
+                                } else {
+                                  fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+                                }
                               }
                             }}
                             className={`text-[10px] px-2.5 py-1 rounded-lg font-medium border ${
@@ -3153,12 +3322,12 @@ export default function App() {
                               <RefreshCw size={12} className="animate-spin" />
                               <span>Loading trend...</span>
                             </div>
-                          ) : supplyChainTrendData.length === 0 ? (
+                          ) : activeSupplyChainTrendData.length === 0 ? (
                             <div className="h-48 flex items-center justify-center text-xs text-slate-400">No trend data for the selected range.</div>
                           ) : (
                             <div className="h-48">
                               <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={supplyChainTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                <LineChart data={activeSupplyChainTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                                   <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
                                   <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(v) : `${v}%`} />
@@ -3174,7 +3343,8 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Sub-Table 5: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
@@ -3648,7 +3818,14 @@ export default function App() {
                       {(["daily", "weekly", "monthly"] as const).map(g => (
                         <button
                           key={g}
-                          onClick={() => { setTrendGranularity(g); fetchSkuTrend(skuTrendSku, startDateStr, endDateStr, g, gstMode); }}
+                          onClick={() => {
+                            setTrendGranularity(g);
+                            if (skuChannelFilter === "shopify") {
+                              fetchShopifySkuTrend(skuTrendSku!, startDateStr, endDateStr, g);
+                            } else {
+                              fetchSkuTrend(skuTrendSku!, startDateStr, endDateStr, g, gstMode);
+                            }
+                          }}
                           className={`text-[10px] px-2.5 py-1 rounded-lg capitalize font-medium ${
                             trendGranularity === g ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
                           }`}
@@ -3727,7 +3904,14 @@ export default function App() {
                         <tr
                           key={s.sku}
                           className="hover:bg-slate-51 transition-all cursor-pointer"
-                          onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
+                          onClick={() => {
+                            setSkuTrendSku(s.sku);
+                            if (skuChannelFilter === "shopify") {
+                              fetchShopifySkuTrend(s.sku, startDateStr, endDateStr, trendGranularity);
+                            } else {
+                              fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode);
+                            }
+                          }}
                         >
                           <td className="py-3.5 px-4 font-sans text-slate-900">
                             <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
@@ -3737,7 +3921,7 @@ export default function App() {
                             <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[10px] text-slate-600 border border-slate-200">{s.category}</span>
                           </td>
                           <td className="py-3.5 px-4 text-center text-slate-800 font-bold">{s.unitsSold.toLocaleString()}</td>
-                          <td className="py-3.5 px-4 text-center">{renderSparkline(skuSparklines[s.sku])}</td>
+                          <td className="py-3.5 px-4 text-center">{renderSparkline(activeSkuSparklines[s.sku])}</td>
                           <td className="py-3.5 px-4 text-center text-slate-600">{s.glanceViews !== null && s.glanceViews !== undefined ? s.glanceViews.toLocaleString() : "—"}</td>
                           <td className="py-3.5 px-4 text-center text-slate-600">{s.conversionRate !== null && s.conversionRate !== undefined ? `${s.conversionRate.toFixed(2)}%` : "—"}</td>
                           <td className="py-3.5 px-4 text-right text-slate-900">{formatCurrency(s.revenue)}</td>

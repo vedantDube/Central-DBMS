@@ -17,12 +17,15 @@ export interface ChannelFinancials {
   aov: number; // Average Order Value
   ordersPerDay: number;
   unitsPerOrder: number;
+  totalOrders: number;
+  unitsSold: number;
   listingsCount: number;
   activeListingCount: number;
   revenuePerSku: number;
 
   // Operational Metrics (User Spreadsheet rows)
   outOfStockDays: number;
+  stockoutCost: number;
   ageingInventoryPct: number;
   deadStockPct: number;
   returnPct: number;
