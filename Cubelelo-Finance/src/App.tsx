@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import SectionCard from "./components/SectionCard";
 import {
   TrendingUp,
   DollarSign,
@@ -77,6 +78,9 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem("darkMode") === "true";
   });
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const toggleSection = (id: string) =>
+    setCollapsedSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
   useEffect(() => {
     localStorage.setItem("darkMode", String(darkMode));
@@ -3336,13 +3340,16 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
 
                   {/* Unreconciled Orders */}
-                  <div className="bg-white border border-rose-200 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle size={15} className="text-rose-500" />
-                      <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Unreconciled Discrepancies</span>
-                      <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">{anomalies.unreconciledOrders?.length || 0}</span>
-                      <a href={`/api/amazon/anomalies/csv?type=unreconciled&startDate=${startDateStr}&endDate=${endDateStr}`} className="ml-auto text-slate-400 hover:text-rose-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>
-                    </div>
+                  <SectionCard
+                    id="recon-unreconciled"
+                    title="Unreconciled Discrepancies"
+                    icon={<AlertTriangle size={15} className="text-rose-500" />}
+                    badge={<span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">{anomalies.unreconciledOrders?.length || 0}</span>}
+                    headerExtra={<a href={`/api/amazon/anomalies/csv?type=unreconciled&startDate=${startDateStr}&endDate=${endDateStr}`} className="text-slate-400 hover:text-rose-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>}
+                    collapsed={!!collapsedSections["recon-unreconciled"]}
+                    onToggle={toggleSection}
+                    className="border-rose-200"
+                  >
                     {anomalies.unreconciledOrders?.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {anomalies.unreconciledOrders.map((o: any, i: number) => (
@@ -3361,16 +3368,19 @@ export default function App() {
                     ) : (
                       <p className="text-[10px] text-slate-400 font-sans">No discrepancies detected</p>
                     )}
-                  </div>
+                  </SectionCard>
 
                   {/* High Return SKUs */}
-                  <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle size={15} className="text-amber-500" />
-                      <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">High Return SKUs (&gt;15%)</span>
-                      <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">{anomalies.highReturnSkus?.length || 0}</span>
-                      <a href={`/api/amazon/anomalies/csv?type=highReturns&startDate=${startDateStr}&endDate=${endDateStr}`} className="ml-auto text-slate-400 hover:text-amber-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>
-                    </div>
+                  <SectionCard
+                    id="recon-high-returns"
+                    title="High Return SKUs (>15%)"
+                    icon={<AlertTriangle size={15} className="text-amber-500" />}
+                    badge={<span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">{anomalies.highReturnSkus?.length || 0}</span>}
+                    headerExtra={<a href={`/api/amazon/anomalies/csv?type=highReturns&startDate=${startDateStr}&endDate=${endDateStr}`} className="text-slate-400 hover:text-amber-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>}
+                    collapsed={!!collapsedSections["recon-high-returns"]}
+                    onToggle={toggleSection}
+                    className="border-amber-200"
+                  >
                     {anomalies.highReturnSkus?.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {anomalies.highReturnSkus.map((s: any, i: number) => (
@@ -3386,16 +3396,19 @@ export default function App() {
                     ) : (
                       <p className="text-[10px] text-slate-400 font-sans">No high-return SKUs detected</p>
                     )}
-                  </div>
+                  </SectionCard>
 
                   {/* Fee Overcharges */}
-                  <div className="bg-white border border-orange-200 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle size={15} className="text-orange-500" />
-                      <span className="text-xs font-bold text-orange-700 uppercase tracking-wider">Fee Overcharges (&gt;40%)</span>
-                      <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">{anomalies.feeOvercharges?.length || 0}</span>
-                      <a href={`/api/amazon/anomalies/csv?type=feeOvercharges&startDate=${startDateStr}&endDate=${endDateStr}`} className="ml-auto text-slate-400 hover:text-orange-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>
-                    </div>
+                  <SectionCard
+                    id="recon-fee-overcharges"
+                    title="Fee Overcharges (>40%)"
+                    icon={<AlertTriangle size={15} className="text-orange-500" />}
+                    badge={<span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">{anomalies.feeOvercharges?.length || 0}</span>}
+                    headerExtra={<a href={`/api/amazon/anomalies/csv?type=feeOvercharges&startDate=${startDateStr}&endDate=${endDateStr}`} className="text-slate-400 hover:text-orange-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>}
+                    collapsed={!!collapsedSections["recon-fee-overcharges"]}
+                    onToggle={toggleSection}
+                    className="border-orange-200"
+                  >
                     {anomalies.feeOvercharges?.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {anomalies.feeOvercharges.map((o: any, i: number) => (
@@ -3414,7 +3427,7 @@ export default function App() {
                     ) : (
                       <p className="text-[10px] text-slate-400 font-sans">No fee overcharges detected</p>
                     )}
-                  </div>
+                  </SectionCard>
 
                 </div>
               )}
