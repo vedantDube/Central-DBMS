@@ -1926,22 +1926,22 @@ export default function App() {
               <LoadingOverlay active={isPageLoading} />
 
               {/* Channel Revenue & Net Profit Comparison */}
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm lg:col-span-2">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Channel-wise Revenue & Profit Comparison</h3>
-                    <p className="text-xs text-slate-500">Volume and net impact sorted descending</p>
-                  </div>
-                  <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">30-day aggregated values</span>
-                </div>
-                
+              <SectionCard
+                id="consolidated-channel-comparison"
+                title="Channel-wise Revenue & Profit Comparison"
+                subtitle="Volume and net impact sorted descending"
+                headerExtra={<span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">30-day aggregated values</span>}
+                collapsed={!!collapsedSections["consolidated-channel-comparison"]}
+                onToggle={toggleSection}
+                className="lg:col-span-2"
+              >
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={channelChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="name" stroke="#64748b" fontSize={9} interval={0} tickFormatter={(v) => v.split(" ")[0]} />
                       <YAxis stroke="#64748b" fontSize={9} />
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
                         formatter={(val: number) => [formatCurrency(val), ""]}
                       />
@@ -1951,37 +1951,38 @@ export default function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </SectionCard>
 
               {/* Revenue Category Share & Efficiency Factors */}
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2">Category Revenue Share</h3>
-                  <p className="text-xs text-slate-500 mb-6">Marketplace vs Quick Commerce vs Offline wholesales</p>
-                  
-                  <div className="h-44 flex items-center justify-center relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={categoryBreakdownData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={75}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {categoryBreakdownData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(val: number) => formatCurrency(val)} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute text-center">
-                      <p className="text-[9px] text-slate-400 font-bold">TOTAL REVENUE</p>
-                      <p className="text-xs font-bold text-slate-800 font-mono">{formatCurrency(consolidatedMetrics.revenue)}</p>
-                    </div>
+              <SectionCard
+                id="consolidated-category-share"
+                title="Category Revenue Share"
+                subtitle="Marketplace vs Quick Commerce vs Offline wholesales"
+                collapsed={!!collapsedSections["consolidated-category-share"]}
+                onToggle={toggleSection}
+              >
+                <div className="h-44 flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryBreakdownData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={75}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {categoryBreakdownData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute text-center">
+                    <p className="text-[9px] text-slate-400 font-bold">TOTAL REVENUE</p>
+                    <p className="text-xs font-bold text-slate-800 font-mono">{formatCurrency(consolidatedMetrics.revenue)}</p>
                   </div>
                 </div>
 
@@ -1997,23 +1998,25 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </SectionCard>
             </div>
 
             {/* Dynamic Daily Revenue & Profit Trend */}
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative" id="daily-timeseries-trend-card">
-              <LoadingOverlay active={isPageLoading} />
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Dynamic Daily Revenue & Net Profit Trend</h3>
-                  <p className="text-xs text-slate-500">Day-by-day telemetry for the selected range ({startDateStr} to {endDateStr})</p>
-                </div>
+            <SectionCard
+              id="consolidated-daily-trend"
+              title="Dynamic Daily Revenue & Net Profit Trend"
+              subtitle={`Day-by-day telemetry for the selected range (${startDateStr} to ${endDateStr})`}
+              headerExtra={
                 <div className="flex items-center gap-4 text-xs font-semibold">
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-blue-500 rounded-full inline-block"></span> Daily Revenue</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> Daily Net Profit</span>
                 </div>
-              </div>
-              <div className="h-64">
+              }
+              collapsed={!!collapsedSections["consolidated-daily-trend"]}
+              onToggle={toggleSection}
+            >
+              <LoadingOverlay active={isPageLoading} />
+              <div id="daily-timeseries-trend-card" className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -2032,7 +2035,7 @@ export default function App() {
                       return parts[2] ? `${parts[2]}/${parts[1]}` : v;
                     }} />
                     <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
                       formatter={(val: number) => [formatCurrency(val), ""]}
                     />
@@ -2041,12 +2044,16 @@ export default function App() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </SectionCard>
 
             {/* Channels Ledger Overview Summary Table */}
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative">
+            <SectionCard
+              id="consolidated-master-ledger"
+              title="Master Ledger Channels Dashboard (Summary)"
+              collapsed={!!collapsedSections["consolidated-master-ledger"]}
+              onToggle={toggleSection}
+            >
               <LoadingOverlay active={isPageLoading} />
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Master Ledger Channels Dashboard (Summary)</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200">
@@ -2098,7 +2105,7 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </SectionCard>
 
           </div>
         )}
@@ -2136,12 +2143,14 @@ export default function App() {
 
               {/* Sales Snapshot -- mirrors Amazon Seller Central's own Sales Dashboard snapshot row */}
               {selectedChannelId === "amazon" && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative">
+                <SectionCard
+                  id="channels-sales-snapshot"
+                  title="Sales Snapshot"
+                  headerExtra={<span className="text-[10px] font-mono text-slate-400">as of {endDateStr}</span>}
+                  collapsed={!!collapsedSections["channels-sales-snapshot"]}
+                  onToggle={toggleSection}
+                >
                   <LoadingOverlay active={isPageLoading} />
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Sales Snapshot</h3>
-                    <span className="text-[10px] font-mono text-slate-400">as of {endDateStr}</span>
-                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                       <span className="text-[10px] text-slate-500 uppercase font-medium block">Total Order Items</span>
@@ -2164,14 +2173,15 @@ export default function App() {
                       <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(amazonOperationalMetrics?.aov ?? 0)}</span>
                     </div>
                   </div>
-                </div>
+                </SectionCard>
               )}
 
               {/* Compare Sales -- Selected Day vs Previous Day vs Same Day Last Week vs Same Day Last Year */}
               {selectedChannelId === "amazon" && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Compare Sales</h3>
+                <SectionCard
+                  id="channels-compare-sales"
+                  title="Compare Sales"
+                  headerExtra={
                     <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
                       {(["graph", "table"] as const).map(v => (
                         <button
@@ -2185,8 +2195,10 @@ export default function App() {
                         </button>
                       ))}
                     </div>
-                  </div>
-
+                  }
+                  collapsed={!!collapsedSections["channels-compare-sales"]}
+                  onToggle={toggleSection}
+                >
                   {isLoadingCompareSales ? (
                     <div className="h-40 flex items-center justify-center gap-2 text-xs text-slate-400">
                       <RefreshCw size={12} className="animate-spin" />
@@ -2265,11 +2277,19 @@ export default function App() {
                   <p className="text-[9px] text-slate-405 font-sans mt-3">
                     "Selected Day" is the end of your chosen date range, not live-today — this dashboard reflects ingested historical data, not a real-time feed.
                   </p>
-                </div>
+                </SectionCard>
               )}
 
               {/* THREE SPREADSHEET TABLE CARD MODULES */}
-              <div className="bg-white border border-slate-205 rounded-2xl overflow-hidden shadow-sm relative">
+              <SectionCard
+                id="channels-profitability-breakdown"
+                title="Channel Profitability Breakdown"
+                subtitle="P&L structure, listing performance, inventory health, returns, and ads — in one audit ledger"
+                collapsed={!!collapsedSections["channels-profitability-breakdown"]}
+                onToggle={toggleSection}
+                bodyClassName="p-0"
+                className="overflow-hidden"
+              >
                 <LoadingOverlay active={isPageLoading} />
 
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -3333,7 +3353,7 @@ export default function App() {
                   </>
                 )}
 
-              </div>
+              </SectionCard>
 
               {/* Anomaly Detection Cards */}
               {selectedChannelId === "amazon" && anomalies && (
@@ -3432,8 +3452,10 @@ export default function App() {
                 </div>
               )}
 
-              {/* AI Strategic Consultation Module for Selected Channel */}
-              <div className="bg-emerald-50/20 border border-emerald-200 rounded-2xl p-6 relative overflow-hidden">
+              {/* AI Strategic Consultation Module for Selected Channel -- kept as a plain panel (not a SectionCard):
+                  this is an always-visible assistant widget, not a collapsible data section, and its decorative
+                  blur layer needs to sit behind the header, which SectionCard's fixed header-first layout doesn't allow. */}
+              <div className="bg-emerald-50/20 border border-emerald-200 rounded-2xl p-6 relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl translate-x-12 -translate-y-12"></div>
                 
                 <div className="flex items-center gap-2 text-emerald-800 mb-3">
@@ -3499,9 +3521,13 @@ export default function App() {
           <div className="flex flex-col gap-6">
 
             {/* Deep Dive ASIN Performance -- mirrors Amazon Seller Central's own panel */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative">
+            <SectionCard
+              id="skus-deep-dive"
+              title="Deep Dive ASIN Performance"
+              collapsed={!!collapsedSections["skus-deep-dive"]}
+              onToggle={toggleSection}
+            >
               <LoadingOverlay active={isPageLoading} />
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">Deep Dive ASIN Performance</h3>
               <div className="flex flex-col gap-4">
                 <div>
                   <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Top Sales Products</span>
@@ -3527,7 +3553,7 @@ export default function App() {
               <p className="text-[9px] text-slate-405 font-sans mt-3">
                 Click a card to load its trend below.
               </p>
-            </div>
+            </SectionCard>
 
             {/* SKU Filters Dashboard Bar */}
             <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm relative">
@@ -3664,7 +3690,14 @@ export default function App() {
             )}
 
             {/* Detailed SKU Margin Spreadsheet Card */}
-            <div className="bg-white border border-slate-201 rounded-2xl overflow-hidden shadow-sm relative">
+            <SectionCard
+              id="skus-margin-spreadsheet"
+              title="Detailed SKU Margin Spreadsheet"
+              subtitle={`${filteredSKUs.length} SKUs matching current filters`}
+              collapsed={!!collapsedSections["skus-margin-spreadsheet"]}
+              onToggle={toggleSection}
+              bodyClassName="p-0"
+            >
               <LoadingOverlay active={isPageLoading} />
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
@@ -3733,15 +3766,16 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </SectionCard>
 
             {/* Operational Levers Information for management */}
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 font-sans flex items-center gap-2">
-                <Sliders size={16} className="text-blue-600" />
-                Management Guidance Portfolio • SKU Optimization Actions
-              </h3>
-              
+            <SectionCard
+              id="skus-management-guidance"
+              title="Management Guidance Portfolio • SKU Optimization Actions"
+              icon={<Sliders size={16} className="text-blue-600" />}
+              collapsed={!!collapsedSections["skus-management-guidance"]}
+              onToggle={toggleSection}
+            >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-600 leading-relaxed font-sans">
                 <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200">
                   <span className="text-sm font-bold text-rose-700 flex items-center gap-2 mb-2">
@@ -3770,7 +3804,7 @@ export default function App() {
                   <span className="text-slate-900 block font-semibold mt-2">Action: Set up Swiggy Instamart custom bundle of 10 to increase basket ticket and yield.</span>
                 </div>
               </div>
-            </div>
+            </SectionCard>
 
           </div>
         )}
@@ -3857,7 +3891,15 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Order List Table */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden lg:col-span-2 shadow-sm">
+              <SectionCard
+                id="recon-order-list"
+                title="Reconciliation Audit Ledger"
+                subtitle={`${filteredOrders.length} orders matching current filters`}
+                collapsed={!!collapsedSections["recon-order-list"]}
+                onToggle={toggleSection}
+                bodyClassName="p-0"
+                className="lg:col-span-2"
+              >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200 font-sans">
@@ -3915,24 +3957,25 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </SectionCard>
 
               {/* Order Detail auditor drilldown */}
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl h-fit shadow-sm text-slate-750">
+              <SectionCard
+                id="recon-order-detail"
+                title={selectedOrder ? `Currently Auditing: ${selectedOrder.orderId}` : "Order Detail Auditor"}
+                badge={selectedOrder && (
+                  <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded ${
+                    selectedOrder.platform === "Amazon" ? "bg-amber-100 text-amber-800" : "bg-blue-105 text-blue-800"
+                  }`}>
+                    {selectedOrder.platform}
+                  </span>
+                )}
+                collapsed={!!collapsedSections["recon-order-detail"]}
+                onToggle={toggleSection}
+                className="h-fit"
+              >
                 {selectedOrder ? (
                   <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Currently Auditing:</span>
-                        <h4 className="text-sm font-extrabold text-slate-800 font-mono mt-0.5">{selectedOrder.orderId}</h4>
-                      </div>
-                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded ${
-                        selectedOrder.platform === "Amazon" ? "bg-amber-100 text-amber-800" : "bg-blue-105 text-blue-800"
-                      }`}>
-                        {selectedOrder.platform}
-                      </span>
-                    </div>
-
                     <div className="space-y-3 text-xs">
                       <div className="flex justify-between font-sans">
                         <span className="text-slate-500">Item SKU Reference:</span>
@@ -4033,7 +4076,7 @@ export default function App() {
                     <span className="text-xs">Click any row in the Audit ledger on the left to trigger double entry audit checks.</span>
                   </div>
                 )}
-              </div>
+              </SectionCard>
             </div>
 
           </div>
@@ -4044,10 +4087,14 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Custom Channel Builder Form */}
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl lg:col-span-2 shadow-sm text-slate-700">
-              <h3 className="text-sm font-bold text-slate-805 uppercase tracking-wider mb-2 font-sans">Strategic Dynamic Channel Provisioning Node</h3>
-              <p className="text-xs text-slate-450 mb-6 font-sans">Manage expansions. Provision a simulated channel projection model, configured with baseline commissions and overhead parameters.</p>
-
+            <SectionCard
+              id="configurer-channel-builder"
+              title="Strategic Dynamic Channel Provisioning Node"
+              subtitle="Provision a simulated channel projection model, configured with baseline commissions and overhead parameters"
+              collapsed={!!collapsedSections["configurer-channel-builder"]}
+              onToggle={toggleSection}
+              className="lg:col-span-2 text-slate-700"
+            >
               <form onSubmit={handleAddChannel} className="space-y-4">
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4151,12 +4198,17 @@ export default function App() {
                 </button>
 
               </form>
-            </div>
+            </SectionCard>
 
             {/* Platform rules overview & projections */}
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col justify-between text-slate-600">
+            <SectionCard
+              id="configurer-guidelines"
+              title="Dynamic Expansions Ledger Guidelines"
+              collapsed={!!collapsedSections["configurer-guidelines"]}
+              onToggle={toggleSection}
+              className="flex flex-col justify-between text-slate-600"
+            >
               <div>
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2 font-sans">Dynamic Expansions Ledger Guidelines</h3>
                 <p className="text-xs text-slate-450 mb-4 leading-relaxed font-sans">
                   Management enforces configuring dynamic models ahead of actual channel integration. Our dual-entry ledger instantly merges provisioned targets into the overall Consolidated Cockpit.
                 </p>
@@ -4177,7 +4229,7 @@ export default function App() {
               <div className="text-[10px] text-slate-400 text-center font-mono mt-6 border-t border-slate-100 pt-4">
                 Expansions profile model compliant with ISO CFO standard formats.
               </div>
-            </div>
+            </SectionCard>
 
           </div>
         )}
@@ -4187,17 +4239,12 @@ export default function App() {
           <div className="space-y-6">
             
             {/* Status Panel Header */}
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm text-slate-700">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                    <Database className="text-emerald-500" size={20} />
-                    Supabase Database Connector
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 font-sans">
-                    Connect and read live data from your Supabase database tables
-                  </p>
-                </div>
+            <SectionCard
+              id="database-connector"
+              title="Supabase Database Connector"
+              subtitle="Connect and read live data from your Supabase database tables"
+              icon={<Database className="text-emerald-500" size={20} />}
+              headerExtra={
                 <div className="flex items-center gap-2">
                   <button
                     onClick={checkDbStatus}
@@ -4225,10 +4272,13 @@ export default function App() {
                     )}
                   </button>
                 </div>
-              </div>
-
+              }
+              collapsed={!!collapsedSections["database-connector"]}
+              onToggle={toggleSection}
+              className="text-slate-700"
+            >
               {/* URL Status Banner */}
-              <div className="mt-5 border-t border-slate-100 pt-4">
+              <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
                   <div className="flex items-center gap-2 text-slate-650">
                     <span className="font-semibold">Registered Host URI:</span>
@@ -4313,9 +4363,10 @@ export default function App() {
                   </div>
                 )}
               </div>
-            </div>
+            </SectionCard>
 
-            {/* ERROR REPORT IF SYNCHRONIZATION FAILED */}
+            {/* ERROR REPORT IF SYNCHRONIZATION FAILED -- kept as a plain alert panel, not a SectionCard:
+                error banners should stay visually distinct (always-open, red-themed) rather than being collapsible. */}
             {dbError && (
               <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm text-red-805 font-sans text-xs">
                 <h4 className="font-bold text-red-900 mb-1 flex items-center gap-1.5 text-sm">
@@ -4340,18 +4391,20 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* 1. Schema Info Grid (Left Panel) */}
-                <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+                <SectionCard
+                  id="database-schema-columns"
+                  title={`Table Schema Columns (${b2cSchemaData.columns?.length || 0})`}
+                  subtitle="Physical relational attributes pulled"
+                  badge={
+                    <span className="text-[10px] bg-slate-150 text-slate-600 font-mono font-bold px-1.5 py-0.5 rounded">
+                      {b2cSchemaData.tableNameFound}
+                    </span>
+                  }
+                  collapsed={!!collapsedSections["database-schema-columns"]}
+                  onToggle={toggleSection}
+                  className="flex flex-col justify-between"
+                >
                   <div>
-                    <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest font-sans">Table Schema Columns ({b2cSchemaData.columns?.length || 0})</h4>
-                        <p className="text-[10px] text-slate-400 font-sans mt-0.5">Physical relational attributes pulled</p>
-                      </div>
-                      <span className="text-[10px] bg-slate-150 text-slate-600 font-mono font-bold px-1.5 py-0.5 rounded">
-                        {b2cSchemaData.tableNameFound}
-                      </span>
-                    </div>
-
                     <div className="overflow-y-auto max-h-96 pr-1 space-y-1">
                       {b2cSchemaData.columns?.map((col: any) => (
                         <div key={col.columnName} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100/80 transition-colors border border-slate-200/30 text-xs font-mono">
@@ -4375,12 +4428,18 @@ export default function App() {
                       The columns above represent the raw Amazon data stream. I have verified connection, extracted datatypes, and pulled raw sample entries to assist your tracking.
                     </p>
                   </div>
-                </div>
+                </SectionCard>
 
-                {/* 2. Available Tables Console (Middle/Right panel info) */}
-                <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl shadow-sm lg:col-span-2 text-slate-300 flex flex-col justify-between font-sans">
+                {/* 2. Available Tables Console (Middle/Right panel info) -- dark terminal theme preserved via className/bodyClassName overrides */}
+                <SectionCard
+                  id="database-table-catalog"
+                  title="Public Schema Table Catalog"
+                  dark
+                  collapsed={!!collapsedSections["database-table-catalog"]}
+                  onToggle={toggleSection}
+                  className="lg:col-span-2 text-slate-300 flex flex-col justify-between font-sans"
+                >
                   <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-800 pb-3">Public Schema Table Catalog</h4>
                     <p className="text-[11px] text-slate-450 leading-relaxed mb-4">
                       Below is the query mapping of tables in the <code className="bg-slate-805 px-1.5 py-0.5 rounded text-emerald-400 font-mono">public</code> namespace of your Supabase instance.
                     </p>
@@ -4417,24 +4476,26 @@ export default function App() {
                   <div className="mt-4 text-[10.5px] text-slate-400 border-t border-slate-800 pt-3 leading-relaxed">
                     <span className="text-amber-500 font-bold">💡 Mapping Next Steps:</span> Now that we successfully pulled column names, you can guide me with how to sum/analyze these columns (e.g. subtracting commissions or taxes) to compile real-time aggregates in the dashboard!
                   </div>
-                </div>
+                </SectionCard>
 
               </div>
             )}
 
             {/* INTERACTIVE SAMPLE RECORD VIEWER GRID */}
             {b2cSchemaData && b2cSchemaData.success && b2cSchemaData.sampleRows && b2cSchemaData.sampleRows.length > 0 && (
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-slate-700">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest font-sans">Sample Rows Extract ({b2cSchemaData.sampleRows.length} of {b2cSchemaData.rowCount.toLocaleString()} total rows)</h3>
-                    <p className="text-[10px] text-slate-400 font-sans mt-0.5">Direct live data feed representation from database</p>
-                  </div>
+              <SectionCard
+                id="database-sample-rows"
+                title={`Sample Rows Extract (${b2cSchemaData.sampleRows.length} of ${b2cSchemaData.rowCount.toLocaleString()} total rows)`}
+                subtitle="Direct live data feed representation from database"
+                headerExtra={
                   <span className="text-[10px] text-slate-500 font-mono font-bold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200/50">
                     LIMIT 25 Query Segment
                   </span>
-                </div>
-
+                }
+                collapsed={!!collapsedSections["database-sample-rows"]}
+                onToggle={toggleSection}
+                className="text-slate-700"
+              >
                 {/* Horizontal scrollable data grid */}
                 <div className="overflow-x-auto border border-slate-150 rounded-xl max-h-[480px]">
                   <table className="w-full text-left border-collapse text-xs">
@@ -4475,7 +4536,7 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </SectionCard>
             )}
 
           </div>
