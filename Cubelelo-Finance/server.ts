@@ -91,6 +91,7 @@ function computeSupplyChainHealth(
   dailyStockRows: DailyStockRow[],
   reportStartStr: string,
   reportEndStr: string,
+  activeSkus: Set<string>,
 ) {
   type DayNum = { units: number; revenue: number };
   const unitsBySkuDate = new Map<string, Map<string, DayNum>>();
@@ -104,7 +105,15 @@ function computeSupplyChainHealth(
     stockBySkuDate.get(row.sku)!.set(row.d, row.quantity == null ? 0 : row.quantity);
   }
 
+  // Ageing Inventory % / Dead Stock % = (flagged SKU count) / (total active listings) -- both sides of
+  // that ratio must be drawn from the SAME population, or the percentage is meaningless (and can exceed
+  // 100%). EasyEcomInventory/daily-units rows span every sales channel (Amazon, Shopify, Flipkart, etc.),
+  // so without this restriction a SKU that was never even an active listing on this platform could still
+  // get flagged and inflate the numerator against an unrelated denominator. Out-of-Stock Days/Stockout
+  // Cost are revenue-weighted platform-wide figures, not listing-count ratios, so they intentionally keep
+  // using the full (unrestricted) SKU universe below for those two metrics.
   const allSkus = new Set<string>([...unitsBySkuDate.keys(), ...stockBySkuDate.keys()]);
+  const activeListingSkus = new Set<string>([...allSkus].filter((sku) => activeSkus.has(sku)));
 
   let ageingFlaggedCount = 0;
   let deadStockCriticalCount = 0;
@@ -135,49 +144,53 @@ function computeSupplyChainHealth(
       .map(([wk, b]) => ({ wk, rate: b.sum / b.count }))
       .sort((a, b) => (a.wk < b.wk ? -1 : 1));
 
-    let flagged = false;
-    let triggerRate = 0;
-    let triggerWeek = "";
-    let triggerCurrRate = 0;
-    for (let i = 1; i < weeks.length; i++) {
-      const prevRate = weeks[i - 1].rate;
-      const currRate = weeks[i].rate;
-      if (!flagged) {
-        if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
-          flagged = true;
-          triggerRate = prevRate;
-          triggerWeek = weeks[i].wk;
-          triggerCurrRate = currRate;
+    // Ageing/dead-stock flags only count against listings that are actually active on this platform --
+    // see the population-mismatch comment above computeSupplyChainHealth's allSkus/activeListingSkus.
+    if (activeListingSkus.has(sku)) {
+      let flagged = false;
+      let triggerRate = 0;
+      let triggerWeek = "";
+      let triggerCurrRate = 0;
+      for (let i = 1; i < weeks.length; i++) {
+        const prevRate = weeks[i - 1].rate;
+        const currRate = weeks[i].rate;
+        if (!flagged) {
+          if (prevRate > 0 && (prevRate - currRate) / prevRate >= 0.30) {
+            flagged = true;
+            triggerRate = prevRate;
+            triggerWeek = weeks[i].wk;
+            triggerCurrRate = currRate;
+          }
+        } else if (currRate >= triggerRate) {
+          flagged = false;
         }
-      } else if (currRate >= triggerRate) {
-        flagged = false;
       }
-    }
-    if (flagged) {
-      ageingFlaggedCount++;
-      ageingSkus.push({
-        sku,
-        triggerWeek,
-        prevRate: Math.round(triggerRate * 100) / 100,
-        currRate: Math.round(triggerCurrRate * 100) / 100,
-        dropPct: Math.round(((triggerRate - triggerCurrRate) / triggerRate) * 10000) / 100,
-      });
-    }
-
-    const stockedDatesInRange = dates.filter((d) => d >= reportStartStr && d <= reportEndStr && stockMap.get(d)! > 0);
-    if (stockedDatesInRange.length >= 2) {
-      const last = stockedDatesInRange[stockedDatesInRange.length - 1];
-      const prev = stockedDatesInRange[stockedDatesInRange.length - 2];
-      const lastRate = unitsMap.get(last)?.units ?? 0;
-      const prevRate = unitsMap.get(prev)?.units ?? 0;
-      if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) {
-        deadStockCriticalCount++;
-        criticalSkus.push({
+      if (flagged) {
+        ageingFlaggedCount++;
+        ageingSkus.push({
           sku,
-          prevRate: Math.round(prevRate * 100) / 100,
-          lastRate: Math.round(lastRate * 100) / 100,
-          dropPct: Math.round(((prevRate - lastRate) / prevRate) * 10000) / 100,
+          triggerWeek,
+          prevRate: Math.round(triggerRate * 100) / 100,
+          currRate: Math.round(triggerCurrRate * 100) / 100,
+          dropPct: Math.round(((triggerRate - triggerCurrRate) / triggerRate) * 10000) / 100,
         });
+      }
+
+      const stockedDatesInRange = dates.filter((d) => d >= reportStartStr && d <= reportEndStr && stockMap.get(d)! > 0);
+      if (stockedDatesInRange.length >= 2) {
+        const last = stockedDatesInRange[stockedDatesInRange.length - 1];
+        const prev = stockedDatesInRange[stockedDatesInRange.length - 2];
+        const lastRate = unitsMap.get(last)?.units ?? 0;
+        const prevRate = unitsMap.get(prev)?.units ?? 0;
+        if (prevRate > 0 && (prevRate - lastRate) / prevRate >= 0.50) {
+          deadStockCriticalCount++;
+          criticalSkus.push({
+            sku,
+            prevRate: Math.round(prevRate * 100) / 100,
+            lastRate: Math.round(lastRate * 100) / 100,
+            dropPct: Math.round(((prevRate - lastRate) / prevRate) * 10000) / 100,
+          });
+        }
       }
     }
 
@@ -1061,7 +1074,7 @@ async function startServer() {
         gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
       }
 
-      const [ordersResult, listingsResult, returnsResult, claimsResult] = await Promise.all([
+      const [ordersResult, listingsResult, activeSkusResult, returnsResult, claimsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS total_revenue,
@@ -1075,6 +1088,9 @@ async function startServer() {
             COUNT(DISTINCT sellersku) AS total_listings,
             COUNT(DISTINCT CASE WHEN LOWER(status) = 'active' THEN sellersku END) AS active_listings
           FROM "AmazonMtrRow"
+        `),
+        client.query(`
+          SELECT DISTINCT sellersku FROM "AmazonMtrRow" WHERE LOWER(status) = 'active'
         `),
         // Accrual basis: every return row is pulled un-dated and joined to its shipment's order_date, then
         // filtered/aggregated in JS below by accrual date (shipment date, falling back to the return's own
@@ -1104,6 +1120,7 @@ async function startServer() {
 
       const totalListings = parseInt(listingsResult.rows[0].total_listings);
       const activeListings = parseInt(listingsResult.rows[0].active_listings);
+      const activeListingSkuSet = new Set<string>(activeSkusResult.rows.map((r: any) => r.sellersku));
 
       // A row's accrual date is its matched shipment's order_date, falling back to its own event date
       // (returndate / approvaldate) only when no matching Shipment row exists in Amazon_GST_Master.
@@ -1329,7 +1346,7 @@ async function startServer() {
           quantity: row.quantity == null ? 0 : parseFloat(row.quantity),
         }));
 
-        return computeSupplyChainHealth(dailyUnitsRows, dailyStockRows, reportStartStr, reportEndStr);
+        return computeSupplyChainHealth(dailyUnitsRows, dailyStockRows, reportStartStr, reportEndStr, activeListingSkuSet);
       });
 
       const perSkuRevenueInRange = new Map<string, number>(supplyChain.perSkuRevenueInRange);
@@ -2908,7 +2925,7 @@ async function startServer() {
         returnDateFilter = `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')`;
       }
 
-      const [ordersResult, listingsResult, returnsResult] = await Promise.all([
+      const [ordersResult, listingsResult, activeSkusResult, returnsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM("totalPrice"), 0) AS total_revenue,
@@ -2936,6 +2953,10 @@ async function startServer() {
           WHERE sku IS NOT NULL AND sku != ''
         `),
         client.query(`
+          SELECT DISTINCT sku FROM "ShopifyInventoryItem"
+          WHERE "productStatus" = 'ACTIVE' AND sku IS NOT NULL AND sku != ''
+        `),
+        client.query(`
           SELECT
             COALESCE(SUM(r."totalQuantity"), 0) AS returned_qty
           FROM "ShopifyReturn" r
@@ -2954,6 +2975,7 @@ async function startServer() {
       // need a SKU-count denominator, not the product-count activeListings figure -- otherwise a
       // product with several variants inflates the rate (more flaggable SKUs, same product count).
       const activeSkus = parseInt(listingsResult.rows[0].active_skus);
+      const activeListingSkuSet = new Set<string>(activeSkusResult.rows.map((r: any) => r.sku));
 
       const returnedQty = parseInt(returnsResult.rows[0].returned_qty);
 
@@ -3014,7 +3036,7 @@ async function startServer() {
           quantity: row.quantity == null ? 0 : parseFloat(row.quantity),
         }));
 
-        return computeSupplyChainHealth(dailyUnitsRows, dailyStockRows, reportStartStr, reportEndStr);
+        return computeSupplyChainHealth(dailyUnitsRows, dailyStockRows, reportStartStr, reportEndStr, activeListingSkuSet);
       });
 
       const { outOfStockDays, ageingFlaggedCount, deadStockCriticalCount } = supplyChain;
