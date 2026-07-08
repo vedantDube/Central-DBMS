@@ -361,6 +361,8 @@ model ShopifyInventoryItem {
   createdAt                    DateTime?
   updatedAt                    DateTime?
   variantId                    String?
+  productId                    String? // gid://shopify/Product/xxx, the variant's parent product
+  productStatus                String? // ACTIVE / DRAFT / ARCHIVED / UNLISTED, from Product.status
   countryCodeOfOrigin          String?
   countryHarmonizedSystemCodes Json?
   duplicateSkuCount            Int?
@@ -375,6 +377,7 @@ model ShopifyInventoryItem {
   levels                       ShopifyInventoryLevel[]
 
   @@index([sku])
+  @@index([productStatus])
 }
 
 model ShopifyInventoryLevel {

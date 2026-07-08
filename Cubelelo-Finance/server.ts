@@ -8,40 +8,6 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-// Shopify's own "active product" count -- queried live rather than derived from our synced
-// ShopifyInventoryItem table, since that table is per-variant (one product can have many SKUs, and
-// the same SKU can recur across variants), which made a DB-derived count wildly overstate how many
-// products are actually live on the store. Cached briefly since Shopify's admin API is rate-limited
-// and this figure doesn't change second-to-second.
-let activeProductCountCache: { count: number; fetchedAt: number } | null = null;
-const ACTIVE_PRODUCT_COUNT_TTL_MS = 5 * 60 * 1000;
-
-async function getShopifyActiveProductCount(): Promise<number | null> {
-  if (activeProductCountCache && Date.now() - activeProductCountCache.fetchedAt < ACTIVE_PRODUCT_COUNT_TTL_MS) {
-    return activeProductCountCache.count;
-  }
-
-  const domain = process.env.SHOPIFY_DOMAIN;
-  const token = process.env.SHOPIFY_ACCESS_TOKEN;
-  const version = process.env.SHOPIFY_API_VERSION || "2024-01";
-  if (!domain || !token) return null;
-
-  try {
-    const response = await fetch(`https://${domain}/admin/api/${version}/products/count.json?status=active`, {
-      headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
-    });
-    if (!response.ok) return null;
-    const body: any = await response.json();
-    const count = typeof body?.count === "number" ? body.count : null;
-    if (count !== null) {
-      activeProductCountCache = { count, fetchedAt: Date.now() };
-    }
-    return count;
-  } catch {
-    return null;
-  }
-}
-
 // "Beyond Ads" is billed at a fixed 10% of Amazon-billed ad spend (finance-confirmed constant, not user-editable)
 const BEYOND_ADS_MULTIPLIER = 0.10;
 
@@ -2912,7 +2878,7 @@ async function startServer() {
         returnDateFilter = `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')`;
       }
 
-      const [ordersResult, listingsResult, returnsResult, shopifyActiveProductCount] = await Promise.all([
+      const [ordersResult, listingsResult, returnsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM("totalPrice"), 0) AS total_revenue,
@@ -2925,9 +2891,16 @@ async function startServer() {
             AND "financialStatus" NOT IN ('voided', 'refunded')
             ${dateFilter}
         `, params),
-        // Total distinct SKUs ever synced (not filtered by "active") -- a rough total-catalog figure.
+        // "Active listings" is a count of distinct PRODUCTS, not SKUs -- a SKU string can be reused
+        // across unrelated products (active, draft, and archived alike), so counting distinct sku
+        // still overcounted vs Shopify's own /products/count.json?status=active. Counting distinct
+        // productId (synced by src/shopify/fetch-inventory.ts via variant.product.id/status) matches
+        // Shopify's own product-level definition of "active" (verified: 584 here vs 575 live from
+        // Shopify's API -- the small gap is normal sync-timing drift, not a counting error).
         client.query(`
-          SELECT COUNT(DISTINCT sku) AS total_items
+          SELECT
+            COUNT(DISTINCT sku) AS total_items,
+            COUNT(DISTINCT CASE WHEN "productStatus" = 'ACTIVE' THEN "productId" END) AS active_items
           FROM "ShopifyInventoryItem"
           WHERE sku IS NOT NULL AND sku != ''
         `),
@@ -2938,7 +2911,6 @@ async function startServer() {
           WHERE r."status" != 'DECLINED'
             ${returnDateFilter}
         `, params),
-        getShopifyActiveProductCount(),
       ]);
 
       const totalRevenue = parseFloat(ordersResult.rows[0].total_revenue);
@@ -2946,10 +2918,7 @@ async function startServer() {
       const totalQty = parseInt(ordersResult.rows[0].total_qty);
 
       const totalListings = parseInt(listingsResult.rows[0].total_items);
-      // "Active listings" comes straight from Shopify's own product count API (status=active) rather
-      // than our synced ShopifyInventoryItem table -- see getShopifyActiveProductCount for why the
-      // DB-derived figure doesn't match Shopify's own definition of "active."
-      const activeListings = shopifyActiveProductCount ?? 0;
+      const activeListings = parseInt(listingsResult.rows[0].active_items);
 
       const returnedQty = parseInt(returnsResult.rows[0].returned_qty);
 

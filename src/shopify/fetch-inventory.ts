@@ -37,6 +37,10 @@ query GetInventoryItems($cursor: String) {
         updatedAt
         variant {
           id
+          product {
+            id
+            status
+          }
         }
         countryCodeOfOrigin
         countryHarmonizedSystemCodes(first: 5) {
@@ -135,6 +139,8 @@ async function saveInventoryItem(item: any, dateStr: string, snapshotType: strin
     createdAt: item.createdAt ? new Date(item.createdAt) : null,
     updatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
     variantId: item.variant?.id ?? null,
+    productId: item.variant?.product?.id ?? null,
+    productStatus: item.variant?.product?.status ?? null,
     countryCodeOfOrigin: item.countryCodeOfOrigin ?? null,
     countryHarmonizedSystemCodes:
       item.countryHarmonizedSystemCodes ?? null,
