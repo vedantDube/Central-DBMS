@@ -2961,7 +2961,7 @@ async function startServer() {
         returnDateFilter = `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')`;
       }
 
-      const [ordersResult, listingsResult, activeSkusResult, returnsResult] = await Promise.all([
+      const [ordersResult, listingsResult, activeSkusResult, returnsResult, refundQtyResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM("totalPrice"), 0) AS total_revenue,
@@ -2992,14 +2992,35 @@ async function startServer() {
           SELECT DISTINCT sku FROM "ShopifyInventoryItem"
           WHERE "productStatus" = 'ACTIVE' AND sku IS NOT NULL AND sku != ''
         `),
+        // Return Rate combines two sources that both need to be counted, without double-counting: the
+        // formal ShopifyReturn (RMA) object, and order-level refunds (ShopifyOrderRefund/RefundLineItem).
+        // Most refund activity in this store happens as a direct refund with no formal Return ever
+        // created (confirmed: ShopifyReturn alone showed a ~20x-too-low return rate) -- but ~2/3 of
+        // ShopifyReturn rows have no matching refund yet (still OPEN/in-progress, not yet refunded), so
+        // dropping ShopifyReturn entirely would undercount pending returns. Fix: sum all refund quantity
+        // (the authoritative, completed source) plus ShopifyReturn quantity ONLY for orders that don't
+        // already have a refund on record, so an order counted via one source is never counted via both.
         client.query(`
-          SELECT
-            COALESCE(SUM(r."totalQuantity"), 0) AS returned_qty
+          SELECT r."orderId", r."totalQuantity"
           FROM "ShopifyReturn" r
           WHERE r."status" != 'DECLINED'
             ${returnDateFilter}
         `, params),
+        client.query(`
+          SELECT o."id" AS "orderId", COALESCE(SUM(rli."quantity"), 0) AS refunded_qty
+          FROM "ShopifyOrderRefundLineItem" rli
+          JOIN "ShopifyOrderRefund" ref ON ref."id" = rli."refundId"
+          JOIN "ShopifyOrder" o ON o."id" = ref."orderId"
+          WHERE 1=1 ${startDate && endDate ? `AND ref."createdAt" >= $1::timestamp AND ref."createdAt" <= ($2::date + interval '1 day')` : ""}
+          GROUP BY o."id"
+        `, params),
       ]);
+
+      const refundedOrderIds = new Set<string>(refundQtyResult.rows.map((row: any) => row.orderId));
+      const refundedQtyTotal = refundQtyResult.rows.reduce((sum: number, row: any) => sum + parseFloat(row.refunded_qty), 0);
+      const returnOnlyQtyTotal = returnsResult.rows
+        .filter((row: any) => !row.orderId || !refundedOrderIds.has(row.orderId))
+        .reduce((sum: number, row: any) => sum + (row.totalQuantity ?? 0), 0);
 
       const totalRevenue = parseFloat(ordersResult.rows[0].total_revenue);
       const totalOrders = parseInt(ordersResult.rows[0].total_orders);
@@ -3013,7 +3034,7 @@ async function startServer() {
       const activeSkus = parseInt(listingsResult.rows[0].active_skus);
       const activeListingSkuSet = new Set<string>(activeSkusResult.rows.map((r: any) => r.sku));
 
-      const returnedQty = parseInt(returnsResult.rows[0].returned_qty);
+      const returnedQty = refundedQtyTotal + returnOnlyQtyTotal;
 
       const dayCount = startDate && endDate
         ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
