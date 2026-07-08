@@ -16,6 +16,7 @@ export interface ChannelFinancials {
   // Efficiency KPIs (User Spreadsheet rows)
   aov: number; // Average Order Value
   ordersPerDay: number;
+  unitsPerOrder: number;
   listingsCount: number;
   activeListingCount: number;
   revenuePerSku: number;

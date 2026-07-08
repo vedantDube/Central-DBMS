@@ -4,7 +4,7 @@ const zeroChannel = (id: string, name: string, category: ChannelFinancials["cate
   id, name, category,
   revenue: 0, cogs: 0, cm1: 0, indirectExpAndPeople: 0, advertisingSpend: 0,
   cm2: 0, interestTaxDA: 0, netProfit: 0,
-  aov: 0, ordersPerDay: 0, listingsCount: 0, activeListingCount: 0, revenuePerSku: 0,
+  aov: 0, ordersPerDay: 0, unitsPerOrder: 0, listingsCount: 0, activeListingCount: 0, revenuePerSku: 0,
   outOfStockDays: 0, ageingInventoryPct: 0, deadStockPct: 0,
   returnPct: 0, claimPct: 0, reimbursementPct: 0,
   totalSkus: 0, skusBenchmark: 0,

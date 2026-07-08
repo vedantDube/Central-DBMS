@@ -2928,6 +2928,7 @@ async function startServer() {
 
       const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       const ordersPerDay = Math.round(totalOrders / dayCount);
+      const unitsPerOrder = totalOrders > 0 ? totalQty / totalOrders : 0;
       const revenuePerSku = activeListings > 0 ? Math.round(totalRevenue / activeListings) : 0;
       const returnPct = totalQty > 0 ? (returnedQty / totalQty) * 100 : 0;
 
@@ -2936,6 +2937,7 @@ async function startServer() {
         data: {
           aov: Math.round(aov * 100) / 100,
           ordersPerDay,
+          unitsPerOrder: Math.round(unitsPerOrder * 100) / 100,
           totalOrders,
           listingsCount: totalListings,
           activeListingCount: activeListings,

@@ -352,6 +352,7 @@ export default function App() {
             ...ch,
             aov: data.data.aov ?? 0,
             ordersPerDay: data.data.ordersPerDay ?? 0,
+            unitsPerOrder: data.data.unitsPerOrder ?? 0,
             listingsCount: data.data.listingsCount ?? 0,
             activeListingCount: data.data.activeListingCount ?? 0,
             revenuePerSku: data.data.revenuePerSku ?? 0,
@@ -1374,6 +1375,7 @@ export default function App() {
       netProfit: computedNet,
       aov: aovVal,
       ordersPerDay: Math.ceil(rev / (30 * aovVal)),
+      unitsPerOrder: 1.5,
       listingsCount: 15,
       activeListingCount: 12,
       revenuePerSku: Math.round(rev / 15),
@@ -2732,7 +2734,7 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(amazonOperationalMetrics?.unitsPerOrder ?? 0, comparativeOperationalMetrics?.unitsPerOrder)}
-                      <span className="font-mono text-lg font-bold text-slate-800">{selectedChannelId === "amazon" ? (amazonOperationalMetrics?.unitsPerOrder ?? 0).toFixed(2) : "—"}</span>
+                      <span className="font-mono text-lg font-bold text-slate-800">{selectedChannelId === "amazon" ? (amazonOperationalMetrics?.unitsPerOrder ?? 0).toFixed(2) : selectedChannel.unitsPerOrder.toFixed(2)}</span>
                     </div>
                   </div>
 
