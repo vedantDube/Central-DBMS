@@ -62,20 +62,56 @@ function costAsOf(history: { date: string; cost: number }[], targetDate: string)
 }
 
 async function loadEasyEcomCostHistory(client: import("pg").PoolClient, skus: string[]): Promise<Map<string, { date: string; cost: number }[]>> {
-  const history = new Map<string, { date: string; cost: number }[]>();
-  if (skus.length === 0) return history;
-  const result = await client.query(
-    `SELECT sku, date, "rawJson"->>'cost' AS cost FROM "EasyEcomInventory" WHERE sku = ANY($1::text[]) AND "rawJson"->>'cost' IS NOT NULL ORDER BY sku, date ASC`,
-    [skus]
-  );
-  for (const row of result.rows) {
-    const cost = parseFloat(row.cost);
-    if (isNaN(cost)) continue;
-    const sku = String(row.sku).trim();
-    if (!history.has(sku)) history.set(sku, []);
-    history.get(sku)!.push({ date: row.date, cost });
-  }
-  return history;
+  if (skus.length === 0) return new Map();
+
+  // Cached briefly (60s) and keyed by the sorted SKU list -- on a single dashboard load, several
+  // endpoints (financials, sku-profitability, trend, ...) call this with overlapping/identical SKU
+  // sets, each independently re-querying EasyEcomInventory. On Render's free-tier shared CPU this
+  // duplicated work is a meaningful chunk of why the whole dashboard feels slow; a short-lived cache
+  // collapses near-simultaneous calls into one query without risking stale cost data for long.
+  const cacheKey = `easyecom-cost-history:${[...skus].sort().join(",")}`;
+  return withTtlCache(cacheKey, 60 * 1000, async () => {
+    const history = new Map<string, { date: string; cost: number }[]>();
+    const result = await client.query(
+      `SELECT sku, date, "rawJson"->>'cost' AS cost FROM "EasyEcomInventory" WHERE sku = ANY($1::text[]) AND "rawJson"->>'cost' IS NOT NULL ORDER BY sku, date ASC`,
+      [skus]
+    );
+    for (const row of result.rows) {
+      const cost = parseFloat(row.cost);
+      if (isNaN(cost)) continue;
+      const sku = String(row.sku).trim();
+      if (!history.has(sku)) history.set(sku, []);
+      history.get(sku)!.push({ date: row.date, cost });
+    }
+    return history;
+  });
+}
+
+// "First seen" date per SKU (for the sku-profitability "New Listing" flag) and the EasyEcom product
+// master (name/category/brand) -- both queries take no parameters, so both Amazon's and Shopify's
+// sku-profitability endpoints hit the exact same result on every load. Cached to collapse that
+// duplicate full-table work (same rationale as loadEasyEcomCostHistory above).
+async function loadEasyEcomFirstSeen(client: import("pg").PoolClient): Promise<Record<string, string>> {
+  return withTtlCache("easyecom-first-seen", 5 * 60 * 1000, async () => {
+    const result = await client.query(`SELECT sku, MIN(date) AS first_seen FROM "EasyEcomInventory" GROUP BY sku`);
+    const firstSeenMap: Record<string, string> = {};
+    for (const row of result.rows) firstSeenMap[row.sku] = row.first_seen;
+    return firstSeenMap;
+  });
+}
+
+async function loadEasyEcomProductMap(client: import("pg").PoolClient): Promise<Record<string, { name: string; category: string }>> {
+  return withTtlCache("easyecom-product-master", 5 * 60 * 1000, async () => {
+    const result = await client.query(`SELECT sku, product_name, category_name, brand FROM "EasyEcomProductMaster"`);
+    const productMap: Record<string, { name: string; category: string }> = {};
+    for (const row of result.rows) {
+      productMap[row.sku] = {
+        name: row.product_name || row.sku,
+        category: row.category_name || "Uncategorized",
+      };
+    }
+    return productMap;
+  });
 }
 
 type DailyUnitsRow = { sku: string; d: string; units: number; revenue: number };
@@ -608,7 +644,7 @@ async function startServer() {
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
-      const [gstResult, feesResult, returnsResult, productsResult, firstSeenResult, trafficResult] = await Promise.all([
+      const [gstResult, feesResult, returnsResult, productMap, firstSeenMap, trafficResult] = await Promise.all([
         client.query(`
           SELECT sku,
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue,
@@ -639,8 +675,8 @@ async function startServer() {
           LEFT JOIN "Amazon_GST_Master" g
             ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
         `),
-        client.query(`SELECT sku, product_name, category_name, brand FROM "EasyEcomProductMaster"`),
-        client.query(`SELECT sku, MIN(date) AS first_seen FROM "EasyEcomInventory" GROUP BY sku`),
+        loadEasyEcomProductMap(client),
+        loadEasyEcomFirstSeen(client),
         // Glance Views / Conversion Rate: real data from the Sales & Traffic report, joined SKU -> ASIN -> traffic.
         // NOTE: AmazonSalesAndTrafficRow "asin" rows carry no date (lifetime totals per ASIN), so this is NOT
         // date-range filterable -- it reflects all-time traffic for the ASIN, not the selected period.
@@ -736,21 +772,9 @@ async function startServer() {
         }
       }
 
-      const productMap: Record<string, { name: string; category: string }> = {};
-      for (const row of productsResult.rows) {
-        productMap[row.sku] = {
-          name: row.product_name || row.sku,
-          category: row.category_name || "Uncategorized",
-        };
-      }
-
       // New Listing: SKU's earliest inventory-data date is within the last 180 days (i.e. first
       // observed after Today-180d). Uses EasyEcomInventory as the catalog's date-of-first-record source.
       const newListingCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const firstSeenMap: Record<string, string> = {};
-      for (const row of firstSeenResult.rows) {
-        firstSeenMap[row.sku] = row.first_seen;
-      }
 
       const trafficMap: Record<string, { glanceViews: number; sessions: number; unitsOrdered: number }> = {};
       for (const row of trafficResult.rows) {
@@ -3107,7 +3131,7 @@ async function startServer() {
         dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
       }
 
-      const [lineItemsResult, refundLineItemsResult, productsResult, firstSeenResult] = await Promise.all([
+      const [lineItemsResult, refundLineItemsResult, productMap, firstSeenMap] = await Promise.all([
         client.query(`
           SELECT li.sku,
             COALESCE(SUM(li.quantity), 0) AS units_sold,
@@ -3130,8 +3154,8 @@ async function startServer() {
           WHERE rli.sku IS NOT NULL AND rli.sku != ''
             ${startDate && endDate ? `AND r."createdAt" >= $1::timestamp AND r."createdAt" <= ($2::date + interval '1 day')` : ""}
         `, params),
-        client.query(`SELECT sku, product_name, category_name, brand FROM "EasyEcomProductMaster"`),
-        client.query(`SELECT sku, MIN(date) AS first_seen FROM "EasyEcomInventory" GROUP BY sku`),
+        loadEasyEcomProductMap(client),
+        loadEasyEcomFirstSeen(client),
       ]);
 
       // Aggregate revenue/units per SKU across the date-grouped rows above (grouped by date too, for COGS lookup)
@@ -3173,19 +3197,7 @@ async function startServer() {
         }
       }
 
-      const productMap: Record<string, { name: string; category: string }> = {};
-      for (const row of productsResult.rows) {
-        productMap[row.sku] = {
-          name: row.product_name || row.sku,
-          category: row.category_name || "Uncategorized",
-        };
-      }
-
       const newListingCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const firstSeenMap: Record<string, string> = {};
-      for (const row of firstSeenResult.rows) {
-        firstSeenMap[row.sku] = row.first_seen;
-      }
 
       const skus = Array.from(revenueBySku.keys())
         .map((sku) => {
