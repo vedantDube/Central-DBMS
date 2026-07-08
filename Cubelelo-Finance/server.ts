@@ -2786,7 +2786,7 @@ async function startServer() {
         dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
       }
 
-      const [revenueResult, cogsResult] = await Promise.all([
+      const [revenueResult, lineItemsResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM("totalPrice"), 0) AS revenue,
@@ -2797,19 +2797,38 @@ async function startServer() {
             AND "financialStatus" NOT IN ('voided', 'refunded')
             ${dateFilter}
         `, params),
+        // COGS is sourced from EasyEcom's cost history (same source as Amazon's cost_inventory
+        // mapping in src/amazon/map-cost-inventory.ts) rather than ShopifyInventoryItem.unitCost,
+        // which is only ever populated by a live inventory snapshot fetch and carries no cost data.
         client.query(`
-          SELECT COALESCE(SUM(li."quantity" * inv."unitCost"), 0) AS cogs
+          SELECT li.sku, li.quantity, o."createdAt"::date AS order_date
           FROM "ShopifyOrderLineItem" li
           JOIN "ShopifyOrder" o ON o."id" = li."orderId"
-          LEFT JOIN "ShopifyInventoryItem" inv ON inv."sku" = li."sku" AND inv."sku" IS NOT NULL AND inv."sku" != ''
           WHERE o."cancelledAt" IS NULL
             AND o."financialStatus" NOT IN ('voided', 'refunded')
+            AND li.sku IS NOT NULL AND li.sku != ''
             ${dateFilter}
         `, params),
       ]);
 
+      const skus: string[] = Array.from(new Set(lineItemsResult.rows.map((r) => String(r.sku).trim())));
+      const easyEcomCostHistory = await loadEasyEcomCostHistory(client, skus);
+
+      let cogs = 0;
+      for (const row of lineItemsResult.rows) {
+        const sku = String(row.sku).trim();
+        const history = easyEcomCostHistory.get(sku);
+        if (!history) continue;
+        const orderDate = row.order_date instanceof Date
+          ? row.order_date.toISOString().slice(0, 10)
+          : String(row.order_date).slice(0, 10);
+        const unitCost = costAsOf(history, orderDate);
+        if (unitCost !== undefined) {
+          cogs += unitCost * Number(row.quantity ?? 0);
+        }
+      }
+
       const revenue = parseFloat(revenueResult.rows[0].revenue);
-      const cogs = parseFloat(cogsResult.rows[0].cogs);
       const cm1 = revenue - cogs;
       const indirectExpenses = 0;
       const advertisingSpend = 0;
