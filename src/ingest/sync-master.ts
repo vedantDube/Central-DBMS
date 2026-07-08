@@ -51,7 +51,7 @@ export async function syncGstMaster() {
 
       masterRowsToInsert.push({
         reportKey: b2b.reportKey,
-        flag: "B2B",
+        channel: "Amazon B2B",
         seller_gstin: b2b.seller_gstin,
         transaction_type: b2b.transaction_type || "",
         order_id: b2b.order_id || "",
@@ -115,7 +115,7 @@ export async function syncGstMaster() {
 
       masterRowsToInsert.push({
         reportKey: b2c.reportKey,
-        flag: "B2C",
+        channel: "Amazon B2C",
         seller_gstin: b2c.seller_gstin,
         transaction_type: b2c.transaction_type || "",
         order_id: b2c.order_id || "",

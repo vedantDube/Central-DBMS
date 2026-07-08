@@ -90,7 +90,7 @@ export async function syncShopifyGstMaster() {
 
       masterRowsToInsert.push({
         reportKey: REPORT_KEY,
-        flag: "Shopify",
+        channel: "Shopify",
         transaction_type: "Shipment",
         order_id: orderId,
         order_date: orderDate,
@@ -119,7 +119,7 @@ export async function syncShopifyGstMaster() {
       if (shippingAmount !== 0 || shippingTax !== 0) {
         masterRowsToInsert.push({
           reportKey: REPORT_KEY,
-          flag: "Shopify",
+          channel: "Shopify",
           transaction_type: "Shipment",
           order_id: orderId,
           order_date: orderDate,
@@ -146,8 +146,8 @@ export async function syncShopifyGstMaster() {
 
         masterRowsToInsert.push({
           reportKey: REPORT_KEY,
-          flag: "Shopify",
-          // The master table's unique key is [flag, order_id, sku, transaction_type] -- it has no
+          channel: "Shopify",
+          // The master table's unique key is [channel, order_id, sku, transaction_type] -- it has no
           // separate "event id" dimension the way Amazon's raw GST tables have shipment_item_id, so
           // a second refund on the same order+sku would silently collide and get skipped. Folding
           // the refund id into transaction_type keeps each refund event distinct.

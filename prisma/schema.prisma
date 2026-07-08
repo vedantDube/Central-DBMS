@@ -1044,7 +1044,7 @@ model AmazonGstMasterRow {
   reportKey String
   createdAt DateTime @default(now())
 
-  flag                           String // "B2B" or "B2C"
+  channel                        String // "Amazon B2B", "Amazon B2C", or "Shopify"
   seller_gstin                   String?
   transaction_type               String  @default("")
   order_id                       String  @default("")
@@ -1080,7 +1080,7 @@ model AmazonGstMasterRow {
   tax_diff                       Float?
   invoice_diff                   Float?
 
-  @@unique([flag, order_id, sku, transaction_type])
+  @@unique([channel, order_id, sku, transaction_type])
   @@index([reportKey, createdAt])
   @@index([order_id])
   @@index([order_id, sku])

@@ -602,7 +602,7 @@ async function startServer() {
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold,
             COALESCE(SUM(cost_inventory), 0) AS cogs
           FROM "Amazon_GST_Master"
-          WHERE 1=1 ${gstDateFilter}
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') ${gstDateFilter}
           GROUP BY sku
         `, params),
         client.query(`
@@ -678,6 +678,7 @@ async function startServer() {
                 ELSE NULL END AS unit_cogs
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
+              AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY order_id, sku
           `, [orderIds, skus]),
@@ -823,7 +824,8 @@ async function startServer() {
         client.query(`
           SELECT order_id, sku, invoice_amount, gross_diff, tax_diff, invoice_diff
           FROM "Amazon_GST_Master"
-          WHERE reconciled = false
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C')
+            AND reconciled = false
             AND (
               (gross_diff IS NOT NULL AND gross_diff != 0)
               OR (tax_diff IS NOT NULL AND tax_diff != 0)
@@ -848,11 +850,11 @@ async function startServer() {
             SELECT r.sku, SUM(CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)) AS returned
             FROM "AmazonReturnsB2cRow" r
             LEFT JOIN "Amazon_GST_Master" sg
-              ON sg.order_id = r.orderid AND sg.sku = r.sku AND sg.transaction_type = 'Shipment'
+              ON sg.order_id = r.orderid AND sg.sku = r.sku AND sg.transaction_type = 'Shipment' AND sg.channel IN ('Amazon B2B', 'Amazon B2C')
             WHERE 1=1 ${gstDateFilter.replace(/order_date/g, "COALESCE(sg.order_date, r.returndate)")}
             GROUP BY r.sku
           ) r ON g.sku = r.sku
-          WHERE g.transaction_type = 'Shipment' ${gstDateFilter}
+          WHERE g.channel IN ('Amazon B2B', 'Amazon B2C') AND g.transaction_type = 'Shipment' ${gstDateFilter}
           GROUP BY g.sku, r.returned
           HAVING COALESCE(r.returned, 0) > 0
             AND COALESCE(r.returned, 0) / NULLIF(SUM(CASE WHEN g.transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(g.quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) > 0.15
@@ -956,7 +958,8 @@ async function startServer() {
         const result = await client.query(`
           SELECT order_id, sku, invoice_amount, gross_diff, tax_diff, invoice_diff
           FROM "Amazon_GST_Master"
-          WHERE reconciled = false
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C')
+            AND reconciled = false
             AND ((gross_diff IS NOT NULL AND gross_diff != 0)
               OR (tax_diff IS NOT NULL AND tax_diff != 0)
               OR (invoice_diff IS NOT NULL AND invoice_diff != 0))
@@ -979,11 +982,11 @@ async function startServer() {
             SELECT r.sku, SUM(CAST(NULLIF(REPLACE(r.quantity, ',', ''), '') AS numeric)) AS returned
             FROM "AmazonReturnsB2cRow" r
             LEFT JOIN "Amazon_GST_Master" sg
-              ON sg.order_id = r.orderid AND sg.sku = r.sku AND sg.transaction_type = 'Shipment'
+              ON sg.order_id = r.orderid AND sg.sku = r.sku AND sg.transaction_type = 'Shipment' AND sg.channel IN ('Amazon B2B', 'Amazon B2C')
             WHERE 1=1 ${gstDateFilter.replace(/order_date/g, "COALESCE(sg.order_date, r.returndate)")}
             GROUP BY r.sku
           ) r ON g.sku = r.sku
-          WHERE g.transaction_type = 'Shipment' ${gstDateFilter}
+          WHERE g.channel IN ('Amazon B2B', 'Amazon B2C') AND g.transaction_type = 'Shipment' ${gstDateFilter}
           GROUP BY g.sku, r.returned
           HAVING COALESCE(r.returned, 0) > 0
             AND COALESCE(r.returned, 0) / NULLIF(SUM(CASE WHEN g.transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(g.quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) > 0.15
@@ -1065,7 +1068,7 @@ async function startServer() {
             COUNT(DISTINCT CASE WHEN transaction_type = 'Shipment' THEN order_id END) AS total_orders,
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS shipped_qty
           FROM "Amazon_GST_Master"
-          WHERE 1=1 ${gstDateFilter}
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') ${gstDateFilter}
         `, params),
         client.query(`
           SELECT
@@ -1176,6 +1179,7 @@ async function startServer() {
           SELECT order_id, sku, COALESCE(SUM(cost_inventory), 0) AS total_cost
           FROM "Amazon_GST_Master"
           WHERE transaction_type = 'Shipment'
+            AND channel IN ('Amazon B2B', 'Amazon B2C')
             AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
           GROUP BY order_id, sku
         `, [orderIds, skus]);
@@ -1300,6 +1304,7 @@ async function startServer() {
               COALESCE(SUM(${revenueCol}), 0) AS revenue
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
+              AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND order_date IS NOT NULL AND order_date != ''
               AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
             GROUP BY sku, NULLIF(order_date, '')::date
@@ -1435,7 +1440,7 @@ async function startServer() {
             COALESCE(SUM(CASE WHEN transaction_type = 'Refund' THEN ABS(${revenueCol}) ELSE 0 END), 0) AS returns,
             COALESCE(SUM(cost_inventory), 0) AS cogs
           FROM "Amazon_GST_Master"
-          WHERE 1=1 ${gstDateFilter}
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') ${gstDateFilter}
         `, params),
         client.query(`
           SELECT COALESCE(SUM(ABS(CAST(NULLIF(REPLACE(amount, ',', ''), '') AS numeric))), 0) AS amazon_charges_total
@@ -1531,6 +1536,7 @@ async function startServer() {
                 ELSE NULL END AS unit_cogs
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
+              AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY order_id, sku
           `, [orderIds, skus]),
@@ -1837,7 +1843,7 @@ async function startServer() {
           COUNT(DISTINCT CASE WHEN transaction_type = 'Shipment' THEN order_id END) AS orders,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold
         FROM "Amazon_GST_Master"
-        WHERE 1=1 ${gstDateFilter}
+        WHERE channel IN ('Amazon B2B', 'Amazon B2C') ${gstDateFilter}
         GROUP BY period
         ORDER BY period ASC
       `, params);
@@ -1925,6 +1931,7 @@ async function startServer() {
                 ELSE NULL END AS unit_cogs
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
+              AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY order_id, sku
           `, [orderIds, skus]),
@@ -2108,14 +2115,14 @@ async function startServer() {
           SELECT TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS shipped_qty
           FROM "Amazon_GST_Master"
-          WHERE transaction_type = 'Shipment' AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
           GROUP BY d
         `, [startDate, endDate]),
         client.query(`
           SELECT r.orderid, r.sku, r.quantity, r.detaileddisposition, r.returndate, g.order_date AS shipment_order_date
           FROM "AmazonReturnsB2cRow" r
           LEFT JOIN "Amazon_GST_Master" g
-            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment'
+            ON g.order_id = r.orderid AND g.sku = r.sku AND g.transaction_type = 'Shipment' AND g.channel IN ('Amazon B2B', 'Amazon B2C')
         `),
         client.query(`
           SELECT c.amazonorderid, c.sku, c.approvaldate, g.order_date AS shipment_order_date,
@@ -2123,7 +2130,7 @@ async function startServer() {
             CAST(NULLIF(REPLACE(c.quantityreimbursedtotal, ',', ''), '') AS numeric) AS qty
           FROM "AmazonClaimsReimbursementsRow" c
           LEFT JOIN "Amazon_GST_Master" g
-            ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment'
+            ON g.order_id = c.amazonorderid AND g.sku = c.sku AND g.transaction_type = 'Shipment' AND g.channel IN ('Amazon B2B', 'Amazon B2C')
         `),
       ]);
 
@@ -2196,6 +2203,7 @@ async function startServer() {
                 ELSE NULL END AS unit_cogs
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
+              AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY order_id, sku
           `, [allPairOrderIds, allPairSkus]),
@@ -2203,6 +2211,7 @@ async function startServer() {
             SELECT order_id, sku, COALESCE(SUM(cost_inventory), 0) AS total_cost
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
+              AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND (order_id, sku) IN (SELECT unnest($1::text[]), unnest($2::text[]))
             GROUP BY order_id, sku
           `, [allPairOrderIds, allPairSkus]),
@@ -2354,6 +2363,7 @@ async function startServer() {
             COALESCE(SUM(${revenueCol}), 0) AS revenue
           FROM "Amazon_GST_Master"
           WHERE transaction_type = 'Shipment'
+            AND channel IN ('Amazon B2B', 'Amazon B2C')
             AND order_date IS NOT NULL AND order_date != ''
             AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
           GROUP BY sku, NULLIF(order_date, '')::date
@@ -2516,7 +2526,7 @@ async function startServer() {
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue
         FROM "Amazon_GST_Master"
-        WHERE order_date IS NOT NULL AND order_date != '' AND NULLIF(order_date, '')::date = ANY($1::date[])
+        WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND order_date IS NOT NULL AND order_date != '' AND NULLIF(order_date, '')::date = ANY($1::date[])
         GROUP BY NULLIF(order_date, '')::date
       `, [dates]);
 
@@ -2611,7 +2621,7 @@ async function startServer() {
             COALESCE(SUM(cost_inventory), 0) AS cogs,
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold
           FROM "Amazon_GST_Master"
-          WHERE sku = $1 ${gstDateFilter}
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND sku = $1 ${gstDateFilter}
           GROUP BY period
           ORDER BY period ASC
         `, params),
@@ -2669,7 +2679,7 @@ async function startServer() {
                 THEN SUM(cost_inventory) / SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric))
                 ELSE NULL END AS unit_cogs
             FROM "Amazon_GST_Master"
-            WHERE transaction_type = 'Shipment' AND sku = $1
+            WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' AND sku = $1
               AND order_id = ANY($2::text[])
             GROUP BY order_id
           `, [sku, orderIds]),
@@ -2768,7 +2778,7 @@ async function startServer() {
           TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD') AS period,
           COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units_sold
         FROM "Amazon_GST_Master"
-        WHERE transaction_type = 'Shipment' AND order_date IS NOT NULL AND order_date != '' ${gstDateFilter}
+        WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' AND order_date IS NOT NULL AND order_date != '' ${gstDateFilter}
         GROUP BY sku, period
         ORDER BY sku, period ASC
       `, params);
