@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import SectionCard from "./components/SectionCard";
+import StatusPill from "./components/StatusPill";
 import {
   TrendingUp,
   DollarSign,
@@ -139,12 +140,30 @@ export default function App() {
   const endFetch = () => setActiveFetchCount(c => Math.max(0, c - 1));
   const isPageLoading = activeFetchCount > 0;
 
+  // Per-section fetch failures -- keyed by a short id for each independent data source so one
+  // failed request (e.g. Shopify trend) doesn't hide or get hidden by another (e.g. Amazon financials).
+  // Surfaced as a dismissible banner; a section clears its own entry once it next loads successfully.
+  const [fetchErrors, setFetchErrors] = useState<Record<string, string>>({});
+  const reportFetchError = (key: string, message: string) =>
+    setFetchErrors(prev => ({ ...prev, [key]: message }));
+  const clearFetchError = (key: string) =>
+    setFetchErrors(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+
   // GST inclusive/exclusive toggle -- applies to Amazon revenue-derived metrics across Channel + SKU views
   const [gstMode, setGstMode] = useState<"inclusive" | "exclusive">("exclusive");
 
   // Amazon real (non-simulated) financials -- Revenue 3-way split + Indirect Expense 5-way split
   const [amazonFinancials, setAmazonFinancials] = useState<any>(null);
   const [amazonFinancialsComparative, setAmazonFinancialsComparative] = useState<any>(null);
+
+  // Amazon Working Capital -- Receivable Days (from settlement deposit data) vs. configurable Payable Days
+  const [amazonWorkingCapital, setAmazonWorkingCapital] = useState<any>(null);
+  const [payableDays, setPayableDays] = useState<number>(30);
 
   // Shopify real (non-simulated) financials -- Revenue 3-way split (Gross Revenue / Sale Returns / Net Revenue)
   const [shopifyFinancials, setShopifyFinancials] = useState<any>(null);
@@ -260,6 +279,7 @@ export default function App() {
       const res = await fetch(`/api/amazon/financials?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("amazonFinancials");
         if (compare) {
           setAmazonFinancialsComparative(data.data);
           return;
@@ -280,11 +300,34 @@ export default function App() {
             lastUpdated: new Date().toISOString(),
           };
         }));
+      } else {
+        reportFetchError("amazonFinancials", (data && (data as any).error) || "Couldn't load Amazon Financials. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Amazon financials:", err);
+      reportFetchError("amazonFinancials", "Failed to fetch Amazon financials. Data shown may be out of date — retry or check your connection.");
     } finally {
       if (!compare) setIsLoadingAmazonData(false);
+      endFetch();
+    }
+  };
+
+  const fetchAmazonWorkingCapital = async (start: string, end: string, payableDaysInput: number) => {
+    beginFetch();
+    try {
+      const params = new URLSearchParams({ startDate: start, endDate: end, payableDays: String(payableDaysInput) });
+      const res = await fetch(`/api/amazon/working-capital?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        clearFetchError("amazonWorkingCapital");
+        setAmazonWorkingCapital(data.data);
+      } else {
+        reportFetchError("amazonWorkingCapital", (data && (data as any).error) || "Couldn't load Amazon Working Capital. Data shown may be out of date.");
+      }
+    } catch (err) {
+      console.error("Failed to fetch Amazon working capital:", err);
+      reportFetchError("amazonWorkingCapital", "Failed to fetch Amazon working capital. Data shown may be out of date — retry or check your connection.");
+    } finally {
       endFetch();
     }
   };
@@ -296,6 +339,7 @@ export default function App() {
       const res = await fetch(`/api/amazon/operational-metrics?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("amazonOperationalMetrics");
         if (compare) {
           setComparativeOperationalMetrics(data.data);
           return;
@@ -321,9 +365,12 @@ export default function App() {
             deadStockPct: data.data.deadStockPct ?? 0,
           };
         }));
+      } else {
+        reportFetchError("amazonOperationalMetrics", (data && (data as any).error) || "Couldn't load Amazon Operational Metrics. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Amazon operational metrics:", err);
+      reportFetchError("amazonOperationalMetrics", "Failed to fetch Amazon operational metrics. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -336,6 +383,7 @@ export default function App() {
       const res = await fetch(`/api/shopify/financials?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifyFinancials");
         setShopifyFinancials(data.data);
         setChannels(prev => prev.map(ch => {
           if (ch.id !== "shopify") return ch;
@@ -352,9 +400,12 @@ export default function App() {
             lastUpdated: new Date().toISOString(),
           };
         }));
+      } else {
+        reportFetchError("shopifyFinancials", (data && (data as any).error) || "Couldn't load Shopify Financials. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify financials:", err);
+      reportFetchError("shopifyFinancials", "Failed to fetch Shopify financials. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -367,6 +418,7 @@ export default function App() {
       const res = await fetch(`/api/shopify/operational-metrics?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifyOperationalMetrics");
         setChannels(prev => prev.map(ch => {
           if (ch.id !== "shopify") return ch;
           return {
@@ -388,9 +440,12 @@ export default function App() {
             deadStockPct: data.data.deadStockPct ?? 0,
           };
         }));
+      } else {
+        reportFetchError("shopifyOperationalMetrics", (data && (data as any).error) || "Couldn't load Shopify Operational Metrics. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify operational metrics:", err);
+      reportFetchError("shopifyOperationalMetrics", "Failed to fetch Shopify operational metrics. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -403,14 +458,18 @@ export default function App() {
       const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("expenseBreakdown");
         setIndirectSummaryData(data.data.summary);
         setIndirectSettlementData(data.data.settlementBreakdown);
         setIndirectTotal(data.data.total);
         setIndirectSettlementTotal(data.data.settlementTotal);
         setBreakdownFetched(true);
+      } else {
+        reportFetchError("expenseBreakdown", (data && (data as any).error) || "Couldn't load Expense Breakdown. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch expense breakdown:", err);
+      reportFetchError("expenseBreakdown", "Failed to fetch expense breakdown. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingBreakdown(false);
     }
@@ -423,12 +482,16 @@ export default function App() {
       const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("advertisementL2");
         setAdvertisementL2Data(data.data.summary);
         setAdvertisementL2Total(data.data.total);
         setAdvertisementL2Fetched(true);
+      } else {
+        reportFetchError("advertisementL2", (data && (data as any).error) || "Couldn't load Advertisement L2 breakdown. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch advertisement L2 breakdown:", err);
+      reportFetchError("advertisementL2", "Failed to fetch advertisement L2 breakdown. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingAdvertisementL2(false);
     }
@@ -441,11 +504,15 @@ export default function App() {
       const res = await fetch(`/api/amazon/expense-breakdown?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("adsPerformance");
         setAdsPerformanceData(data.data.settlementBreakdown);
         setAdsPerformanceByCampaign(data.data.byCampaign || []);
+      } else {
+        reportFetchError("adsPerformance", (data && (data as any).error) || "Couldn't load Ads Performance. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Ads Performance breakdown:", err);
+      reportFetchError("adsPerformance", "Failed to fetch Ads Performance breakdown. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingAdsPerformance(false);
     }
@@ -460,10 +527,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/anomalies?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("anomalies");
         setAnomalies(data.data);
+      } else {
+        reportFetchError("anomalies", (data && (data as any).error) || "Couldn't load Anomalies. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch anomalies:", err);
+      reportFetchError("anomalies", "Failed to fetch anomalies. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -476,10 +547,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/sku-profitability?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("skuProfitability");
         setSkus(data.data);
+      } else {
+        reportFetchError("skuProfitability", (data && (data as any).error) || "Couldn't load Sku Profitability. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch SKU profitability:", err);
+      reportFetchError("skuProfitability", "Failed to fetch SKU profitability. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -493,10 +568,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/trend?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("amazonTrend");
         setRealTrendData(data.data);
+      } else {
+        reportFetchError("amazonTrend", (data && (data as any).error) || "Couldn't load Amazon Trend. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Amazon trend:", err);
+      reportFetchError("amazonTrend", "Failed to fetch Amazon trend. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingTrend(false);
       endFetch();
@@ -511,10 +590,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/supply-chain-trend?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("supplyChainTrend");
         setSupplyChainTrendData(data.data);
+      } else {
+        reportFetchError("supplyChainTrend", (data && (data as any).error) || "Couldn't load Supply Chain Trend. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Supply Chain trend:", err);
+      reportFetchError("supplyChainTrend", "Failed to fetch Supply Chain trend. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingSupplyChainTrend(false);
       endFetch();
@@ -529,10 +612,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/compare-sales?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("compareSales");
         setCompareSalesData(data.data);
+      } else {
+        reportFetchError("compareSales", (data && (data as any).error) || "Couldn't load Compare Sales. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Compare Sales:", err);
+      reportFetchError("compareSales", "Failed to fetch Compare Sales. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingCompareSales(false);
       endFetch();
@@ -546,10 +633,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/sku-sparklines?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("skuSparklines");
         setSkuSparklines(data.data);
+      } else {
+        reportFetchError("skuSparklines", (data && (data as any).error) || "Couldn't load Sku Sparklines. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch SKU sparklines:", err);
+      reportFetchError("skuSparklines", "Failed to fetch SKU sparklines. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -562,10 +653,14 @@ export default function App() {
       const res = await fetch(`/api/amazon/sku-trend?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("skuTrend");
         setSkuTrendData(data.data);
+      } else {
+        reportFetchError("skuTrend", (data && (data as any).error) || "Couldn't load Sku Trend. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch SKU trend:", err);
+      reportFetchError("skuTrend", "Failed to fetch SKU trend. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingSkuTrend(false);
     }
@@ -580,10 +675,14 @@ export default function App() {
       const res = await fetch(`/api/shopify/sku-profitability?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifySkuProfitability");
         setShopifySkus(data.data);
+      } else {
+        reportFetchError("shopifySkuProfitability", (data && (data as any).error) || "Couldn't load Shopify Sku Profitability. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify SKU profitability:", err);
+      reportFetchError("shopifySkuProfitability", "Failed to fetch Shopify SKU profitability. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -597,10 +696,14 @@ export default function App() {
       const res = await fetch(`/api/shopify/trend?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifyTrend");
         setShopifyTrendData(data.data);
+      } else {
+        reportFetchError("shopifyTrend", (data && (data as any).error) || "Couldn't load Shopify Trend. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify trend:", err);
+      reportFetchError("shopifyTrend", "Failed to fetch Shopify trend. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingTrend(false);
       endFetch();
@@ -615,13 +718,34 @@ export default function App() {
       const res = await fetch(`/api/shopify/supply-chain-trend?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifySupplyChainTrend");
         setShopifySupplyChainTrendData(data.data);
+      } else {
+        reportFetchError("shopifySupplyChainTrend", (data && (data as any).error) || "Couldn't load Shopify Supply Chain Trend. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify Supply Chain trend:", err);
+      reportFetchError("shopifySupplyChainTrend", "Failed to fetch Shopify Supply Chain trend. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingSupplyChainTrend(false);
       endFetch();
+    }
+  };
+
+  // Shared click handler for Supply Chain / Returns metric cards -- clicking the card itself
+  // toggles its trend panel open/closed (replaces the old separate "— Trend" button row).
+  const toggleSupplyChainMetric = (key: NonNullable<typeof expandedSupplyChainMetric>) => {
+    if (selectedChannelId !== "amazon" && selectedChannelId !== "shopify") return;
+    const next = expandedSupplyChainMetric === key ? null : key;
+    setExpandedSupplyChainMetric(next);
+    const isShopify = selectedChannelId === "shopify";
+    const activeData = isShopify ? shopifySupplyChainTrendData : supplyChainTrendData;
+    if (next && activeData.length === 0) {
+      if (isShopify) {
+        fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
+      } else {
+        fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+      }
     }
   };
 
@@ -633,10 +757,14 @@ export default function App() {
       const res = await fetch(`/api/shopify/compare-sales?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifyCompareSales");
         setShopifyCompareSalesData(data.data);
+      } else {
+        reportFetchError("shopifyCompareSales", (data && (data as any).error) || "Couldn't load Shopify Compare Sales. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify Compare Sales:", err);
+      reportFetchError("shopifyCompareSales", "Failed to fetch Shopify Compare Sales. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingCompareSales(false);
       endFetch();
@@ -650,10 +778,14 @@ export default function App() {
       const res = await fetch(`/api/shopify/sku-sparklines?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifySkuSparklines");
         setShopifySkuSparklines(data.data);
+      } else {
+        reportFetchError("shopifySkuSparklines", (data && (data as any).error) || "Couldn't load Shopify Sku Sparklines. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify SKU sparklines:", err);
+      reportFetchError("shopifySkuSparklines", "Failed to fetch Shopify SKU sparklines. Data shown may be out of date — retry or check your connection.");
     } finally {
       endFetch();
     }
@@ -666,10 +798,14 @@ export default function App() {
       const res = await fetch(`/api/shopify/sku-trend?${params}`);
       const data = await res.json();
       if (data.success) {
+        clearFetchError("shopifySkuTrend");
         setSkuTrendData(data.data);
+      } else {
+        reportFetchError("shopifySkuTrend", (data && (data as any).error) || "Couldn't load Shopify Sku Trend. Data shown may be out of date.");
       }
     } catch (err) {
       console.error("Failed to fetch Shopify SKU trend:", err);
+      reportFetchError("shopifySkuTrend", "Failed to fetch Shopify SKU trend. Data shown may be out of date — retry or check your connection.");
     } finally {
       setIsLoadingSkuTrend(false);
     }
@@ -778,6 +914,7 @@ export default function App() {
   // Re-fetch Amazon data when date range or GST mode changes
   useEffect(() => {
     fetchAmazonFinancials(startDateStr, endDateStr, gstMode);
+    fetchAmazonWorkingCapital(startDateStr, endDateStr, payableDays);
     fetchAmazonOperationalMetrics(startDateStr, endDateStr, gstMode);
     fetchSkuProfitability(startDateStr, endDateStr, gstMode);
     fetchAnomalies(startDateStr, endDateStr);
@@ -804,6 +941,11 @@ export default function App() {
       fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
     }
   }, [startDateStr, endDateStr, gstMode]);
+
+  // Re-fetch Working Capital only (cheap, no need to reload the whole dashboard) when Payable Days changes
+  useEffect(() => {
+    fetchAmazonWorkingCapital(startDateStr, endDateStr, payableDays);
+  }, [payableDays]);
 
   // Re-fetch the real trend view when granularity changes (independent of full date-range refetch)
   useEffect(() => {
@@ -1258,7 +1400,7 @@ export default function App() {
   // permanently unavailable), instead of calling formatPercent/formatCurrency on null (which would throw).
   const renderMetricOrPending = (val: number | null | undefined, formatter: (v: number) => string, label = "Definition Pending") => {
     if (val === null || val === undefined) {
-      return <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono block mt-1">{label}</span>;
+      return <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono block mt-1">{label}</span>;
     }
     return <span className="font-mono text-lg font-extrabold block mt-1">{formatter(val)}</span>;
   };
@@ -1267,7 +1409,7 @@ export default function App() {
   // recharts chart per row would be far too heavy. Gives an at-a-glance trend without clicking into the row.
   const renderSparkline = (series: { period: string; unitsSold: number }[] | undefined) => {
     if (!series || series.length < 2) {
-      return <span className="text-[10px] text-slate-350 font-sans">—</span>;
+      return <span className="text-[11px] text-slate-300 font-sans">—</span>;
     }
     const values = series.map(p => p.unitsSold);
     const max = Math.max(...values, 1);
@@ -1291,7 +1433,7 @@ export default function App() {
   const renderComparisonBadge = (current: number, comparative: number | undefined | null, isExpense = false) => {
     if (comparative === undefined || comparative === null || comparative === 0) {
       return (
-        <span className="text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-md font-mono font-normal">
+        <span className="text-[11px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-md font-mono font-normal">
           --
         </span>
       );
@@ -1314,7 +1456,7 @@ export default function App() {
     }
     
     return (
-      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 font-mono ${colorClass}`} title={`Prev period: ${formatCurrency(comparative)}`}>
+      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 font-mono ${colorClass}`} title={`Prev period: ${formatCurrency(comparative)}`}>
         {icon}{Math.abs(pctChange).toFixed(1)}%
       </span>
     );
@@ -1627,7 +1769,7 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-slate-50 rounded-md px-3 py-1.5 border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Audit Range:</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-2">Audit Range:</span>
             <span className="text-xs font-semibold text-slate-700">{new Date(startDateStr).toLocaleDateString("en-IN", { month: "short", day: "2-digit", year: "numeric" })} - {new Date(endDateStr).toLocaleDateString("en-IN", { month: "short", day: "2-digit", year: "numeric" })}</span>
           </div>
           <button
@@ -1645,9 +1787,9 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Navigation */}
-        <aside className={`${sidebarOpen ? "w-64" : "w-0 overflow-hidden"} bg-[#111827] flex flex-col shrink-0 text-slate-300 border-r border-slate-850 transition-all duration-300`}>
+        <aside className={`${sidebarOpen ? "w-64" : "w-0 overflow-hidden"} bg-[#111827] flex flex-col shrink-0 text-slate-300 border-r border-slate-800 transition-all duration-300`}>
           <div className="p-4 flex-1 overflow-y-auto">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Main Menu</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Main Menu</p>
             <ul className="space-y-1">
               <li>
                 <button
@@ -1735,7 +1877,7 @@ export default function App() {
               </li>
             </ul>
 
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 mt-8">Active Channels</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4 mt-8">Active Channels</p>
             <ul className="space-y-1 text-xs">
               {channels.map(chan => {
                 const isSelectedInPerformance = activeTab === "channels" && selectedChannelId === chan.id;
@@ -1764,7 +1906,7 @@ export default function App() {
           </div>
 
           <div className="p-4 border-t border-slate-800 shrink-0">
-            <div className="bg-slate-800 rounded p-3 text-[10px] text-slate-400">
+            <div className="bg-slate-800 rounded p-3 text-[11px] text-slate-400">
               <div className="flex justify-between items-center mb-1">
                 <span>Enterprise Ledger Engine</span>
                 <span className="text-emerald-400 font-mono">100%</span>
@@ -1781,7 +1923,30 @@ export default function App() {
           
           {/* Main layout inner */}
           <main className="p-6 space-y-6 w-full flex-1">
-            
+
+            {/* Fetch failure banner -- one row per failed data source, dismissible independently.
+                A section clears its own entry automatically the next time it loads successfully. */}
+            {Object.keys(fetchErrors).length > 0 && (
+              <div className="space-y-2" role="alert">
+                {Object.entries(fetchErrors).map(([key, message]) => (
+                  <div
+                    key={key}
+                    className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+                  >
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0 text-red-600" />
+                    <span className="flex-1">{message}</span>
+                    <button
+                      onClick={() => clearFetchError(key)}
+                      className="text-red-400 hover:text-red-600 cursor-pointer"
+                      aria-label="Dismiss error"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Dynamic Date Range Filter & Comparison Cockpit */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200" id="temporal-controls-card">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1791,14 +1956,14 @@ export default function App() {
                   </div>
                   <div>
                     <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider block font-sans">Enterprise Ledger Analysis Temporal Controls</h2>
-                    <p className="text-[10px] text-slate-400 font-mono">CHOOSE THE DATE PERIOD AND THE COMPARATIVE BASIS TO AUTO-RECONCILE METRICS</p>
+                    <p className="text-[11px] text-slate-400 font-mono">CHOOSE THE DATE PERIOD AND THE COMPARATIVE BASIS TO AUTO-RECONCILE METRICS</p>
                   </div>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Date Presets Dropdown */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Date preset:</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date preset:</label>
                     <select 
                       id="period-preset-select"
                       value={dateRangePreset}
@@ -1819,7 +1984,7 @@ export default function App() {
                     <>
                       {/* Start Date */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Start date:</label>
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Start date:</label>
                         <input
                           id="period-start-date-input"
                           type="date"
@@ -1831,7 +1996,7 @@ export default function App() {
 
                       {/* End Date */}
                       <div className="flex flex-col gap-1">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">End date:</label>
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">End date:</label>
                         <input
                           id="period-end-date-input"
                           type="date"
@@ -1845,7 +2010,7 @@ export default function App() {
 
                   {/* Comparison basis */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Comparison basis:</label>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Comparison basis:</label>
                     <select 
                       id="compare-period-select"
                       value={comparisonType}
@@ -1861,7 +2026,7 @@ export default function App() {
                   {/* GST inclusive/exclusive toggle -- affects Amazon revenue-derived metrics */}
                   {selectedChannelId === "amazon" && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">GST basis:</label>
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">GST basis:</label>
                       <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
                         <button
                           onClick={() => setGstMode("exclusive")}
@@ -1885,7 +2050,7 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-[10px] text-slate-400">
+              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-[11px] text-slate-400">
                 <div id="target-duration-display" className="flex items-center gap-1.5 mb-1 sm:mb-0">
                   <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
                   <span>Active Analyzed Range: <strong className="text-slate-600 font-mono">{startDateStr}</strong> to <strong className="text-slate-600 font-mono">{endDateStr}</strong> ({getDiffDays(startDateStr, endDateStr)} days parsed)</span>
@@ -1906,14 +2071,14 @@ export default function App() {
                   <Sliders size={16} className="text-slate-500" />
                   <div>
                     <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">CFO Sensitivity Projections</span>
-                    <span className="text-[10px] text-slate-400 font-mono">ADJUST SLIDERS TO MODEL SIMULATED IMPACT ON BUSINESS CONSOLIDATED PROFITABILITY</span>
+                    <span className="text-[11px] text-slate-400 font-mono">ADJUST SLIDERS TO MODEL SIMULATED IMPACT ON BUSINESS CONSOLIDATED PROFITABILITY</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1 max-w-3xl">
                   {/* Landing Cost / COGS Multiplier */}
                   <div className="flex flex-col gap-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Landing Cost (COGS)</span>
                       <span className="text-blue-600 font-bold">x{simulationParams.landingCostMultiplier.toFixed(2)}</span>
                     </div>
@@ -1930,9 +2095,9 @@ export default function App() {
 
                   {/* Ads Budget Multiplier */}
                   <div className="flex flex-col gap-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Advertising bids</span>
-                      <span className="text-blue-605 font-bold">x{simulationParams.adsSpendMultiplier.toFixed(2)}</span>
+                      <span className="text-blue-600 font-bold">x{simulationParams.adsSpendMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -1947,9 +2112,9 @@ export default function App() {
 
                   {/* Indirect Exp & Staff Costs */}
                   <div className="flex flex-col gap-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Overhead / People</span>
-                      <span className="text-blue-605 font-bold">x{simulationParams.indirectExpenseMultiplier.toFixed(2)}</span>
+                      <span className="text-blue-600 font-bold">x{simulationParams.indirectExpenseMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -1964,9 +2129,9 @@ export default function App() {
 
                   {/* Shipping Multiplier */}
                   <div className="flex flex-col gap-1">
-                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Shipment charge</span>
-                      <span className="text-blue-605 font-bold">x{simulationParams.shippingCostMultiplier.toFixed(2)}</span>
+                      <span className="text-blue-600 font-bold">x{simulationParams.shippingCostMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -1983,7 +2148,7 @@ export default function App() {
                 <div>
                   <button 
                     onClick={handleResetSimulation}
-                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 font-mono flex items-center gap-1.5 transition-all w-full justify-center cursor-pointer"
+                    className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 font-mono flex items-center gap-1.5 transition-all w-full justify-center cursor-pointer"
                   >
                     <RefreshCw size={11} />
                     Reset Actuals
@@ -2011,7 +2176,7 @@ export default function App() {
                   </span>
                   {renderComparisonBadge(consolidatedMetrics.revenue, comparativeMetrics?.revenue)}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">Combined period aggregate across platforms</div>
+                <div className="text-[11px] text-slate-400 mt-1">Combined period aggregate across platforms</div>
               </div>
 
               <div className="bg-white border border-slate-200 p-5 rounded-2xl relative shadow-sm overflow-hidden" id="consolidated-cm1-kpi">
@@ -2026,7 +2191,7 @@ export default function App() {
                   </span>
                   {renderComparisonBadge(consolidatedMetrics.cm1, comparativeMetrics?.cm1)}
                 </div>
-                <div className="text-[10px] text-emerald-600 mt-1 font-semibold flex items-center gap-1">
+                <div className="text-[11px] text-emerald-600 mt-1 font-semibold flex items-center gap-1">
                   <Percent size={10} />
                   {formatPercent(consolidatedMetrics.cm1Pct)} of Sales
                 </div>
@@ -2044,7 +2209,7 @@ export default function App() {
                   </span>
                   {renderComparisonBadge(consolidatedMetrics.advertisingSpend, comparativeMetrics?.advertisingSpend, true)}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">
+                <div className="text-[11px] text-slate-400 mt-1">
                   Equivalent to {formatPercent(consolidatedMetrics.revenue > 0 ? (consolidatedMetrics.advertisingSpend / consolidatedMetrics.revenue) * 100 : 0)} of revenue
                 </div>
               </div>
@@ -2061,7 +2226,7 @@ export default function App() {
                   </span>
                   {renderComparisonBadge(consolidatedMetrics.netProfit, comparativeMetrics?.netProfit)}
                 </div>
-                <span className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${consolidatedMetrics.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                <span className={`text-[11px] font-semibold mt-1 flex items-center gap-1 ${consolidatedMetrics.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                   {consolidatedMetrics.netProfit >= 0 ? "✓ Net Surplus Margin:" : "⚠️ Net Deficit Margin:"} {formatPercent(consolidatedMetrics.netMarginPct)}
                 </span>
               </div>
@@ -2076,7 +2241,7 @@ export default function App() {
                 id="consolidated-channel-comparison"
                 title="Channel-wise Revenue & Profit Comparison"
                 subtitle="Volume and net impact sorted descending"
-                headerExtra={<span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">30-day aggregated values</span>}
+                headerExtra={<span className="text-[11px] font-mono bg-slate-100 text-slate-500 px-2 py-0.5 rounded">30-day aggregated values</span>}
                 collapsed={!!collapsedSections["consolidated-channel-comparison"]}
                 onToggle={toggleSection}
                 className="lg:col-span-2"
@@ -2127,7 +2292,7 @@ export default function App() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute text-center">
-                    <p className="text-[9px] text-slate-400 font-bold">TOTAL REVENUE</p>
+                    <p className="text-[11px] text-slate-400 font-bold">TOTAL REVENUE</p>
                     <p className="text-xs font-bold text-slate-800 font-mono">{formatCurrency(consolidatedMetrics.revenue)}</p>
                   </div>
                 </div>
@@ -2202,16 +2367,16 @@ export default function App() {
               <LoadingOverlay active={isPageLoading} />
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                  <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-4">Channel</th>
+                      <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Channel</th>
                       <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4 text-right">Revenue (Sim)</th>
-                      <th className="py-3 px-4 text-right">COGS</th>
-                      <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-500/5 border-x border-slate-100">CM1</th>
-                      <th className="py-3 px-4 text-right text-amber-700">Marketing Spend</th>
-                      <th className="py-3 px-4 text-right">Indirect Costs</th>
-                      <th className="py-3 px-4 text-right text-indigo-700 font-semibold bg-indigo-500/5 border-x border-slate-100">Net Profit</th>
+                      <th className="py-3 px-4 text-right">Revenue (Sim) (₹)</th>
+                      <th className="py-3 px-4 text-right">COGS (₹)</th>
+                      <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-500/5 border-x border-slate-100">CM1 (₹)</th>
+                      <th className="py-3 px-4 text-right text-amber-700">Marketing Spend (₹)</th>
+                      <th className="py-3 px-4 text-right">Indirect Costs (₹)</th>
+                      <th className="py-3 px-4 text-right text-indigo-700 font-semibold bg-indigo-500/5 border-x border-slate-100">Net Profit (₹)</th>
                       <th className="py-3 px-4 text-center">Status</th>
                     </tr>
                   </thead>
@@ -2219,12 +2384,12 @@ export default function App() {
                     {simulatedChannelsObj.map(c => {
                       const netMargin = c.revenue > 0 ? (c.netProfit / c.revenue) * 100 : 0;
                       return (
-                        <tr key={c.id} className="hover:bg-slate-50 transition-all cursor-pointer" onClick={() => { setSelectedChannelId(c.id); setActiveTab("channels"); }}>
-                          <td className="py-3 px-4 font-sans font-semibold text-slate-800 flex items-center gap-2">
+                        <tr key={c.id} className="hover:bg-slate-50 transition-all cursor-pointer group" onClick={() => { setSelectedChannelId(c.id); setActiveTab("channels"); }}>
+                          <td className="py-3 px-4 font-sans font-semibold text-slate-800 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                             <span>{c.name}</span>
                           </td>
                           <td className="py-3 px-4">
-                            <span className="text-[10px] font-sans px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{c.category}</span>
+                            <span className="text-[11px] font-sans px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{c.category}</span>
                           </td>
                           <td className="py-3 px-4 text-right">{formatCurrency(c.revenue)}</td>
                           <td className="py-3 px-4 text-right text-slate-500">{formatCurrency(c.cogs)}</td>
@@ -2235,15 +2400,9 @@ export default function App() {
                             {formatCurrency(c.netProfit)}
                           </td>
                           <td className="py-3 px-4 text-center font-sans">
-                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
-                              netMargin > 15 
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200" 
-                                : netMargin > 0 
-                                ? "bg-amber-100 text-amber-800 border border-amber-200" 
-                                : "bg-rose-100 text-rose-800 border border-rose-200"
-                            }`}>
+                            <StatusPill tone={netMargin > 15 ? "success" : netMargin > 0 ? "warning" : "danger"}>
                               {netMargin > 15 ? "High Yield" : netMargin > 0 ? "Viable" : "Bleeding"}
-                            </span>
+                            </StatusPill>
                           </td>
                         </tr>
                       );
@@ -2299,30 +2458,30 @@ export default function App() {
                 <SectionCard
                   id="channels-sales-snapshot"
                   title="Sales Snapshot"
-                  headerExtra={<span className="text-[10px] font-mono text-slate-400">as of {endDateStr}</span>}
+                  headerExtra={<span className="text-[11px] font-mono text-slate-400">as of {endDateStr}</span>}
                   collapsed={!!collapsedSections["channels-sales-snapshot"]}
                   onToggle={toggleSection}
                 >
                   <LoadingOverlay active={isPageLoading} />
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Total Order Items</span>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Total Order Items</span>
                       <span className="font-mono text-lg font-bold text-slate-800">{totalOrders.toLocaleString()}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Units Ordered</span>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Units Ordered</span>
                       <span className="font-mono text-lg font-bold text-slate-800">{unitsSold.toLocaleString()}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Ordered Product Sales</span>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Ordered Product Sales</span>
                       <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(grossRevenue)}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Avg Units/Order</span>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Avg Units/Order</span>
                       <span className="font-mono text-lg font-bold text-slate-800">{unitsPerOrder.toFixed(2)}</span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[10px] text-slate-500 uppercase font-medium block">Avg Sales/Order</span>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Avg Sales/Order</span>
                       <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(aov)}</span>
                     </div>
                   </div>
@@ -2343,7 +2502,7 @@ export default function App() {
                         <button
                           key={v}
                           onClick={() => setCompareSalesView(v)}
-                          className={`text-[10px] px-3 py-1 rounded-lg capitalize font-medium ${
+                          className={`text-[11px] px-3 py-1 rounded-lg capitalize font-medium ${
                             compareSalesView === v ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
                           }`}
                         >
@@ -2382,7 +2541,7 @@ export default function App() {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs font-mono">
-                        <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                        <thead className="text-slate-500 uppercase tracking-wider text-[11px] font-sans border-b border-slate-200">
                           <tr>
                             <th className="py-2 pr-4"></th>
                             {activeCompareSalesData.map((p) => (
@@ -2430,7 +2589,7 @@ export default function App() {
                       </table>
                     </div>
                   )}
-                  <p className="text-[9px] text-slate-405 font-sans mt-3">
+                  <p className="text-[11px] text-slate-400 font-sans mt-3">
                     "Selected Day" is the end of your chosen date range, not live-today — this dashboard reflects ingested historical data, not a real-time feed.
                   </p>
                 </SectionCard>
@@ -2454,7 +2613,7 @@ export default function App() {
                     <DollarSign size={16} className="text-blue-600" />
                     <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">1. Profit & Loss Structure (Lakhs)</span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold">Calculated Rows</span>
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest font-bold">Calculated Rows</span>
                 </div>
 
                 {/* Sub-Table 1: Financial Rows */}
@@ -2467,8 +2626,8 @@ export default function App() {
                       <>
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
                           <div className="flex flex-col">
-                            <span className="font-sans font-semibold text-slate-805">Gross Revenue</span>
-                            <span className="text-[10px] font-sans text-slate-400">Revenue inclusive of returns ({gstMode === "inclusive" ? "GST incl." : "GST excl."})</span>
+                            <span className="font-sans font-semibold text-slate-800">Gross Revenue</span>
+                            <span className="text-[11px] font-sans text-slate-400">Revenue inclusive of returns ({gstMode === "inclusive" ? "GST incl." : "GST excl."})</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(rowFinancials.grossRevenue, rowFinancialsComparative?.grossRevenue)}
@@ -2479,7 +2638,7 @@ export default function App() {
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
                           <div className="flex flex-col">
                             <span className="font-sans text-slate-700">Sale Returns</span>
-                            <span className="text-[10px] font-sans text-slate-400">Total invoice value of returns</span>
+                            <span className="text-[11px] font-sans text-slate-400">Total invoice value of returns</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(rowFinancials.saleReturns, rowFinancialsComparative?.saleReturns, true)}
@@ -2489,8 +2648,8 @@ export default function App() {
 
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
                           <div className="flex flex-col">
-                            <span className="font-sans font-semibold text-slate-805">Net Revenue</span>
-                            <span className="text-[10px] font-sans text-slate-400">Revenue exclusive of returns</span>
+                            <span className="font-sans font-semibold text-slate-800">Net Revenue</span>
+                            <span className="text-[11px] font-sans text-slate-400">Revenue exclusive of returns</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(rowFinancials.netRevenue, rowFinancialsComparative?.netRevenue)}
@@ -2502,8 +2661,8 @@ export default function App() {
                     })() : (
                       <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
                         <div className="flex flex-col">
-                          <span className="font-sans font-semibold text-slate-805">Revenue</span>
-                          <span className="text-[10px] font-sans text-slate-400">Gross marketplace sale receipt base</span>
+                          <span className="font-sans font-semibold text-slate-800">Revenue</span>
+                          <span className="text-[11px] font-sans text-slate-400">Gross marketplace sale receipt base</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {renderComparisonBadge(activeSimulatedChannel.revenue, activeChannelComparativeMetrics?.revenue)}
@@ -2516,7 +2675,7 @@ export default function App() {
                     <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
                       <div className="flex flex-col">
                         <span className="font-sans text-slate-700">COGS (Goods Landing Cost)</span>
-                        <span className="text-[10px] font-sans text-slate-400">Includes raw material, duty, logistics</span>
+                        <span className="text-[11px] font-sans text-slate-400">Includes raw material, duty, logistics</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {selectedChannelId === "amazon" && amazonFinancials
@@ -2532,7 +2691,7 @@ export default function App() {
                     <div className="flex items-center justify-between py-3 border-b border-slate-100 bg-emerald-500/5 hover:bg-emerald-500/10 px-2 rounded font-mono text-sm border-l-4 border-l-emerald-500">
                       <div className="flex flex-col">
                         <span className="font-sans font-semibold text-emerald-800">CM1 (Contribution Margin 1)</span>
-                        <span className="text-[10px] font-sans text-emerald-600">Net revenue after landing costs, commission, and standard shipment</span>
+                        <span className="text-[11px] font-sans text-emerald-600">Net revenue after landing costs, commission, and standard shipment</span>
                       </div>
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
@@ -2543,7 +2702,7 @@ export default function App() {
                             : renderComparisonBadge(activeSimulatedChannel.cm1, activeChannelComparativeMetrics?.cm1)}
                           <span className="font-bold text-emerald-700">{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm1 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm1 : activeSimulatedChannel.cm1)}</span>
                         </div>
-                        <span className="text-[10px] text-emerald-600">
+                        <span className="text-[11px] text-emerald-600">
                           {selectedChannelId === "amazon" && amazonFinancials
                             ? (amazonFinancials.netRevenue > 0 ? (amazonFinancials.cm1 / amazonFinancials.netRevenue) * 100 : 0).toFixed(1)
                             : selectedChannelId === "shopify" && shopifyFinancials
@@ -2572,7 +2731,7 @@ export default function App() {
                               <ChevronRight size={14} className={`text-slate-400 transition-transform duration-200 ${showIndirectBreakdown ? "rotate-90" : ""}`} />
                               <div className="flex flex-col">
                                 <span className="font-sans text-slate-700">Amazon Charges</span>
-                                <span className="text-[10px] font-sans text-slate-400">Click to view fee breakdown — FBA fees, commissions, closing fees (excl. TCS/TDS)</span>
+                                <span className="text-[11px] font-sans text-slate-400">Click to view fee breakdown — FBA fees, commissions, closing fees (excl. TCS/TDS)</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2591,7 +2750,7 @@ export default function App() {
                               ) : (
                                 <div>
                                   <div className="px-3 pt-2 pb-1">
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Fee Summary (from Transactions Report)</span>
+                                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Fee Summary (from Transactions Report)</span>
                                   </div>
                                   <div className="divide-y divide-slate-100">
                                     {indirectSummaryData.map((item, idx) => (
@@ -2609,7 +2768,7 @@ export default function App() {
                                   {indirectSettlementData.length > 0 && (
                                     <>
                                       <div className="px-3 pt-3 pb-1 border-t border-slate-200">
-                                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Detailed Breakdown (from Settlement Reports)</span>
+                                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Detailed Breakdown (from Settlement Reports)</span>
                                       </div>
                                       <div className="divide-y divide-slate-100">
                                         {indirectSettlementData.map((item, idx) => (
@@ -2635,16 +2794,16 @@ export default function App() {
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 px-2 rounded font-mono text-sm text-slate-500">
                           <div className="flex flex-col">
                             <span className="font-sans text-slate-500">People Cost</span>
-                            <span className="text-[10px] font-sans text-slate-400">Manual entry — pending Finance input</span>
+                            <span className="text-[11px] font-sans text-slate-400">Manual entry — pending Finance input</span>
                           </div>
-                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-1 rounded-md font-mono">Pending</span>
+                          <span className="text-[11px] bg-slate-100 text-slate-400 px-2 py-1 rounded-md font-mono">Pending</span>
                         </div>
 
                         {/* 4.3 Rental Charges (PPOB) -- ₹16,000/month fixed, prorated across the selected date range */}
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 px-2 rounded font-mono text-sm text-slate-700">
                           <div className="flex flex-col">
                             <span className="font-sans text-slate-700">Rental Charges (PPOB)</span>
-                            <span className="text-[10px] font-sans text-slate-400">₹16,000/month, prorated across the selected date range</span>
+                            <span className="text-[11px] font-sans text-slate-400">₹16,000/month, prorated across the selected date range</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(amazonFinancials.rentalCharges, amazonFinancialsComparative?.rentalCharges, true)}
@@ -2668,7 +2827,7 @@ export default function App() {
                               <ChevronRight size={14} className={`text-slate-400 transition-transform duration-200 ${showAdvertisementL2 ? "rotate-90" : ""}`} />
                               <div className="flex flex-col">
                                 <span className="font-sans text-slate-700">Advertisement Cost</span>
-                                <span className="text-[10px] font-sans text-slate-400">Click to view breakdown — Amazon Ads (billed) + Beyond Ads (10% estimate)</span>
+                                <span className="text-[11px] font-sans text-slate-400">Click to view breakdown — Amazon Ads (billed) + Beyond Ads (10% estimate)</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2687,7 +2846,7 @@ export default function App() {
                               ) : (
                                 <div>
                                   <div className="px-3 pt-2 pb-1">
-                                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Advertisement Breakdown</span>
+                                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Advertisement Breakdown</span>
                                   </div>
                                   <div className="divide-y divide-slate-100">
                                     {advertisementL2Data.map((item, idx) => (
@@ -2711,7 +2870,7 @@ export default function App() {
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
                           <div className="flex flex-col">
                             <span className="font-sans text-slate-700">Return Loss</span>
-                            <span className="text-[10px] font-sans text-slate-400">COGS of bad-marked returned units minus claim reimbursement</span>
+                            <span className="text-[11px] font-sans text-slate-400">COGS of bad-marked returned units minus claim reimbursement</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(amazonFinancials.returnLoss, amazonFinancialsComparative?.returnLoss, true)}
@@ -2726,7 +2885,7 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <div className="flex flex-col">
                                 <span className="font-sans text-slate-700">Indirect Exp + People Cost Allocation</span>
-                                <span className="text-[10px] font-sans text-slate-400">Attributed staffing, dark store rents, corporate overheads (not yet sourced — shown as 0)</span>
+                                <span className="text-[11px] font-sans text-slate-400">Attributed staffing, dark store rents, corporate overheads (not yet sourced — shown as 0)</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2739,7 +2898,7 @@ export default function App() {
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
                           <div className="flex flex-col">
                             <span className="font-sans text-slate-700">Platform Sponsored Advertising Spend</span>
-                            <span className="text-[10px] font-sans text-slate-400">CPC bids, sponsored brands, quick commerce display flags (not yet sourced — shown as 0)</span>
+                            <span className="text-[11px] font-sans text-slate-400">CPC bids, sponsored brands, quick commerce display flags (not yet sourced — shown as 0)</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(shopifyFinancials.advertisingSpend ?? 0, null, true)}
@@ -2756,7 +2915,7 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <div className="flex flex-col">
                                 <span className="font-sans text-slate-700">Indirect Exp + People Cost Allocation</span>
-                                <span className="text-[10px] font-sans text-slate-400">Attributed staffing, dark store rents, corporate overheads</span>
+                                <span className="text-[11px] font-sans text-slate-400">Attributed staffing, dark store rents, corporate overheads</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2769,7 +2928,7 @@ export default function App() {
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-700">
                           <div className="flex flex-col">
                             <span className="font-sans text-slate-700">Platform Sponsored Advertising Spend</span>
-                            <span className="text-[10px] font-sans text-slate-400">CPC bids, sponsored brands, quick commerce display flags</span>
+                            <span className="text-[11px] font-sans text-slate-400">CPC bids, sponsored brands, quick commerce display flags</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {renderComparisonBadge(activeSimulatedChannel.advertisingSpend, activeChannelComparativeMetrics?.advertisingSpend, true)}
@@ -2783,7 +2942,7 @@ export default function App() {
                     <div className="flex items-center justify-between py-3 border-b border-slate-100 bg-blue-500/5 hover:bg-blue-500/10 px-2 rounded font-mono text-sm border-l-4 border-l-blue-500">
                       <div className="flex flex-col">
                         <span className="font-sans font-semibold text-blue-900">CM2 (EBITDA Core Profit)</span>
-                        <span className="text-[10px] font-sans text-blue-600">EBITDA earnings before tax, interest allocations</span>
+                        <span className="text-[11px] font-sans text-blue-600">EBITDA earnings before tax, interest allocations</span>
                       </div>
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
@@ -2794,7 +2953,7 @@ export default function App() {
                             : renderComparisonBadge(activeSimulatedChannel.cm2, activeChannelComparativeMetrics?.cm2)}
                           <span className="font-bold text-blue-800">{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : activeSimulatedChannel.cm2)}</span>
                         </div>
-                        <span className="text-[10px] text-slate-500">ROAS conversion efficiency active</span>
+                        <span className="text-[11px] text-slate-500">ROAS conversion efficiency active</span>
                       </div>
                     </div>
 
@@ -2803,7 +2962,7 @@ export default function App() {
                     <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm text-slate-500">
                       <div className="flex flex-col">
                         <span className="font-sans text-slate-500">Interest + Tax + DA (Depreciation/Amortization)</span>
-                        <span className="text-[10px] font-sans text-slate-400">
+                        <span className="text-[11px] font-sans text-slate-400">
                           {selectedChannelId === "amazon" || selectedChannelId === "shopify" ? "Pending Finance input — not yet subtracted below" : "Financing costs, taxation allocations"}
                         </span>
                       </div>
@@ -2815,8 +2974,8 @@ export default function App() {
                       (selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : activeSimulatedChannel.netProfit) >= 0 ? "border-emerald-500/50" : "border-rose-500/50"
                     }`}>
                       <div className="flex flex-col">
-                        <span className="font-sans font-extrabold text-slate-850">Net Profit</span>
-                        <span className="text-[10px] font-sans text-slate-400">Bottom line channel yield after ALL operational costs</span>
+                        <span className="font-sans font-extrabold text-slate-800">Net Profit</span>
+                        <span className="text-[11px] font-sans text-slate-400">Bottom line channel yield after ALL operational costs</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {selectedChannelId === "amazon" && amazonFinancials
@@ -2848,7 +3007,7 @@ export default function App() {
                           <button
                             key={g}
                             onClick={() => setTrendGranularity(g)}
-                            className={`text-[10px] px-2.5 py-1 rounded-lg capitalize font-medium ${
+                            className={`text-[11px] px-2.5 py-1 rounded-lg capitalize font-medium ${
                               trendGranularity === g ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
                             }`}
                           >
@@ -2883,7 +3042,7 @@ export default function App() {
                         </ResponsiveContainer>
                       </div>
                     )}
-                    <p className="text-[10px] text-slate-400 mt-2">
+                    <p className="text-[11px] text-slate-400 mt-2">
                       {isShopify
                         ? "Amazon Charges and Rental Charges are omitted from this trend — Shopify has no equivalent per-period settlement/PPOB rental data."
                         : "Advertisement Cost is omitted from this trend — Amazon ad spend is only available as a lifetime total, not per-day."}
@@ -2895,7 +3054,7 @@ export default function App() {
                 {/* Sub-Table 2: Efficiency & Listing Metrics */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <TrendingUp size={16} className="text-slate-655" />
+                    <TrendingUp size={16} className="text-slate-700" />
                     <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">2. Listing & Volume Performance Indices</span>
                   </div>
                 </div>
@@ -2906,8 +3065,8 @@ export default function App() {
                     onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "aov" ? null : "aov")}
                   >
                     <div>
-                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Average Order Value (AOV)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Average checkout ticket price{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium">Average Order Value (AOV)</span>
+                      <p className="text-xs text-slate-400 mt-0.5">Average checkout ticket price{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.aov, comparativeOperationalMetrics?.aov)}
@@ -2920,8 +3079,8 @@ export default function App() {
                     onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "ordersPerDay" ? null : "ordersPerDay")}
                   >
                     <div>
-                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Orders Per Day (OPD)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Daily shipment run counts{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium">Orders Per Day (OPD)</span>
+                      <p className="text-xs text-slate-400 mt-0.5">Daily shipment run counts{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.ordersPerDay, comparativeOperationalMetrics?.ordersPerDay)}
@@ -2934,8 +3093,8 @@ export default function App() {
                     onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "unitsPerOrder" ? null : "unitsPerOrder")}
                   >
                     <div>
-                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Units / Order</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Total units sold / total order count{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium">Units / Order</span>
+                      <p className="text-xs text-slate-400 mt-0.5">Total units sold / total order count{selectedChannelId === "amazon" ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(amazonOperationalMetrics?.unitsPerOrder ?? 0, comparativeOperationalMetrics?.unitsPerOrder)}
@@ -2945,8 +3104,8 @@ export default function App() {
 
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
                     <div>
-                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Listings Count (SKUs)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Total registered catalog SKUs</p>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium">Listings Count (SKUs)</span>
+                      <p className="text-xs text-slate-400 mt-0.5">Total registered catalog SKUs</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.listingsCount, comparativeOperationalMetrics?.listingsCount)}
@@ -2956,8 +3115,8 @@ export default function App() {
 
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
                     <div>
-                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Active Listing Count</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Visibly indexed search elements</p>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium">Active Listing Count</span>
+                      <p className="text-xs text-slate-400 mt-0.5">Visibly indexed search elements</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.activeListingCount, comparativeOperationalMetrics?.activeListingCount)}
@@ -2970,8 +3129,8 @@ export default function App() {
                     onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "revenuePerSku" ? null : "revenuePerSku")}
                   >
                     <div>
-                      <span className="text-[10.5px] text-slate-500 uppercase font-medium">Revenue Per SKU (ASIN Performance)</span>
-                      <p className="text-xs text-slate-405 mt-0.5">Average output yielded per logged catalog element{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
+                      <span className="text-[11px] text-slate-500 uppercase font-medium">Revenue Per SKU (ASIN Performance)</span>
+                      <p className="text-xs text-slate-400 mt-0.5">Average output yielded per logged catalog element{(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? " — click for trend" : ""}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {selectedChannelId === "amazon" && renderComparisonBadge(selectedChannel.revenuePerSku, comparativeOperationalMetrics?.revenuePerSku)}
@@ -2997,7 +3156,7 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => setExpandedVolumeMetric(null)}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 font-medium"
+                        className="text-[11px] text-slate-400 hover:text-slate-600 font-medium"
                       >
                         Close ✕
                       </button>
@@ -3042,7 +3201,7 @@ export default function App() {
                 {/* Sub-Table 3: Stock & Inventory Health */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-slate-655" />
+                    <AlertTriangle size={16} className="text-slate-700" />
                     <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">3. Stock & Inventory Health</span>
                   </div>
                 </div>
@@ -3052,36 +3211,28 @@ export default function App() {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (selectedChannelId !== "amazon" && selectedChannelId !== "shopify") return;
-                        const next = expandedSupplyChainMetric === "outOfStockDays" ? null : "outOfStockDays";
-                        setExpandedSupplyChainMetric(next);
-                        const isShopify = selectedChannelId === "shopify";
-                        const activeData = isShopify ? shopifySupplyChainTrendData : supplyChainTrendData;
-                        if (next && activeData.length === 0) {
-                          if (isShopify) {
-                            fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
-                          } else {
-                            fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
-                          }
-                        }
-                      }}
+                      onClick={() => toggleSupplyChainMetric("outOfStockDays")}
                       className={`bg-slate-50 p-4.5 rounded-xl border text-center ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "outOfStockDays" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
                     >
-                      <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Out of Stock Days</span>
+                      <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Out of Stock Days</span>
                       {renderMetricOrPending(selectedChannel.outOfStockDays, (v) => `${v} days`)}
-                      <span className="text-[9px] text-slate-405 font-sans mt-0.5">Average monthly lag</span>
+                      <span className="text-[11px] text-slate-400 font-sans mt-0.5">Average monthly lag</span>
                       {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
-                        <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "outOfStockDays" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "outOfStockDays" ? "Hide trend ▲" : "View trend ▼"}</span>
                       )}
                     </button>
 
                     {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
-                      <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
-                        <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Stockout Cost</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleSupplyChainMetric("stockoutCost")}
+                        className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "stockoutCost" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                      >
+                        <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Stockout Cost</span>
                         {renderMetricOrPending(selectedChannel.stockoutCost ?? null, formatCurrency)}
-                        <span className="text-[9px] text-slate-405 font-sans mt-0.5">Opportunity lost to out-of-stock inventory</span>
-                      </div>
+                        <span className="text-[11px] text-slate-400 font-sans mt-0.5">Opportunity lost to out-of-stock inventory</span>
+                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "stockoutCost" ? "Hide trend ▲" : "View trend ▼"}</span>
+                      </button>
                     )}
 
                     <button
@@ -3089,11 +3240,11 @@ export default function App() {
                       onClick={() => selectedChannelId === "amazon" && setAgeingSkusExpanded(v => !v)}
                       className={`bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"}`}
                     >
-                      <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory (90D+)</span>
+                      <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory (90D+)</span>
                       {renderMetricOrPending(selectedChannel.ageingInventoryPct, formatPercent)}
-                      <span className="text-[9px] text-slate-405 font-sans mt-0.5">Overstocked catalog weight</span>
+                      <span className="text-[11px] text-slate-400 font-sans mt-0.5">Overstocked catalog weight</span>
                       {selectedChannelId === "amazon" && (
-                        <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{ageingSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
+                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{ageingSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
                       )}
                     </button>
 
@@ -3102,11 +3253,11 @@ export default function App() {
                       onClick={() => selectedChannelId === "amazon" && setCriticalSkusExpanded(v => !v)}
                       className={`bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"}`}
                     >
-                      <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Critical SKUs</span>
+                      <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Critical SKUs</span>
                       {renderMetricOrPending(selectedChannel.deadStockPct, formatPercent)}
-                      <span className="text-[9px] text-slate-405 font-sans mt-0.5">Zero daily transaction share</span>
+                      <span className="text-[11px] text-slate-400 font-sans mt-0.5">Zero daily transaction share</span>
                       {selectedChannelId === "amazon" && (
-                        <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{criticalSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
+                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{criticalSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
                       )}
                     </button>
 
@@ -3116,21 +3267,21 @@ export default function App() {
                     <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4.5">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Critical SKU Count</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Critical SKU Count</span>
                           <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{(amazonOperationalMetrics?.criticalSkus?.length ?? 0).toLocaleString()}</span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Critical SKUs %</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Critical SKUs %</span>
                           <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{formatPercent(selectedChannel.deadStockPct)}</span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Revenue At Risk</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Revenue At Risk</span>
                           <span className="font-mono text-lg font-bold text-rose-600 block mt-0.5">
                             {formatCurrency((amazonOperationalMetrics?.criticalSkus ?? []).reduce((sum: number, c: any) => sum + (c.revenueInRange ?? 0), 0))}
                           </span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Avg. Run-Rate Drop</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Avg. Run-Rate Drop</span>
                           <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">
                             {(() => {
                               const list = amazonOperationalMetrics?.criticalSkus ?? [];
@@ -3153,7 +3304,7 @@ export default function App() {
                             "bg-rose-100 text-rose-700";
                           return (
                             <div key={tag} className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${colorClass}`}>{tag}</span>
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-semibold ${colorClass}`}>{tag}</span>
                               <span className="font-mono text-lg font-bold text-slate-800 block mt-1">{count.toLocaleString()}</span>
                             </div>
                           );
@@ -3167,13 +3318,13 @@ export default function App() {
                         <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200">
                           <table className="w-full text-xs">
                             <thead className="bg-white sticky top-0">
-                              <tr className="text-left text-slate-500 uppercase text-[10px]">
+                              <tr className="text-left text-slate-500 uppercase text-[11px]">
                                 <th className="px-3 py-2 font-medium">SKU</th>
                                 <th className="px-3 py-2 font-medium">Tag</th>
-                                <th className="px-3 py-2 font-medium text-right">Prev Run-Rate</th>
-                                <th className="px-3 py-2 font-medium text-right">Last Run-Rate</th>
-                                <th className="px-3 py-2 font-medium text-right">Drop %</th>
-                                <th className="px-3 py-2 font-medium text-right">Revenue In Range</th>
+                                <th className="px-3 py-2 font-medium text-right">Prev Run-Rate (units/day)</th>
+                                <th className="px-3 py-2 font-medium text-right">Last Run-Rate (units/day)</th>
+                                <th className="px-3 py-2 font-medium text-right">Drop (%)</th>
+                                <th className="px-3 py-2 font-medium text-right">Revenue In Range (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -3181,7 +3332,7 @@ export default function App() {
                                 <tr key={c.sku} className="border-t border-slate-100 bg-white">
                                   <td className="px-3 py-2 font-mono text-slate-700">{c.sku}</td>
                                   <td className="px-3 py-2">
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                    <span className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${
                                       c.velocityTag === "Fast" ? "bg-emerald-100 text-emerald-700" :
                                       c.velocityTag === "Medium" ? "bg-blue-100 text-blue-700" :
                                       c.velocityTag === "Slow" ? "bg-amber-100 text-amber-700" :
@@ -3205,21 +3356,21 @@ export default function App() {
                     <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4.5">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Ageing SKU Count</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Ageing SKU Count</span>
                           <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{(amazonOperationalMetrics?.ageingSkus?.length ?? 0).toLocaleString()}</span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory %</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Ageing Inventory %</span>
                           <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">{formatPercent(selectedChannel.ageingInventoryPct)}</span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Revenue At Risk</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Revenue At Risk</span>
                           <span className="font-mono text-lg font-bold text-rose-600 block mt-0.5">
                             {formatCurrency((amazonOperationalMetrics?.ageingSkus ?? []).reduce((sum: number, a: any) => sum + (a.revenueInRange ?? 0), 0))}
                           </span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                          <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Avg. Run-Rate Drop</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Avg. Run-Rate Drop</span>
                           <span className="font-mono text-lg font-bold text-slate-800 block mt-0.5">
                             {(() => {
                               const list = amazonOperationalMetrics?.ageingSkus ?? [];
@@ -3238,14 +3389,14 @@ export default function App() {
                         <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200">
                           <table className="w-full text-xs">
                             <thead className="bg-white sticky top-0">
-                              <tr className="text-left text-slate-500 uppercase text-[10px]">
+                              <tr className="text-left text-slate-500 uppercase text-[11px]">
                                 <th className="px-3 py-2 font-medium">SKU</th>
                                 <th className="px-3 py-2 font-medium">Trigger Week</th>
                                 <th className="px-3 py-2 font-medium">Tag</th>
-                                <th className="px-3 py-2 font-medium text-right">Prev Run-Rate</th>
-                                <th className="px-3 py-2 font-medium text-right">Curr Run-Rate</th>
-                                <th className="px-3 py-2 font-medium text-right">Drop %</th>
-                                <th className="px-3 py-2 font-medium text-right">Revenue In Range</th>
+                                <th className="px-3 py-2 font-medium text-right">Prev Run-Rate (units/day)</th>
+                                <th className="px-3 py-2 font-medium text-right">Curr Run-Rate (units/day)</th>
+                                <th className="px-3 py-2 font-medium text-right">Drop (%)</th>
+                                <th className="px-3 py-2 font-medium text-right">Revenue In Range (₹)</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -3254,7 +3405,7 @@ export default function App() {
                                   <td className="px-3 py-2 font-mono text-slate-700">{a.sku}</td>
                                   <td className="px-3 py-2 font-mono text-slate-600">{a.triggerWeek}</td>
                                   <td className="px-3 py-2">
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                    <span className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${
                                       a.velocityTag === "Fast" ? "bg-emerald-100 text-emerald-700" :
                                       a.velocityTag === "Medium" ? "bg-blue-100 text-blue-700" :
                                       a.velocityTag === "Slow" ? "bg-amber-100 text-amber-700" :
@@ -3278,7 +3429,7 @@ export default function App() {
                 {/* Sub-Table 4: Returns & Claims */}
                 <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-slate-655" />
+                    <AlertTriangle size={16} className="text-slate-700" />
                     <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Returns & Claims</span>
                   </div>
                 </div>
@@ -3286,61 +3437,98 @@ export default function App() {
                 <div className="px-6 py-4 bg-white">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 
-                    <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSupplyChainMetric("returnPct")}
+                      className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "returnPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-rose-100"}`}
+                    >
+                      <span className="text-[11px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
                       <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
-                      <span className="text-[9px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
-                    </div>
+                      <span className="text-[11px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
+                      <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                    </button>
 
                     {selectedChannelId === "amazon" && (
                       <>
-                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSupplyChainMetric("goodReturnPct")}
+                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "goodReturnPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-emerald-100"}`}
+                        >
+                          <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
                           <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.goodReturnPct ?? 0)}</span>
-                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
-                        </div>
+                          <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
+                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "goodReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        </button>
 
-                        <div className="bg-rose-50 border border-rose-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSupplyChainMetric("badReturnPct")}
+                          className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "badReturnPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-rose-100"}`}
+                        >
+                          <span className="text-[11px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
                           <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(amazonOperationalMetrics?.badReturnPct ?? 0)}</span>
-                          <span className="text-[9px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
-                        </div>
+                          <span className="text-[11px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
+                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "badReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        </button>
                       </>
                     )}
 
-                    <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                      <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
+                    <button
+                      type="button"
+                      onClick={() => selectedChannelId === "amazon" && toggleSupplyChainMetric("claimRatePct")}
+                      className={`bg-emerald-50 border p-4.5 rounded-xl text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-emerald-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "claimRatePct" ? "border-blue-400 ring-1 ring-blue-200" : "border-emerald-100"}`}
+                    >
+                      <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
                       <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
                         {selectedChannelId === "amazon" ? formatPercent(amazonOperationalMetrics?.claimRatePct ?? 0) : formatPercent(selectedChannel.claimPct)}
                       </span>
-                      <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
-                    </div>
+                      <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
+                      {selectedChannelId === "amazon" && (
+                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claimRatePct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                      )}
+                    </button>
 
                     {selectedChannelId === "amazon" && (
                       <>
                         <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
-                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim Success %</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Claim Success %</span>
                           <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claimSuccessPct ?? 0)}</span>
-                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Reimbursed claims / total claims — rejected/denied claims aren't tracked in ingested data, so this reads ~100% by construction</span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Reimbursed claims / total claims — rejected/denied claims aren't tracked in ingested data, so this reads ~100% by construction</span>
                         </div>
 
-                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
-                          <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSupplyChainMetric("claim24hPct")}
+                          className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "claim24hPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                        >
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
                           <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claim24hPct ?? 0)}</span>
-                          <span className="text-[9px] text-slate-405 font-sans mt-0.5">Claims filed within 24h / bad-returned units</span>
-                        </div>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Claims filed within 24h / bad-returned units</span>
+                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claim24hPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        </button>
 
-                        <div className="bg-emerald-50 border border-emerald-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSupplyChainMetric("reimbursementPct")}
+                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "reimbursementPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-emerald-100"}`}
+                        >
+                          <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
                           <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.reimbursementPct ?? 0)}</span>
-                          <span className="text-[9px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
-                        </div>
+                          <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
+                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "reimbursementPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        </button>
 
-                        <div className="bg-amber-50 border border-amber-100 p-4.5 rounded-xl text-center">
-                          <span className="text-[10px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSupplyChainMetric("returnLossPct")}
+                          className={`bg-amber-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-amber-100 transition-colors ${expandedSupplyChainMetric === "returnLossPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-amber-100"}`}
+                        >
+                          <span className="text-[11px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
                           <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{formatPercent(amazonFinancials?.returnLossPct ?? 0)}</span>
-                          <span className="text-[9px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
-                        </div>
+                          <span className="text-[11px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
+                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnLossPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        </button>
                       </>
                     )}
 
@@ -3353,54 +3541,8 @@ export default function App() {
                   {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (() => {
                     const isShopify = selectedChannelId === "shopify";
                     const activeSupplyChainTrendData = isShopify ? shopifySupplyChainTrendData : supplyChainTrendData;
-                    const metricOptions = isShopify
-                      ? ([
-                          { key: "outOfStockDays", label: "Out of Stock Days" },
-                          { key: "stockoutCost", label: "Stockout Cost" },
-                          { key: "ageingInventoryPct", label: "Ageing Inventory %" },
-                          { key: "deadStockPct", label: "Dead Stock %" },
-                        ] as const)
-                      : ([
-                          { key: "outOfStockDays", label: "Out of Stock Days" },
-                          { key: "returnPct", label: "Return Rate" },
-                          { key: "goodReturnPct", label: "Good Return Rate" },
-                          { key: "badReturnPct", label: "Bad Return Rate" },
-                          { key: "claimRatePct", label: "Claim Rate" },
-                          { key: "claim24hPct", label: "Claim (<24h) Rate" },
-                          { key: "reimbursementPct", label: "Reimbursement Rate" },
-                          { key: "returnLossPct", label: "Return Loss Rate" },
-                          { key: "stockoutCost", label: "Stockout Cost" },
-                          { key: "ageingInventoryPct", label: "Ageing Inventory %" },
-                          { key: "deadStockPct", label: "Dead Stock %" },
-                        ] as const);
                     return (
                     <div className="mt-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {metricOptions.map(m => (
-                          <button
-                            key={m.key}
-                            onClick={() => {
-                              const next = expandedSupplyChainMetric === m.key ? null : m.key;
-                              setExpandedSupplyChainMetric(next);
-                              if (next && activeSupplyChainTrendData.length === 0) {
-                                if (isShopify) {
-                                  fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
-                                } else {
-                                  fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
-                                }
-                              }
-                            }}
-                            className={`text-[10px] px-2.5 py-1 rounded-lg font-medium border ${
-                              expandedSupplyChainMetric === m.key
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                            }`}
-                          >
-                            {m.label} — Trend
-                          </button>
-                        ))}
-                      </div>
-
                       {expandedSupplyChainMetric && (
                         <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
                           <div className="flex items-center justify-between mb-2">
@@ -3449,20 +3591,78 @@ export default function App() {
                   })()}
                 </div>
 
+                {/* Sub-Table: Working Capital -- Receivable Days from real Amazon settlement deposit
+                    data vs. a user-configurable Payable Days assumption. Amazon-only: Shopify has no
+                    payout/settlement table ingested yet, so there's no real receivable-days source for it. */}
+                {selectedChannelId === "amazon" && (
+                  <>
+                    <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle size={16} className="text-slate-700" />
+                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">Working Capital</span>
+                      </div>
+                    </div>
+                    <div className="px-6 py-4 bg-white">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Receivable Days</span>
+                          <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">
+                            {amazonWorkingCapital?.receivableDays != null ? `${amazonWorkingCapital.receivableDays.toFixed(1)}d` : "—"}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Avg. settlement deposit date − order date</span>
+                        </div>
+
+                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Payable Days</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={payableDays}
+                            onChange={(e) => setPayableDays(Math.max(0, Number(e.target.value) || 0))}
+                            className="font-mono text-lg font-extrabold text-slate-700 text-center block mt-1 w-16 mx-auto bg-white border border-slate-300 rounded-md"
+                          />
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Configurable assumption</span>
+                        </div>
+
+                        <div className={`p-4.5 rounded-xl border text-center ${(amazonWorkingCapital?.workingCapitalDays ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                          <span className={`text-[11px] font-sans block uppercase font-medium ${(amazonWorkingCapital?.workingCapitalDays ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Days)</span>
+                          <span className={`font-mono text-lg font-extrabold block mt-1 ${(amazonWorkingCapital?.workingCapitalDays ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                            {amazonWorkingCapital?.workingCapitalDays != null ? `${amazonWorkingCapital.workingCapitalDays.toFixed(1)}d` : "—"}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Receivable Days − Payable Days</span>
+                        </div>
+
+                        <div className={`p-4.5 rounded-xl border text-center ${(amazonWorkingCapital?.workingCapitalAmount ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                          <span className={`text-[11px] font-sans block uppercase font-medium ${(amazonWorkingCapital?.workingCapitalAmount ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Amount)</span>
+                          <span className={`font-mono text-lg font-extrabold block mt-1 ${(amazonWorkingCapital?.workingCapitalAmount ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                            {amazonWorkingCapital?.workingCapitalAmount != null ? formatCurrency(amazonWorkingCapital.workingCapitalAmount) : "—"}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Working Capital (Days) × COGS/day</span>
+                        </div>
+
+                      </div>
+                      {amazonWorkingCapital?.matchedOrders === 0 && (
+                        <p className="text-[11px] text-slate-400 mt-3">No settled orders in this range yet — Receivable Days needs a matching deposit date from Amazon's settlement reports.</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
                 {/* Sub-Table 5: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
                 {selectedChannelId === "amazon" && (
                   <>
                     <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <CheckSquare size={16} className="text-slate-655" />
+                        <CheckSquare size={16} className="text-slate-700" />
                         <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">5. Ads Performance</span>
                       </div>
                     </div>
                     <div className="px-6 py-4 bg-white">
                       {isLoadingAdsPerformance ? (
-                        <p className="text-xs text-slate-405 font-sans">Loading ads performance...</p>
+                        <p className="text-xs text-slate-400 font-sans">Loading ads performance...</p>
                       ) : adsPerformanceData.length === 0 ? (
-                        <p className="text-xs text-slate-405 font-sans">No ads campaign data available.</p>
+                        <p className="text-xs text-slate-400 font-sans">No ads campaign data available.</p>
                       ) : (
                         <>
                           {/* Blended KPI summary tiles */}
@@ -3479,23 +3679,23 @@ export default function App() {
                             return (
                               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
-                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Total Ad Spend</span>
+                                  <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Total Ad Spend</span>
                                   <span className="font-mono text-base font-bold text-slate-800 block mt-0.5">{formatCurrency(totalSpend)}</span>
                                 </div>
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
-                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Attributed Sales</span>
+                                  <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Attributed Sales</span>
                                   <span className="font-mono text-base font-bold text-slate-800 block mt-0.5">{formatCurrency(totalSales)}</span>
                                 </div>
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
-                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Blended ACOS</span>
+                                  <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Blended ACOS</span>
                                   <span className={`font-mono text-base font-bold block mt-0.5 ${acosColor}`}>{blendedAcos.toFixed(1)}%</span>
                                 </div>
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
-                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Blended ROAS</span>
+                                  <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Blended ROAS</span>
                                   <span className={`font-mono text-base font-bold block mt-0.5 ${roasColor}`}>{blendedRoas.toFixed(2)}x</span>
                                 </div>
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
-                                  <span className="text-[9px] text-slate-500 font-sans block uppercase font-medium">Blended CTR</span>
+                                  <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Blended CTR</span>
                                   <span className="font-mono text-base font-bold text-slate-800 block mt-0.5">{blendedCtr.toFixed(2)}%</span>
                                 </div>
                               </div>
@@ -3505,7 +3705,7 @@ export default function App() {
                           {/* Spend vs Sales and ACOS/ROAS charts, per campaign type */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide font-sans">Spend vs Attributed Sales</span>
+                              <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide font-sans">Spend vs Attributed Sales</span>
                               <div className="h-52 mt-1">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={adsPerformanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -3524,7 +3724,7 @@ export default function App() {
                               </div>
                             </div>
                             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                              <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide font-sans">ACOS vs ROAS</span>
+                              <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide font-sans">ACOS vs ROAS</span>
                               <div className="h-52 mt-1">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={adsPerformanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -3547,16 +3747,16 @@ export default function App() {
 
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs font-mono">
-                              <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                              <thead className="text-slate-500 uppercase tracking-wider text-[11px] font-sans border-b border-slate-200">
                                 <tr>
                                   <th className="py-2 pr-4">Campaign Type</th>
-                                  <th className="py-2 px-3 text-right">Spend</th>
+                                  <th className="py-2 px-3 text-right">Spend (₹)</th>
                                   <th className="py-2 px-3 text-right">Impressions</th>
                                   <th className="py-2 px-3 text-right">Clicks</th>
-                                  <th className="py-2 px-3 text-right">CTR</th>
-                                  <th className="py-2 px-3 text-right">ACOS</th>
-                                  <th className="py-2 px-3 text-right">ROAS</th>
-                                  <th className="py-2 pl-3 text-right">Sales</th>
+                                  <th className="py-2 px-3 text-right">CTR (%)</th>
+                                  <th className="py-2 px-3 text-right">ACOS (%)</th>
+                                  <th className="py-2 px-3 text-right">ROAS (x)</th>
+                                  <th className="py-2 pl-3 text-right">Sales (₹)</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -3581,7 +3781,7 @@ export default function App() {
                           </div>
                         </>
                       )}
-                      <p className="text-[9px] text-slate-405 font-sans mt-3">
+                      <p className="text-[11px] text-slate-400 font-sans mt-3">
                         Figures above are lifetime totals (AmazonAdsCampaignRow carries no date column). ACOS: <span className="text-emerald-600 font-semibold">green</span> ≤15%, <span className="text-amber-600 font-semibold">amber</span> ≤30%, <span className="text-rose-600 font-semibold">red</span> above. ROAS: <span className="text-emerald-600 font-semibold">green</span> ≥4x, <span className="text-amber-600 font-semibold">amber</span> ≥2x, <span className="text-rose-600 font-semibold">red</span> below.
                       </p>
 
@@ -3590,14 +3790,14 @@ export default function App() {
                           <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">By Campaign — Glance Views & Conversion Rate</span>
                           <div className="overflow-x-auto mt-2">
                             <table className="w-full text-left text-xs font-mono">
-                              <thead className="text-slate-500 uppercase tracking-wider text-[10px] font-sans border-b border-slate-200">
+                              <thead className="text-slate-500 uppercase tracking-wider text-[11px] font-sans border-b border-slate-200">
                                 <tr>
                                   <th className="py-2 pr-4">Campaign</th>
-                                  <th className="py-2 px-3 text-right">Spend</th>
+                                  <th className="py-2 px-3 text-right">Spend (₹)</th>
                                   <th className="py-2 px-3 text-right">Glance Views</th>
-                                  <th className="py-2 px-3 text-right">Conv. Rate</th>
-                                  <th className="py-2 px-3 text-right">ROAS</th>
-                                  <th className="py-2 pl-3 text-right">Sales</th>
+                                  <th className="py-2 px-3 text-right">Conv. Rate (%)</th>
+                                  <th className="py-2 px-3 text-right">ROAS (x)</th>
+                                  <th className="py-2 pl-3 text-right">Sales (₹)</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -3617,7 +3817,7 @@ export default function App() {
                               </tbody>
                             </table>
                           </div>
-                          <p className="text-[9px] text-slate-405 font-sans mt-2">
+                          <p className="text-[11px] text-slate-400 font-sans mt-2">
                             From the manually-exported Advertised Product report (Sponsored Products). Conversion Rate = Purchases / Clicks.
                             Glance Views (Detail Page Views) shows "—" where the source export left it blank, rather than showing a misleading zero.
                           </p>
@@ -3638,7 +3838,7 @@ export default function App() {
                     id="recon-unreconciled"
                     title="Unreconciled Discrepancies"
                     icon={<AlertTriangle size={15} className="text-rose-500" />}
-                    badge={<span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">{anomalies.unreconciledOrders?.length || 0}</span>}
+                    badge={<span className="text-[11px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">{anomalies.unreconciledOrders?.length || 0}</span>}
                     headerExtra={<a href={`/api/amazon/anomalies/csv?type=unreconciled&startDate=${startDateStr}&endDate=${endDateStr}`} className="text-slate-400 hover:text-rose-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>}
                     collapsed={!!collapsedSections["recon-unreconciled"]}
                     onToggle={toggleSection}
@@ -3647,7 +3847,7 @@ export default function App() {
                     {anomalies.unreconciledOrders?.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {anomalies.unreconciledOrders.map((o: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between text-[10px] font-mono bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
+                          <div key={i} className="flex items-center justify-between text-[11px] font-mono bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
                             <div className="truncate max-w-[120px]">
                               <span className="text-slate-700 font-semibold">{o.orderId}</span>
                               <span className="text-slate-400 block">{o.sku}</span>
@@ -3660,7 +3860,7 @@ export default function App() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-slate-400 font-sans">No discrepancies detected</p>
+                      <p className="text-[11px] text-slate-400 font-sans">No discrepancies detected</p>
                     )}
                   </SectionCard>
 
@@ -3669,7 +3869,7 @@ export default function App() {
                     id="recon-high-returns"
                     title="High Return SKUs (>15%)"
                     icon={<AlertTriangle size={15} className="text-amber-500" />}
-                    badge={<span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">{anomalies.highReturnSkus?.length || 0}</span>}
+                    badge={<span className="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">{anomalies.highReturnSkus?.length || 0}</span>}
                     headerExtra={<a href={`/api/amazon/anomalies/csv?type=highReturns&startDate=${startDateStr}&endDate=${endDateStr}`} className="text-slate-400 hover:text-amber-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>}
                     collapsed={!!collapsedSections["recon-high-returns"]}
                     onToggle={toggleSection}
@@ -3678,7 +3878,7 @@ export default function App() {
                     {anomalies.highReturnSkus?.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {anomalies.highReturnSkus.map((s: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between text-[10px] font-mono bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
+                          <div key={i} className="flex items-center justify-between text-[11px] font-mono bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
                             <span className="text-slate-700 font-semibold truncate max-w-[140px]">{s.sku}</span>
                             <div className="text-right">
                               <span className="text-amber-600 font-bold">{s.returnRate}%</span>
@@ -3688,7 +3888,7 @@ export default function App() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-slate-400 font-sans">No high-return SKUs detected</p>
+                      <p className="text-[11px] text-slate-400 font-sans">No high-return SKUs detected</p>
                     )}
                   </SectionCard>
 
@@ -3697,7 +3897,7 @@ export default function App() {
                     id="recon-fee-overcharges"
                     title="Fee Overcharges (>40%)"
                     icon={<AlertTriangle size={15} className="text-orange-500" />}
-                    badge={<span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">{anomalies.feeOvercharges?.length || 0}</span>}
+                    badge={<span className="text-[11px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">{anomalies.feeOvercharges?.length || 0}</span>}
                     headerExtra={<a href={`/api/amazon/anomalies/csv?type=feeOvercharges&startDate=${startDateStr}&endDate=${endDateStr}`} className="text-slate-400 hover:text-orange-500 transition-colors" title="Download full CSV report"><Download size={14} /></a>}
                     collapsed={!!collapsedSections["recon-fee-overcharges"]}
                     onToggle={toggleSection}
@@ -3706,7 +3906,7 @@ export default function App() {
                     {anomalies.feeOvercharges?.length > 0 ? (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {anomalies.feeOvercharges.map((o: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between text-[10px] font-mono bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
+                          <div key={i} className="flex items-center justify-between text-[11px] font-mono bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
                             <div className="truncate max-w-[120px]">
                               <span className="text-slate-700 font-semibold">{o.orderId}</span>
                               <span className="text-slate-400 block">{o.sku}</span>
@@ -3719,7 +3919,7 @@ export default function App() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-slate-400 font-sans">No fee overcharges detected</p>
+                      <p className="text-[11px] text-slate-400 font-sans">No fee overcharges detected</p>
                     )}
                   </SectionCard>
 
@@ -3778,7 +3978,7 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
                       <HelpCircle size={11} />
                       <span>Press "Consult" to request a comprehensive diagnostic powered by Gemini 3.5 Flash.</span>
                     </div>
@@ -3815,7 +4015,7 @@ export default function App() {
                           onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
                           className="flex-shrink-0 w-40 text-left bg-slate-50 hover:bg-slate-100 border border-blue-100 rounded-xl p-3 transition-colors"
                         >
-                          <span className="block text-[10px] font-mono text-slate-400">{s.sku}</span>
+                          <span className="block text-[11px] font-mono text-slate-400">{s.sku}</span>
                           <span className="block text-[11px] font-semibold text-slate-800 line-clamp-2 mt-0.5 h-7">{s.name}</span>
                           <span className="block text-xs font-mono font-bold text-blue-600 mt-1">{formatCurrency(s.revenue)}</span>
                         </button>
@@ -3824,7 +4024,7 @@ export default function App() {
                   )}
                 </div>
               </div>
-              <p className="text-[9px] text-slate-405 font-sans mt-3">
+              <p className="text-[11px] text-slate-400 font-sans mt-3">
                 Click a card to load its trend below.
               </p>
             </SectionCard>
@@ -3837,7 +4037,7 @@ export default function App() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="text"
-                    className="bg-white text-xs text-slate-800 rounded-xl pl-10 pr-4 py-2 border border-slate-205 focus:border-blue-500 outline-none w-full md:w-64 font-sans"
+                    className="bg-white text-xs text-slate-800 rounded-xl pl-10 pr-4 py-2 border border-slate-200 focus:border-blue-500 outline-none w-full md:w-64 font-sans"
                     placeholder="Search SKU code or item name..."
                     value={skuSearch}
                     onChange={(e) => setSkuSearch(e.target.value)}
@@ -3860,16 +4060,16 @@ export default function App() {
 
                 <div className="flex items-center gap-2">
                   <Filter size={13} className="text-slate-400" />
-                  <span className="text-xs text-slate-505 font-medium">Profit Filter:</span>
+                  <span className="text-xs text-slate-500 font-medium">Profit Filter:</span>
                   <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200">
                     {["all", "profitable", "loss", "borderline"].map(filterKey => (
                       <button
                         key={filterKey}
                         onClick={() => setSkuFilter(filterKey)}
-                        className={`text-[10px] px-2.5 py-1 rounded capitalize font-medium ${
+                        className={`text-[11px] px-2.5 py-1 rounded capitalize font-medium ${
                           skuFilter === filterKey 
                             ? "bg-white text-slate-800 shadow-sm font-semibold border border-slate-200/50" 
-                            : "text-slate-400 hover:text-slate-655"
+                            : "text-slate-400 hover:text-slate-700"
                         }`}
                       >
                         {filterKey}
@@ -3880,7 +4080,7 @@ export default function App() {
 
                 <div className="flex items-center gap-2">
                   <TrendingUp size={13} className="text-slate-400" />
-                  <span className="text-xs text-slate-505 font-medium">Deep Dive:</span>
+                  <span className="text-xs text-slate-500 font-medium">Deep Dive:</span>
                   <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200">
                     {([
                       { key: "all", label: "All" },
@@ -3889,10 +4089,10 @@ export default function App() {
                       <button
                         key={opt.key}
                         onClick={() => setSkuMoverFilter(opt.key)}
-                        className={`text-[10px] px-2.5 py-1 rounded font-medium ${
+                        className={`text-[11px] px-2.5 py-1 rounded font-medium ${
                           skuMoverFilter === opt.key
                             ? "bg-white text-slate-800 shadow-sm font-semibold border border-slate-200/50"
-                            : "text-slate-400 hover:text-slate-655"
+                            : "text-slate-400 hover:text-slate-700"
                         }`}
                       >
                         {opt.label}
@@ -3928,7 +4128,7 @@ export default function App() {
                               fetchSkuTrend(skuTrendSku!, startDateStr, endDateStr, g, gstMode);
                             }
                           }}
-                          className={`text-[10px] px-2.5 py-1 rounded-lg capitalize font-medium ${
+                          className={`text-[11px] px-2.5 py-1 rounded-lg capitalize font-medium ${
                             trendGranularity === g ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-400 hover:text-slate-600"
                           }`}
                         >
@@ -3982,21 +4182,21 @@ export default function App() {
               <LoadingOverlay active={isPageLoading} />
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                  <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-4">SKU / Item Name</th>
+                      <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">SKU / Item Name</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4 text-center">Units Sold</th>
                       <th className="py-3 px-4 text-center">Trend</th>
                       <th className="py-3 px-4 text-center">Glance Views</th>
-                      <th className="py-3 px-4 text-center">Conv. Rate</th>
-                      <th className="py-3 px-4 text-right">Revenue</th>
-                      <th className="py-3 px-4 text-right text-rose-700">Landing COGS</th>
-                      <th className="py-3 px-4 text-right">Mkt Commission</th>
-                      <th className="py-3 px-4 text-right">Pack & Ship</th>
-                      <th className="py-3 px-4 text-right text-amber-700">Return Loss</th>
-                      <th className="py-3 px-4 text-right">Performance Ads</th>
-                      <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-500/5">Net Profit</th>
+                      <th className="py-3 px-4 text-center">Conv. Rate (%)</th>
+                      <th className="py-3 px-4 text-right">Revenue (₹)</th>
+                      <th className="py-3 px-4 text-right text-rose-700">Landing COGS (₹)</th>
+                      <th className="py-3 px-4 text-right">Mkt Commission (₹)</th>
+                      <th className="py-3 px-4 text-right">Pack & Ship (₹)</th>
+                      <th className="py-3 px-4 text-right text-amber-700">Return Loss (₹)</th>
+                      <th className="py-3 px-4 text-right">Performance Ads (₹)</th>
+                      <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-500/5">Net Profit (₹)</th>
                       <th className="py-3 px-4 text-center">Status</th>
                     </tr>
                   </thead>
@@ -4005,7 +4205,7 @@ export default function App() {
                       return (
                         <tr
                           key={s.sku}
-                          className="hover:bg-slate-51 transition-all cursor-pointer"
+                          className="hover:bg-slate-50 transition-all cursor-pointer group"
                           onClick={() => {
                             setSkuTrendSku(s.sku);
                             if (skuChannelFilter === "shopify") {
@@ -4015,12 +4215,12 @@ export default function App() {
                             }
                           }}
                         >
-                          <td className="py-3.5 px-4 font-sans text-slate-900">
+                          <td className="py-3.5 px-4 font-sans text-slate-900 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                             <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
                             <span className="block text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1">{s.name}</span>
                           </td>
                           <td className="py-3.5 px-4 font-sans">
-                            <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[10px] text-slate-600 border border-slate-200">{s.category}</span>
+                            <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[11px] text-slate-600 border border-slate-200">{s.category}</span>
                           </td>
                           <td className="py-3.5 px-4 text-center text-slate-800 font-bold">{s.unitsSold.toLocaleString()}</td>
                           <td className="py-3.5 px-4 text-center">{renderSparkline(activeSkuSparklines[s.sku])}</td>
@@ -4032,21 +4232,18 @@ export default function App() {
                           <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.packagingCost + s.shippingCost)}</td>
                           <td className="py-3.5 px-4 text-right text-amber-600">{formatCurrency(s.returnLoss)}</td>
                           <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.adsSpend)}</td>
-                          <td className={`py-3.5 px-4 text-right font-black bg-emerald-51/40 ${
+                          <td className={`py-3.5 px-4 text-right font-black bg-emerald-50/40 ${
                             s.status === "Profitable" ? "text-emerald-600" : s.status === "Borderline" ? "text-amber-600" : "text-rose-600"
                           }`}>
                             {formatCurrency(s.netProfit)}
                           </td>
                           <td className="py-3.5 px-4 text-center font-sans">
-                            <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
-                              s.status === "Profitable"
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                : s.status === "Borderline"
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                : "bg-rose-100 text-rose-800 border border-rose-200"
-                            }`}>
+                            <StatusPill
+                              tone={s.status === "Profitable" ? "success" : s.status === "Borderline" ? "warning" : "danger"}
+                              rounded="md"
+                            >
                               {s.status}
-                            </span>
+                            </StatusPill>
                           </td>
                         </tr>
                       );
@@ -4106,25 +4303,25 @@ export default function App() {
               <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
                 <span className="text-xs text-slate-500 block uppercase font-semibold">TOTAL RECONCILED ORDERS</span>
                 <span className="text-2xl font-bold text-slate-900 font-mono block mt-2">{orders.length} orders</span>
-                <span className="text-[10px] text-slate-400 mt-1 block">Audited past 7 days</span>
+                <span className="text-[11px] text-slate-400 mt-1 block">Audited past 7 days</span>
               </div>
 
               <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
                 <span className="text-xs text-rose-800 block uppercase font-semibold">OVERCHArged Fee Claims IDENTIFIED</span>
                 <span className="text-2xl font-bold text-rose-600 font-mono block mt-2">{reconciliationSummary.discrepancyCount} cases</span>
-                <p className="text-[10px] text-slate-400 mt-1">Discovered through contract audit logic</p>
+                <p className="text-[11px] text-slate-400 mt-1">Discovered through contract audit logic</p>
               </div>
 
               <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
                 <span className="text-xs text-slate-500 block uppercase font-semibold">DISCREPANCY AMOUNT</span>
                 <span className="text-2xl font-bold text-amber-600 font-mono block mt-2">{formatCurrency(reconciliationSummary.totalOvercharged)}</span>
-                <span className="text-[10px] text-rose-600 font-mono mt-1 block font-medium">⚠️ Leaking from bank transfers</span>
+                <span className="text-[11px] text-rose-600 font-mono mt-1 block font-medium">⚠️ Leaking from bank transfers</span>
               </div>
 
               <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl shadow-sm">
                 <span className="text-xs text-emerald-800 block uppercase font-bold">SECURED RECOVERY CLAIMS</span>
                 <span className="text-2xl font-bold text-emerald-600 font-mono block mt-2">{formatCurrency(reconciliationSummary.securedRefunds)}</span>
-                <span className="text-[10px] text-emerald-600 mt-1 block font-medium">✓ Credited back to bank statements</span>
+                <span className="text-[11px] text-emerald-600 mt-1 block font-medium">✓ Credited back to bank statements</span>
               </div>
             </div>
 
@@ -4156,7 +4353,7 @@ export default function App() {
                   <select 
                     value={reconStatusFilter} 
                     onChange={(e) => setReconStatusFilter(e.target.value)}
-                    className="bg-white text-slate-805 border border-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs font-sans focus:border-blue-500"
+                    className="bg-white text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs font-sans focus:border-blue-500"
                   >
                     <option value="all">All Audit Statuses</option>
                     <option value="Overcharged">Fee Overcharged</option>
@@ -4168,7 +4365,7 @@ export default function App() {
 
               <button 
                 onClick={() => showToast("Exported claim formats compatible with Safe-T Claim upload sheets.")}
-                className="bg-slate-50 hover:bg-slate-100 font-mono text-[10px] text-slate-700 font-semibold px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-200 active:scale-95 transition-all cursor-pointer"
+                className="bg-slate-50 hover:bg-slate-100 font-mono text-[11px] text-slate-700 font-semibold px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-200 active:scale-95 transition-all cursor-pointer"
               >
                 <Download size={13} strokeWidth={2.5} />
                 Download Safe-T CSV
@@ -4190,14 +4387,14 @@ export default function App() {
               >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200 font-sans">
+                    <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] border-b border-slate-200 font-sans">
                       <tr>
-                        <th className="py-3 px-4">Order ID & Date</th>
+                        <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Order ID & Date</th>
                         <th className="py-3 px-4">Market</th>
                         <th className="py-3 px-4">SKU Code</th>
-                        <th className="py-3 px-4 text-right">Invoice</th>
-                        <th className="py-3 px-4 text-right text-rose-700">Total Fee Deduction</th>
-                        <th className="py-3 px-4 text-right text-amber-700 font-medium">Bank Disbursed Actual</th>
+                        <th className="py-3 px-4 text-right">Invoice (₹)</th>
+                        <th className="py-3 px-4 text-right text-rose-700">Total Fee Deduction (₹)</th>
+                        <th className="py-3 px-4 text-right text-amber-700 font-medium">Bank Disbursed Actual (₹)</th>
                         <th className="py-3 px-4 text-center">Audit Assessment</th>
                       </tr>
                     </thead>
@@ -4206,38 +4403,32 @@ export default function App() {
                         const hasDifference = o.reconciliationDifference > 0;
                         const isSelected = selectedOrder?.orderId === o.orderId;
                         return (
-                          <tr 
-                            key={o.orderId} 
+                          <tr
+                            key={o.orderId}
                             onClick={() => setSelectedOrder(o)}
-                            className={`hover:bg-slate-50 transition-all cursor-pointer ${
+                            className={`hover:bg-slate-50 transition-all cursor-pointer group ${
                               isSelected ? "bg-blue-50/70 border-l-2 border-l-blue-600 text-slate-900 font-medium" : ""
                             }`}
                           >
-                            <td className="py-3 px-4 font-sans">
-                              <span className="block font-mono font-semibold text-slate-850">{o.orderId}</span>
-                              <span className="text-[9.5px] text-slate-400 mt-0.5 block">{o.dateTime}</span>
+                            <td className={`py-3 px-4 font-sans sticky left-0 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] group-hover:bg-slate-50 ${isSelected ? "bg-blue-50/70" : "bg-white"}`}>
+                              <span className="block font-mono font-semibold text-slate-800">{o.orderId}</span>
+                              <span className="text-[11px] text-slate-400 mt-0.5 block">{o.dateTime}</span>
                             </td>
                             <td className="py-3 px-4 font-sans">
-                              <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
+                              <span className={`text-[11px] px-2 py-0.5 rounded font-bold ${
                                 o.platform === "Amazon" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-blue-100 text-blue-800 border border-blue-200"
                               }`}>
                                 {o.platform}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-slate-650 font-mono text-[10.5px]">{o.sku.split("-")[1]}</td>
+                            <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{o.sku.split("-")[1]}</td>
                             <td className="py-3 px-4 text-right text-slate-800 font-medium">₹{o.customerPaid}</td>
                             <td className="py-3 px-4 text-right text-rose-600 font-medium">₹{(o.referralFeeCharged + o.weightHandlingFeeCharged + o.closingFeeCharged + o.otherCharges).toFixed(1)}</td>
                             <td className="py-3 px-4 text-right text-slate-900 font-bold">₹{o.netDisbursedActual}</td>
                             <td className="py-3 px-4 text-center font-sans">
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold inline-block ${
-                                o.status === "Fully Reconciled" 
-                                  ? "bg-emerald-100 text-emerald-805" 
-                                  : o.status.includes("Weight")
-                                  ? "bg-amber-100 text-amber-805 border border-amber-200"
-                                  : "bg-rose-100 text-rose-805 border border-rose-200"
-                              }`}>
+                              <StatusPill tone={o.status === "Fully Reconciled" ? "success" : o.status.includes("Weight") ? "warning" : "danger"}>
                                 {hasDifference ? `Discrepancy (₹${o.reconciliationDifference})` : "✓ Matched"}
-                              </span>
+                              </StatusPill>
                             </td>
                           </tr>
                         );
@@ -4252,8 +4443,8 @@ export default function App() {
                 id="recon-order-detail"
                 title={selectedOrder ? `Currently Auditing: ${selectedOrder.orderId}` : "Order Detail Auditor"}
                 badge={selectedOrder && (
-                  <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded ${
-                    selectedOrder.platform === "Amazon" ? "bg-amber-100 text-amber-800" : "bg-blue-105 text-blue-800"
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                    selectedOrder.platform === "Amazon" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
                   }`}>
                     {selectedOrder.platform}
                   </span>
@@ -4272,13 +4463,13 @@ export default function App() {
                       
                       <div className="flex justify-between font-sans">
                         <span className="text-slate-500">Order Invoice Amount:</span>
-                        <span className="font-mono text-slate-750 font-semibold">₹{selectedOrder.customerPaid}</span>
+                        <span className="font-mono text-slate-700 font-semibold">₹{selectedOrder.customerPaid}</span>
                       </div>
 
                       <div className="border-t border-slate-100 my-2"></div>
                       
                       {/* Marketplace Fees */}
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block mt-1 font-sans">Deducted Marketplace Fees:</span>
+                      <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider block mt-1 font-sans">Deducted Marketplace Fees:</span>
                       
                       <div className="flex justify-between pl-2 text-[11px] font-mono">
                         <span className="text-slate-500">1. Referral Commission fee:</span>
@@ -4299,20 +4490,20 @@ export default function App() {
 
                       {selectedOrder.otherCharges > 0 && (
                         <div className="flex justify-between pl-2 text-[11px] font-mono">
-                          <span className="text-rose-604 font-semibold">4. Refund processing/Double Charge:</span>
-                          <span className="text-rose-604 font-bold">₹{selectedOrder.otherCharges.toFixed(2)}</span>
+                          <span className="text-rose-600 font-semibold">4. Refund processing/Double Charge:</span>
+                          <span className="text-rose-600 font-bold">₹{selectedOrder.otherCharges.toFixed(2)}</span>
                         </div>
                       )}
 
                       <div className="border-t border-slate-100 my-2"></div>
 
                       <div className="flex justify-between font-semibold font-sans">
-                        <span className="text-slate-550">CFO Target Disbursal (Rules):</span>
+                        <span className="text-slate-500">CFO Target Disbursal (Rules):</span>
                         <span className="font-mono text-slate-800">₹{selectedOrder.netDisbursedEstimated.toFixed(2)}</span>
                       </div>
 
                       <div className="flex justify-between font-bold font-sans">
-                        <span className="text-slate-650">Actual Bank Settled payout:</span>
+                        <span className="text-slate-600">Actual Bank Settled payout:</span>
                         <span className="font-mono text-slate-900">₹{selectedOrder.netDisbursedActual.toFixed(2)}</span>
                       </div>
 
@@ -4322,7 +4513,7 @@ export default function App() {
                             <AlertTriangle size={12} />
                             Audit Discrepancy Found (₹{selectedOrder.reconciliationDifference})
                           </span>
-                          <p className="text-[10px] leading-relaxed text-rose-700 font-sans">
+                          <p className="text-[11px] leading-relaxed text-rose-700 font-sans">
                             {selectedOrder.status === "Overcharged (Weight)" && "Amazon dimensional weight scanners recorded this unit under volumetric tier, exceeding actual catalog dimensions. Dispute overcharge parameters."}
                             {selectedOrder.status === "Returned & Unreimbursed" && "The customer registered returning this item, but the portal deducted refund processing fees twice without credit payout. Standard SPF ticket required."}
                             {selectedOrder.status === "Settlement Discrepancy" && "Settlement ledger missed processing bank ledger entry entirely. File ticket with settlement compliance node."}
@@ -4330,20 +4521,20 @@ export default function App() {
                           </p>
 
                           <div className="mt-3 flex items-center justify-between">
-                            <span className="text-[9px] bg-white text-slate-500 border border-slate-200 px-2 py-0.5 rounded font-mono">
+                            <span className="text-[11px] bg-white text-slate-500 border border-slate-200 px-2 py-0.5 rounded font-mono">
                               Status: {selectedOrder.claimStatus}
                             </span>
                             {selectedOrder.claimStatus === "Unclaimed" ? (
                               <button 
                                 onClick={() => handleFileDispute(selectedOrder.orderId)}
-                                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[9.5px] px-2.5 py-1 rounded transition-all cursor-pointer"
+                                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] px-2.5 py-1 rounded transition-all cursor-pointer"
                               >
                                 File Safe-T Dispute
                               </button>
                             ) : (
                               <button 
                                 disabled
-                                className="bg-slate-100 text-slate-400 border border-slate-200 font-semibold text-[9.5px] px-2.5 py-1 rounded cursor-not-allowed"
+                                className="bg-slate-100 text-slate-400 border border-slate-200 font-semibold text-[11px] px-2.5 py-1 rounded cursor-not-allowed"
                               >
                                 Ticket Logged
                               </button>
@@ -4352,8 +4543,8 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 text-emerald-800 flex items-center gap-2 mt-2 font-sans">
-                          <CheckCircle2 size={13} className="text-emerald-650" />
-                          <span className="text-[10.5px]">Matches contract values perfectly. Reconciled.</span>
+                          <CheckCircle2 size={13} className="text-emerald-600" />
+                          <span className="text-[11px]">Matches contract values perfectly. Reconciled.</span>
                         </div>
                       )}
                     </div>
@@ -4387,10 +4578,10 @@ export default function App() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Platform Channel Name:</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Platform Channel Name:</label>
                     <input
                       type="text"
-                      className="bg-white text-xs text-slate-805 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none"
                       placeholder="e.g. Tata Neu, Reliance Digital, Nykaa"
                       value={newChannelName}
                       onChange={(e) => setNewChannelName(e.target.value)}
@@ -4399,9 +4590,9 @@ export default function App() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Category Classification:</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Category Classification:</label>
                     <select
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 outline-none focus:border-blue-500"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-500"
                       value={newChannelCategory}
                       onChange={(e) => setNewChannelCategory(e.target.value)}
                     >
@@ -4415,30 +4606,30 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Baseline Projected Monthly GMV (₹):</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Baseline Projected Monthly GMV (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
                       value={newChannelRevenue}
                       onChange={(e) => setNewChannelRevenue(e.target.value)}
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Target COGS Ratio (%):</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Target COGS Ratio (%):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
                       value={newChannelCogsPct}
                       onChange={(e) => setNewChannelCogsPct(e.target.value)}
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Target CM1 Margin (%):</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Target CM1 Margin (%):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
                       value={newChannelCm1Pct}
                       onChange={(e) => setNewChannelCm1Pct(e.target.value)}
                     />
@@ -4447,30 +4638,30 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase font-mono">Attributed Fixed Overhead (₹):</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase font-mono">Attributed Fixed Overhead (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
                       value={newChannelStaffCost}
                       onChange={(e) => setNewChannelStaffCost(e.target.value)}
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Target CPC Ad Budget (₹):</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Target CPC Ad Budget (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
                       value={newChannelAdsSpend}
                       onChange={(e) => setNewChannelAdsSpend(e.target.value)}
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10.5px] text-slate-500 font-sans font-medium uppercase">Average Basket Order Value (₹):</label>
+                    <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Average Basket Order Value (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-805 border border-slate-205 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
                       value={newChannelAov}
                       onChange={(e) => setNewChannelAov(e.target.value)}
                     />
@@ -4497,7 +4688,7 @@ export default function App() {
               className="flex flex-col justify-between text-slate-600"
             >
               <div>
-                <p className="text-xs text-slate-450 mb-4 leading-relaxed font-sans">
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed font-sans">
                   Management enforces configuring dynamic models ahead of actual channel integration. Our dual-entry ledger instantly merges provisioned targets into the overall Consolidated Cockpit.
                 </p>
 
@@ -4508,13 +4699,13 @@ export default function App() {
                   </div>
 
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <span className="font-bold text-indigo-750 block mb-1">CM1 Protection Cap</span>
+                    <span className="font-bold text-indigo-700 block mb-1">CM1 Protection Cap</span>
                     Enforced rule states that CM1 margins under 25% are automatically labeled "Unviable Platform Profile" blocking operational ad spends.
                   </div>
                 </div>
               </div>
 
-              <div className="text-[10px] text-slate-400 text-center font-mono mt-6 border-t border-slate-100 pt-4">
+              <div className="text-[11px] text-slate-400 text-center font-mono mt-6 border-t border-slate-100 pt-4">
                 Expansions profile model compliant with ISO CFO standard formats.
               </div>
             </SectionCard>
@@ -4536,7 +4727,7 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={checkDbStatus}
-                    className="bg-slate-50 hover:bg-slate-105 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-all cursor-pointer"
                     title="Retrieve variables state"
                   >
                     <RefreshCw size={12} className={isLoadingDb ? "animate-spin" : ""} />
@@ -4568,7 +4759,7 @@ export default function App() {
               {/* URL Status Banner */}
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
-                  <div className="flex items-center gap-2 text-slate-650">
+                  <div className="flex items-center gap-2 text-slate-600">
                     <span className="font-semibold">Registered Host URI:</span>
                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-mono font-normal">
                       {dbStatus?.redactedUrl || "Checking..."}
@@ -4591,13 +4782,13 @@ export default function App() {
 
                 {/* Technical Diagnostics Block for Troubleshooting "base" EAI_AGAIN lookup errors */}
                 {dbStatus?.isConfigured && dbStatus?.debugInfo && (
-                  <div className="mt-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 font-mono text-[10.5px] text-slate-600">
-                    <div className="flex items-center justify-between border-b border-slate-200/50 pb-2 mb-2 font-sans font-bold text-slate-755 text-xs">
+                  <div className="mt-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 font-mono text-[11px] text-slate-600">
+                    <div className="flex items-center justify-between border-b border-slate-200/50 pb-2 mb-2 font-sans font-bold text-slate-800 text-xs">
                       <span className="flex items-center gap-1.5 text-slate-700">
                         <Database size={13} className="text-slate-500" />
                         Active Connection Diagnostics
                       </span>
-                      <span className="text-[10px] bg-slate-205 text-slate-600 px-1.5 py-0.5 rounded font-normal font-mono">
+                      <span className="text-[11px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-normal font-mono">
                         Parser Status: {dbStatus.debugInfo.parsedReady ? "SUCCESS" : "FAILED_RAW_FALLBACK"}
                       </span>
                     </div>
@@ -4618,13 +4809,13 @@ export default function App() {
                         <span className="text-slate-400">Parsed User:</span>
                         <span className="font-bold text-slate-800">{dbStatus.debugInfo.parsedUser || "N/A"}</span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-450 border-t border-slate-200/40 pt-1.5 mt-0.5">
+                      <div className="flex items-center justify-between text-slate-400 border-t border-slate-200/40 pt-1.5 mt-0.5">
                         <span>Environment PGHOST:</span>
                         <span className={`${dbStatus.debugInfo.systemPgHost !== "NOT_SET" ? "text-amber-600 font-semibold" : ""}`}>
                           {dbStatus.debugInfo.systemPgHost}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-slate-455 border-t border-slate-200/40 pt-1.5 mt-0.5">
+                      <div className="flex items-center justify-between text-slate-500 border-t border-slate-200/40 pt-1.5 mt-0.5">
                         <span>Environment PGDATABASE:</span>
                         <span>{dbStatus.debugInfo.systemPgDatabase}</span>
                       </div>
@@ -4638,13 +4829,13 @@ export default function App() {
                 )}
 
                 {!dbStatus?.isConfigured && (
-                  <div className="mt-3 bg-amber-50/50 border border-amber-200/50 p-3 rounded-xl text-xs text-amber-805 leading-relaxed font-sans">
+                  <div className="mt-3 bg-amber-50/50 border border-amber-200/50 p-3 rounded-xl text-xs text-amber-800 leading-relaxed font-sans">
                     <p className="font-bold flex items-center gap-1 mb-1 text-amber-900">
                       <AlertTriangle size={13} />
                       Secrets Configuration Guide:
                     </p>
                     Your credentials are safe and sealed server-side. To synchronize your database, click the <strong>Settings (Gear icon)</strong> in AI Studio, choose <strong>Secrets</strong>, and insert:
-                    <div className="mt-2 flex flex-col gap-1.5 font-mono bg-amber-100/30 p-2.5 rounded-lg border border-amber-250/20 text-slate-700">
+                    <div className="mt-2 flex flex-col gap-1.5 font-mono bg-amber-100/30 p-2.5 rounded-lg border border-amber-200/20 text-slate-700">
                       <div><strong>Key:</strong> DATABASE_URL</div>
                       <div><strong>Value:</strong> postgresql://postgres:YOUR_PASSWORD@db.ppyumqeosmeyqlzjszla.supabase.co:5432/postgres</div>
                     </div>
@@ -4656,14 +4847,14 @@ export default function App() {
             {/* ERROR REPORT IF SYNCHRONIZATION FAILED -- kept as a plain alert panel, not a SectionCard:
                 error banners should stay visually distinct (always-open, red-themed) rather than being collapsible. */}
             {dbError && (
-              <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm text-red-805 font-sans text-xs">
+              <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm text-red-800 font-sans text-xs">
                 <h4 className="font-bold text-red-900 mb-1 flex items-center gap-1.5 text-sm">
                   <AlertTriangle size={15} />
                   Supabase Query Pipeline Blocked
                 </h4>
                 <p className="leading-relaxed whitespace-pre-wrap">{dbError}</p>
                 {b2cSchemaData?.suggestion && (
-                  <div className="mt-3 border-t border-red-200 pt-2 text-[11px] text-red-750 leading-normal">
+                  <div className="mt-3 border-t border-red-200 pt-2 text-[11px] text-red-700 leading-normal">
                     <strong className="block mb-1">💡 Troubleshooting Recommendations:</strong>
                     {b2cSchemaData.suggestion}
                     <p className="mt-2 text-red-700 bg-red-100/20 p-2 rounded-lg border border-red-200/50 leading-relaxed">
@@ -4684,7 +4875,7 @@ export default function App() {
                   title={`Table Schema Columns (${b2cSchemaData.columns?.length || 0})`}
                   subtitle="Physical relational attributes pulled"
                   badge={
-                    <span className="text-[10px] bg-slate-150 text-slate-600 font-mono font-bold px-1.5 py-0.5 rounded">
+                    <span className="text-[11px] bg-slate-100 text-slate-600 font-mono font-bold px-1.5 py-0.5 rounded">
                       {b2cSchemaData.tableNameFound}
                     </span>
                   }
@@ -4696,8 +4887,8 @@ export default function App() {
                     <div className="overflow-y-auto max-h-96 pr-1 space-y-1">
                       {b2cSchemaData.columns?.map((col: any) => (
                         <div key={col.columnName} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100/80 transition-colors border border-slate-200/30 text-xs font-mono">
-                          <span className="font-semibold text-slate-750">{col.columnName}</span>
-                          <span className="text-[10px] text-slate-500 font-semibold bg-white border border-slate-200/50 px-1.5 py-0.5 rounded-md">
+                          <span className="font-semibold text-slate-700">{col.columnName}</span>
+                          <span className="text-[11px] text-slate-500 font-semibold bg-white border border-slate-200/50 px-1.5 py-0.5 rounded-md">
                             {col.specs}
                           </span>
                         </div>
@@ -4708,7 +4899,7 @@ export default function App() {
                   <div className="mt-5 border-t border-slate-100 pt-4 font-sans text-xs text-slate-500">
                     <div className="flex items-center justify-between text-slate-700 font-semibold mb-2">
                       <span>Total Table Size:</span>
-                      <span className="bg-blue-50 text-blue-700 font-mono px-2 py-0.5 rounded-lg border border-blue-105">
+                      <span className="bg-blue-50 text-blue-700 font-mono px-2 py-0.5 rounded-lg border border-blue-100">
                         {b2cSchemaData.rowCount?.toLocaleString()} rows
                       </span>
                     </div>
@@ -4728,8 +4919,8 @@ export default function App() {
                   className="lg:col-span-2 text-slate-300 flex flex-col justify-between font-sans"
                 >
                   <div>
-                    <p className="text-[11px] text-slate-450 leading-relaxed mb-4">
-                      Below is the query mapping of tables in the <code className="bg-slate-805 px-1.5 py-0.5 rounded text-emerald-400 font-mono">public</code> namespace of your Supabase instance.
+                    <p className="text-[11px] text-slate-400 leading-relaxed mb-4">
+                      Below is the query mapping of tables in the <code className="bg-slate-800 px-1.5 py-0.5 rounded text-emerald-400 font-mono">public</code> namespace of your Supabase instance.
                     </p>
 
                     <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
@@ -4741,7 +4932,7 @@ export default function App() {
                             className={`px-2.5 py-1 rounded-lg text-xs font-mono border ${
                               isTarget 
                                 ? "bg-emerald-950/40 text-emerald-400 border-emerald-900 font-bold" 
-                                : "bg-slate-950 text-slate-450 border-slate-800"
+                                : "bg-slate-950 text-slate-400 border-slate-800"
                             }`}
                           >
                             {tbl} {isTarget && "★ (Selected)"}
@@ -4750,18 +4941,18 @@ export default function App() {
                       })}
                     </div>
 
-                    <div className="mt-6 bg-slate-955 border border-slate-850 rounded-xl p-4 text-xs font-mono">
+                    <div className="mt-6 bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono">
                       <span className="text-slate-500 block mb-1">PROBE TERMINAL TELEMETRY</span>
-                      <div className="text-emerald-400 text-[10px] space-y-1">
+                      <div className="text-emerald-400 text-[11px] space-y-1">
                         <div>&gt; SELECT COUNT(*) FROM "{b2cSchemaData.tableNameFound}";</div>
-                        <div className="text-slate-450"># result: {b2cSchemaData.rowCount} transactions verified.</div>
+                        <div className="text-slate-400"># result: {b2cSchemaData.rowCount} transactions verified.</div>
                         <div className="mt-1 font-mono">&gt; SELECT column_name, data_type FROM information_schema ...</div>
-                        <div className="text-slate-450 font-mono"># success: {b2cSchemaData.columns?.length} attributes indexed with metadata.</div>
+                        <div className="text-slate-400 font-mono"># success: {b2cSchemaData.columns?.length} attributes indexed with metadata.</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 text-[10.5px] text-slate-400 border-t border-slate-800 pt-3 leading-relaxed">
+                  <div className="mt-4 text-[11px] text-slate-400 border-t border-slate-800 pt-3 leading-relaxed">
                     <span className="text-amber-500 font-bold">💡 Mapping Next Steps:</span> Now that we successfully pulled column names, you can guide me with how to sum/analyze these columns (e.g. subtracting commissions or taxes) to compile real-time aggregates in the dashboard!
                   </div>
                 </SectionCard>
@@ -4776,7 +4967,7 @@ export default function App() {
                 title={`Sample Rows Extract (${b2cSchemaData.sampleRows.length} of ${b2cSchemaData.rowCount.toLocaleString()} total rows)`}
                 subtitle="Direct live data feed representation from database"
                 headerExtra={
-                  <span className="text-[10px] text-slate-500 font-mono font-bold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200/50">
+                  <span className="text-[11px] text-slate-500 font-mono font-bold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200/50">
                     LIMIT 25 Query Segment
                   </span>
                 }
@@ -4785,19 +4976,19 @@ export default function App() {
                 className="text-slate-700"
               >
                 {/* Horizontal scrollable data grid */}
-                <div className="overflow-x-auto border border-slate-150 rounded-xl max-h-[480px]">
+                <div className="overflow-x-auto border border-slate-100 rounded-xl max-h-[480px]">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 font-mono text-slate-500 uppercase tracking-wider sticky top-0 bg-opacity-95 bg-white">
-                        <th className="px-4 py-3 font-bold text-[10px] border-r border-slate-200">#</th>
+                        <th className="px-4 py-3 font-bold text-[11px] border-r border-slate-200">#</th>
                         {b2cSchemaData.columns?.map((col: any) => (
-                          <th key={col.columnName} className="px-4 py-3 font-semibold text-[10px] border-r border-slate-200 whitespace-nowrap">
+                          <th key={col.columnName} className="px-4 py-3 font-semibold text-[11px] border-r border-slate-200 whitespace-nowrap">
                             {col.columnName}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-150 font-mono text-[11px]">
+                    <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
                       {b2cSchemaData.sampleRows?.map((row: any, rIdx: number) => (
                         <tr key={rIdx} className="hover:bg-slate-50/80 transition-all font-normal">
                           <td className="px-4 py-2 text-slate-400 font-bold border-r border-slate-200 bg-slate-50/50 text-center sticky left-0 bg-white">{rIdx + 1}</td>

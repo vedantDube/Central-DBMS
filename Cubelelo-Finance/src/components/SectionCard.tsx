@@ -33,7 +33,7 @@ export default function SectionCard({
   return (
     <div
       className={`relative rounded-2xl shadow-sm border ${
-        dark ? "bg-slate-900 border-slate-850" : "bg-white border-slate-200"
+        dark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
       } ${className}`}
     >
       <div

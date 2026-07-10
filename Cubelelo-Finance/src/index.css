@@ -82,16 +82,16 @@
 /* Text colors */
 .dark-theme .text-slate-900,
 .dark-theme .text-slate-800,
-.dark-theme .text-slate-750,
+.dark-theme .text-slate-700,
 .dark-theme .text-slate-700 {
   color: #e2e8f0 !important;
 }
 
-.dark-theme .text-slate-650,
 .dark-theme .text-slate-600,
-.dark-theme .text-slate-505,
+.dark-theme .text-slate-600,
 .dark-theme .text-slate-500,
-.dark-theme .text-slate-450,
+.dark-theme .text-slate-500,
+.dark-theme .text-slate-400,
 .dark-theme .text-slate-400,
 .dark-theme .text-slate-300 {
   color: #94a3b8 !important;
@@ -99,7 +99,7 @@
 
 /* Borders */
 .dark-theme .border-slate-200,
-.dark-theme .border-slate-150,
+.dark-theme .border-slate-100,
 .dark-theme .border-slate-100,
 .dark-theme .border-slate-200\/50,
 .dark-theme .border-slate-200\/30 {
@@ -340,17 +340,17 @@
 
 /* Colored text in dark mode — lighten dark-on-light variants */
 .dark-theme .text-rose-800,
-.dark-theme .text-rose-805 {
+.dark-theme .text-rose-800 {
   color: #fb7185 !important;
 }
 
 .dark-theme .text-emerald-800,
-.dark-theme .text-emerald-805 {
+.dark-theme .text-emerald-800 {
   color: #6ee7b7 !important;
 }
 
 .dark-theme .text-amber-800,
-.dark-theme .text-amber-805,
+.dark-theme .text-amber-800,
 .dark-theme .text-amber-900 {
   color: #fbbf24 !important;
 }
