@@ -4386,7 +4386,7 @@ export default function App() {
                         >
                           <td className="py-3.5 px-4 font-sans text-slate-900 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                             <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
-                            <span className="block text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1">{s.name}</span>
+                            <span className="text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1 max-w-[220px]">{s.name}</span>
                           </td>
                           {isSkuColVisible("category") && (
                             <td className="py-3.5 px-4 font-sans">

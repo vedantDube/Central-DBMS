@@ -1,0 +1,430 @@
+- generic [ref=f1e3]:
+  - navigation [ref=f1e6]:
+    - generic [ref=f1e7]:
+      - button [ref=f1e8] [cursor=pointer]
+      - generic [ref=f1e12]: F
+      - heading "FinPulse Central" [level=1] [ref=f1e13]
+    - generic [ref=f1e14]:
+      - generic [ref=f1e15]:
+        - generic [ref=f1e16]: "Audit Range:"
+        - generic [ref=f1e17]: 01 Jun 2026 - 30 Jun 2026
+      - button "Switch to Light Mode" [ref=f1e18] [cursor=pointer]
+      - generic [ref=f1e25]: FP
+  - generic [ref=f1e26]:
+    - complementary [ref=f1e27]:
+      - generic [ref=f1e28]:
+        - paragraph [ref=f1e29]: Main Menu
+        - list [ref=f1e30]:
+          - listitem [ref=f1e31]:
+            - button "Consolidated Cockpit" [ref=f1e32]
+          - listitem [ref=f1e36]:
+            - button "Channel Performance" [ref=f1e37]
+          - listitem [ref=f1e41]:
+            - button "SKU Profitability" [ref=f1e42]
+          - listitem [ref=f1e47]:
+            - button "Order Reconciliation" [ref=f1e48]
+          - listitem [ref=f1e53]:
+            - button "Add Channel" [ref=f1e54]
+          - listitem [ref=f1e57]:
+            - button "DB Integrator" [ref=f1e58]
+        - paragraph [ref=f1e63]: Active Channels
+        - list [ref=f1e64]:
+          - listitem [ref=f1e65]:
+            - button "Amazon Not connected" [ref=f1e66]:
+              - generic [ref=f1e67]: Amazon
+              - generic "Not connected" [ref=f1e68]
+          - listitem [ref=f1e69]:
+            - button "Flipkart Not connected" [ref=f1e70]:
+              - generic [ref=f1e71]: Flipkart
+              - generic "Not connected" [ref=f1e72]
+          - listitem [ref=f1e73]:
+            - button "Shopify (D2C Website) Not connected" [ref=f1e74]:
+              - generic [ref=f1e75]: Shopify (D2C Website)
+              - generic "Not connected" [ref=f1e76]
+          - listitem [ref=f1e77]:
+            - button "FirstCry Not connected" [ref=f1e78]:
+              - generic [ref=f1e79]: FirstCry
+              - generic "Not connected" [ref=f1e80]
+          - listitem [ref=f1e81]:
+            - button "Meesho Not connected" [ref=f1e82]:
+              - generic [ref=f1e83]: Meesho
+              - generic "Not connected" [ref=f1e84]
+          - listitem [ref=f1e85]:
+            - button "Blinkit Not connected" [ref=f1e86]:
+              - generic [ref=f1e87]: Blinkit
+              - generic "Not connected" [ref=f1e88]
+          - listitem [ref=f1e89]:
+            - button "Zepto Not connected" [ref=f1e90]:
+              - generic [ref=f1e91]: Zepto
+              - generic "Not connected" [ref=f1e92]
+          - listitem [ref=f1e93]:
+            - button "Swiggy Instamart (IM) Not connected" [ref=f1e94]:
+              - generic [ref=f1e95]: Swiggy Instamart (IM)
+              - generic "Not connected" [ref=f1e96]
+          - listitem [ref=f1e97]:
+            - button "BigBasket NOW (BB Now) Not connected" [ref=f1e98]:
+              - generic [ref=f1e99]: BigBasket NOW (BB Now)
+              - generic "Not connected" [ref=f1e100]
+          - listitem [ref=f1e101]:
+            - button "Flipkart Minutes (FK Mins) Not connected" [ref=f1e102]:
+              - generic [ref=f1e103]: Flipkart Minutes (FK Mins)
+              - generic "Not connected" [ref=f1e104]
+          - listitem [ref=f1e105]:
+            - button "Snapdeal Not connected" [ref=f1e106]:
+              - generic [ref=f1e107]: Snapdeal
+              - generic "Not connected" [ref=f1e108]
+          - listitem [ref=f1e109]:
+            - button "Snooplay Not connected" [ref=f1e110]:
+              - generic [ref=f1e111]: Snooplay
+              - generic "Not connected" [ref=f1e112]
+          - listitem [ref=f1e113]:
+            - button "Hamleys (B2B/Retail) Not connected" [ref=f1e114]:
+              - generic [ref=f1e115]: Hamleys (B2B/Retail)
+              - generic "Not connected" [ref=f1e116]
+          - listitem [ref=f1e117]:
+            - button "Starmark (Retail Chains) Not connected" [ref=f1e118]:
+              - generic [ref=f1e119]: Starmark (Retail Chains)
+              - generic "Not connected" [ref=f1e120]
+          - listitem [ref=f1e121]:
+            - button "Whole9Yards (Partner Retail) Not connected" [ref=f1e122]:
+              - generic [ref=f1e123]: Whole9Yards (Partner Retail)
+              - generic "Not connected" [ref=f1e124]
+          - listitem [ref=f1e125]:
+            - button "Offline B2B (Bulk/Distributors) Not connected" [ref=f1e126]:
+              - generic [ref=f1e127]: Offline B2B (Bulk/Distributors)
+              - generic "Not connected" [ref=f1e128]
+          - listitem [ref=f1e129]:
+            - button "Event & Exhibition Sales Not connected" [ref=f1e130]:
+              - generic [ref=f1e131]: Event & Exhibition Sales
+              - generic "Not connected" [ref=f1e132]
+      - generic [ref=f1e135]:
+        - generic [ref=f1e136]: Enterprise Ledger Engine
+        - generic [ref=f1e137]: 100%
+    - main [ref=f1e141]:
+      - generic [ref=f1e142]:
+        - generic [ref=f1e143]:
+          - generic [ref=f1e147]:
+            - heading "Enterprise Ledger Analysis Temporal Controls" [level=2] [ref=f1e148]
+            - paragraph [ref=f1e149]: CHOOSE THE DATE PERIOD AND THE COMPARATIVE BASIS TO AUTO-RECONCILE METRICS
+          - generic [ref=f1e150]:
+            - generic [ref=f1e151]:
+              - generic [ref=f1e152]: "Date preset:"
+              - combobox [ref=f1e153] [cursor=pointer]:
+                - option "Last 7 Days (WoW standard)"
+                - option "Last 14 Days"
+                - option "Last 30 Days"
+                - option "Current Month (July)"
+                - option "Previous Month (June)" [selected]
+                - option "Full rolling 60 Days"
+                - option "Custom Range..."
+            - generic [ref=f1e154]:
+              - generic [ref=f1e155]: "Comparison basis:"
+              - combobox [ref=f1e156] [cursor=pointer]:
+                - option "vs Previous Period (matching duration)" [selected]
+                - option "vs Previous Week(s) (equal week count prior)"
+                - option "vs Previous Calendar Month"
+            - generic [ref=f1e157]:
+              - generic [ref=f1e158]: "GST basis:"
+              - generic [ref=f1e159]:
+                - button "Excl. GST" [ref=f1e160]
+                - button "Incl. GST" [ref=f1e161]
+        - generic [ref=f1e162]:
+          - generic [ref=f1e165]:
+            - text: "Active Analyzed Range:"
+            - strong [ref=f1e166]: 2026-06-01
+            - text: to
+            - strong [ref=f1e167]: 2026-06-30
+            - text: (30 days parsed)
+          - generic [ref=f1e170]:
+            - text: "Comparison Period:"
+            - strong [ref=f1e171]: 2026-05-02
+            - text: to
+            - strong [ref=f1e172]: 2026-05-31
+            - text: (30 days matched)
+      - generic [ref=f1e174]:
+        - generic [ref=f1e177]:
+          - generic [ref=f1e178]: CFO Sensitivity Projections
+          - text: ADJUST SLIDERS TO MODEL SIMULATED IMPACT ON BUSINESS CONSOLIDATED PROFITABILITY
+        - generic [ref=f1e179]:
+          - generic [ref=f1e180]:
+            - generic [ref=f1e181]:
+              - generic [ref=f1e182]: Landing Cost (COGS)
+              - generic [ref=f1e183]: x1.00
+            - slider [ref=f1e184] [cursor=pointer]: "1"
+          - generic [ref=f1e185]:
+            - generic [ref=f1e186]:
+              - generic [ref=f1e187]: Advertising bids
+              - generic [ref=f1e188]: x1.00
+            - slider [ref=f1e189] [cursor=pointer]: "1"
+          - generic [ref=f1e190]:
+            - generic [ref=f1e191]:
+              - generic [ref=f1e192]: Overhead / People
+              - generic [ref=f1e193]: x1.00
+            - slider [ref=f1e194] [cursor=pointer]: "1"
+          - generic [ref=f1e195]:
+            - generic [ref=f1e196]:
+              - generic [ref=f1e197]: Shipment charge
+              - generic [ref=f1e198]: x1.00
+            - slider [ref=f1e199] [cursor=pointer]: "1"
+        - button "Reset Actuals" [ref=f1e201] [cursor=pointer]
+      - generic [ref=f1e208]:
+        - generic [ref=f1e209]:
+          - generic [ref=f1e221]:
+            - heading "Amazon Profitability Ledger Marketplace Category" [level=2] [ref=f1e222]:
+              - text: Amazon Profitability Ledger
+              - generic [ref=f1e223]: Marketplace Category
+            - paragraph [ref=f1e224]: Audit ledger exactly matching organizational row classifications
+          - generic [ref=f1e225]: "Last synced: 7/10/2026"
+        - generic [ref=f1e228]:
+          - generic [ref=f1e229] [cursor=pointer]:
+            - button "Collapse section" [ref=f1e230]
+            - generic [ref=f1e233]: Sales Snapshot
+            - generic [ref=f1e235]: as of 2026-06-30
+          - generic [ref=f1e244]:
+            - generic [ref=f1e245]:
+              - generic [ref=f1e246]: Total Order Items
+              - text: "0"
+            - generic [ref=f1e247]:
+              - generic [ref=f1e248]: Units Ordered
+              - text: "0"
+            - generic [ref=f1e249]:
+              - generic [ref=f1e250]: Ordered Product Sales
+              - text: ₹0
+            - generic [ref=f1e251]:
+              - generic [ref=f1e252]: Avg Units/Order
+              - text: "0.00"
+            - generic [ref=f1e253]:
+              - generic [ref=f1e254]: Avg Sales/Order
+              - text: ₹0
+        - generic [ref=f1e255]:
+          - generic [ref=f1e256] [cursor=pointer]:
+            - button "Collapse section" [ref=f1e257]
+            - generic [ref=f1e260]: Compare Sales
+            - generic [ref=f1e263]:
+              - button "graph view" [ref=f1e264]
+              - button "table view" [ref=f1e265]
+          - generic [ref=f1e266]:
+            - generic [ref=f1e267]: Loading comparison...
+            - paragraph [ref=f1e274]: "\"Selected Day\" is the end of your chosen date range, not live-today — this dashboard reflects ingested historical data, not a real-time feed."
+        - generic [ref=f1e275]:
+          - generic [ref=f1e276] [cursor=pointer]:
+            - button "Collapse section" [ref=f1e277]
+            - generic [ref=f1e280]:
+              - generic [ref=f1e281]: Channel Profitability Breakdown
+              - generic [ref=f1e282]: P&L structure, listing performance, inventory health, returns, and ads — in one audit ledger
+          - generic [ref=f1e283]:
+            - generic [ref=f1e290]:
+              - generic [ref=f1e291]: 1. Profit & Loss Structure (Lakhs)
+              - generic [ref=f1e295]: Calculated Rows
+            - generic [ref=f1e297]:
+              - generic [ref=f1e298]:
+                - generic [ref=f1e299]:
+                  - generic [ref=f1e300]: Revenue
+                  - generic [ref=f1e301]: Gross marketplace sale receipt base
+                - generic [ref=f1e302]:
+                  - generic [ref=f1e303]: "--"
+                  - generic [ref=f1e304]: ₹0
+              - generic [ref=f1e305]:
+                - generic [ref=f1e306]:
+                  - generic [ref=f1e307]: COGS (Goods Landing Cost)
+                  - generic [ref=f1e308]: Includes raw material, duty, logistics
+                - generic [ref=f1e309]:
+                  - generic [ref=f1e310]: "--"
+                  - generic [ref=f1e311]: "-₹0"
+              - generic [ref=f1e312]:
+                - generic [ref=f1e313]:
+                  - generic [ref=f1e314]: CM1 (Contribution Margin 1)
+                  - generic [ref=f1e315]: Net revenue after landing costs, commission, and standard shipment
+                - generic [ref=f1e316]:
+                  - generic [ref=f1e317]:
+                    - generic [ref=f1e318]: "--"
+                    - generic [ref=f1e319]: ₹0
+                  - generic [ref=f1e320]: 0.0% of margin
+              - generic [ref=f1e322] [cursor=pointer]:
+                - generic [ref=f1e324]:
+                  - generic [ref=f1e325]: Indirect Exp + People Cost Allocation
+                  - generic [ref=f1e326]: Attributed staffing, dark store rents, corporate overheads
+                - generic [ref=f1e327]:
+                  - generic [ref=f1e328]: "--"
+                  - generic [ref=f1e329]: "-₹0"
+              - generic [ref=f1e330]:
+                - generic [ref=f1e331]:
+                  - generic [ref=f1e332]: Platform Sponsored Advertising Spend
+                  - generic [ref=f1e333]: CPC bids, sponsored brands, quick commerce display flags
+                - generic [ref=f1e334]:
+                  - generic [ref=f1e335]: "--"
+                  - generic [ref=f1e336]: "-₹0"
+              - generic [ref=f1e337]:
+                - generic [ref=f1e338]:
+                  - generic [ref=f1e339]: CM2 (EBITDA Core Profit)
+                  - generic [ref=f1e340]: EBITDA earnings before tax, interest allocations
+                - generic [ref=f1e341]:
+                  - generic [ref=f1e342]:
+                    - generic [ref=f1e343]: "--"
+                    - generic [ref=f1e344]: ₹0
+                  - generic [ref=f1e345]: ROAS conversion efficiency active
+              - generic [ref=f1e346]:
+                - generic [ref=f1e347]:
+                  - generic [ref=f1e348]: Interest + Tax + DA (Depreciation/Amortization)
+                  - generic [ref=f1e349]: Pending Finance input — not yet subtracted below
+                - generic [ref=f1e350]: "-₹0"
+              - generic [ref=f1e351]:
+                - generic [ref=f1e352]:
+                  - generic [ref=f1e353]: Net Profit
+                  - generic [ref=f1e354]: Bottom line channel yield after ALL operational costs
+                - generic [ref=f1e355]:
+                  - generic [ref=f1e356]: "--"
+                  - generic [ref=f1e357]: ₹0
+            - generic [ref=f1e358]:
+              - generic [ref=f1e359]:
+                - generic [ref=f1e360]:
+                  - heading "Amazon Trend (Real Data)" [level=3] [ref=f1e361]
+                  - paragraph [ref=f1e362]: Net Revenue, CM1, CM2 and Net Profit over the selected period
+                - generic [ref=f1e363]:
+                  - button "Daily" [ref=f1e364]
+                  - button "WoW" [ref=f1e365]
+                  - button "MoM" [ref=f1e366]
+              - generic [ref=f1e367]: Loading trend...
+              - paragraph [ref=f1e374]: Advertisement Cost is omitted from this trend — Amazon ad spend is only available as a lifetime total, not per-day.
+            - generic [ref=f1e375]: 2. Listing & Volume Performance Indices
+            - generic [ref=f1e381]:
+              - generic [ref=f1e382] [cursor=pointer]:
+                - generic [ref=f1e383]:
+                  - text: Average Order Value (AOV)
+                  - paragraph [ref=f1e384]: Average checkout ticket price — click for trend
+                - generic [ref=f1e385]:
+                  - generic [ref=f1e386]: "--"
+                  - generic [ref=f1e387]: ₹0
+              - generic [ref=f1e388] [cursor=pointer]:
+                - generic [ref=f1e389]:
+                  - text: Orders Per Day (OPD)
+                  - paragraph [ref=f1e390]: Daily shipment run counts — click for trend
+                - generic [ref=f1e391]:
+                  - generic [ref=f1e392]: "--"
+                  - generic [ref=f1e393]: 0 units
+              - generic [ref=f1e394] [cursor=pointer]:
+                - generic [ref=f1e395]:
+                  - text: Units / Order
+                  - paragraph [ref=f1e396]: Total units sold / total order count — click for trend
+                - generic [ref=f1e397]:
+                  - generic [ref=f1e398]: "--"
+                  - generic [ref=f1e399]: "0.00"
+              - generic [ref=f1e400]:
+                - generic [ref=f1e401]:
+                  - text: Listings Count (SKUs)
+                  - paragraph [ref=f1e402]: Total registered catalog SKUs
+                - generic [ref=f1e403]:
+                  - generic [ref=f1e404]: "--"
+                  - generic [ref=f1e405]: "0"
+              - generic [ref=f1e406]:
+                - generic [ref=f1e407]:
+                  - text: Active Listing Count
+                  - paragraph [ref=f1e408]: Visibly indexed search elements
+                - generic [ref=f1e409]:
+                  - generic [ref=f1e410]: "--"
+                  - generic [ref=f1e411]: 0 / 0
+              - generic [ref=f1e412] [cursor=pointer]:
+                - generic [ref=f1e413]:
+                  - text: Revenue Per SKU (ASIN Performance)
+                  - paragraph [ref=f1e414]: Average output yielded per logged catalog element — click for trend
+                - generic [ref=f1e415]:
+                  - generic [ref=f1e416]: "--"
+                  - generic [ref=f1e417]: ₹0
+            - generic [ref=f1e418]: 3. Stock & Inventory Health
+            - generic [ref=f1e424]:
+              - button "Out of Stock Days 0 days Average monthly lag View trend ▼" [ref=f1e425] [cursor=pointer]:
+                - generic [ref=f1e426]: Out of Stock Days
+                - generic [ref=f1e427]: 0 days
+                - text: Average monthly lag
+                - generic [ref=f1e428]: View trend ▼
+              - button "Stockout Cost ₹0 Opportunity lost to out-of-stock inventory View trend ▼" [ref=f1e429] [cursor=pointer]:
+                - generic [ref=f1e430]: Stockout Cost
+                - generic [ref=f1e431]: ₹0
+                - text: Opportunity lost to out-of-stock inventory
+                - generic [ref=f1e432]: View trend ▼
+              - button "Ageing Inventory (90D+) 0.0% Overstocked catalog weight View list ▼" [ref=f1e433] [cursor=pointer]:
+                - generic [ref=f1e434]: Ageing Inventory (90D+)
+                - generic [ref=f1e435]: 0.0%
+                - text: Overstocked catalog weight
+                - generic [ref=f1e436]: View list ▼
+              - button "Critical SKUs 0.0% Zero daily transaction share View list ▼" [ref=f1e437] [cursor=pointer]:
+                - generic [ref=f1e438]: Critical SKUs
+                - generic [ref=f1e439]: 0.0%
+                - text: Zero daily transaction share
+                - generic [ref=f1e440]: View list ▼
+            - generic [ref=f1e441]: 4. Returns & Claims
+            - generic [ref=f1e447]:
+              - button "Return Rate 0.0% Total units returned / total units sold View trend ▼" [ref=f1e448] [cursor=pointer]:
+                - generic [ref=f1e449]: Return Rate
+                - generic [ref=f1e450]: 0.0%
+                - text: Total units returned / total units sold
+                - generic [ref=f1e451]: View trend ▼
+              - button "Good Return Rate 0.0% Returned units reinventorisable / units sold View trend ▼" [ref=f1e452] [cursor=pointer]:
+                - generic [ref=f1e453]: Good Return Rate
+                - generic [ref=f1e454]: 0.0%
+                - text: Returned units reinventorisable / units sold
+                - generic [ref=f1e455]: View trend ▼
+              - button "Bad Return Rate 0.0% Returned units not reinventorisable / units sold View trend ▼" [ref=f1e456] [cursor=pointer]:
+                - generic [ref=f1e457]: Bad Return Rate
+                - generic [ref=f1e458]: 0.0%
+                - text: Returned units not reinventorisable / units sold
+                - generic [ref=f1e459]: View trend ▼
+              - button "Claim Rate 0.0% Bad-returned units matched to a claim / total bad-returned units View trend ▼" [ref=f1e460] [cursor=pointer]:
+                - generic [ref=f1e461]: Claim Rate
+                - generic [ref=f1e462]: 0.0%
+                - text: Bad-returned units matched to a claim / total bad-returned units
+                - generic [ref=f1e463]: View trend ▼
+              - generic [ref=f1e464]:
+                - generic [ref=f1e465]: Claim Success %
+                - generic [ref=f1e466]: 0.0%
+                - text: Reimbursed claims / total claims — rejected/denied claims aren't tracked in ingested data, so this reads ~100% by construction
+              - button "Claim (<24h) Rate 0.0% Claims filed within 24h / bad-returned units View trend ▼" [ref=f1e467] [cursor=pointer]:
+                - generic [ref=f1e468]: Claim (<24h) Rate
+                - generic [ref=f1e469]: 0.0%
+                - text: Claims filed within 24h / bad-returned units
+                - generic [ref=f1e470]: View trend ▼
+              - button "Reimbursement Rate 0.0% Amount reimbursed / COGS of claimed units View trend ▼" [ref=f1e471] [cursor=pointer]:
+                - generic [ref=f1e472]: Reimbursement Rate
+                - generic [ref=f1e473]: 0.0%
+                - text: Amount reimbursed / COGS of claimed units
+                - generic [ref=f1e474]: View trend ▼
+              - button "Return Loss Rate 0.0% (COGS of bad returns − reimbursed) / COGS of bad returns View trend ▼" [ref=f1e475] [cursor=pointer]:
+                - generic [ref=f1e476]: Return Loss Rate
+                - generic [ref=f1e477]: 0.0%
+                - text: (COGS of bad returns − reimbursed) / COGS of bad returns
+                - generic [ref=f1e478]: View trend ▼
+            - generic [ref=f1e479]: Working Capital
+            - generic [ref=f1e485]:
+              - generic [ref=f1e486]:
+                - generic [ref=f1e487]: Receivable Days
+                - generic [ref=f1e488]: —
+                - text: Avg. settlement deposit date − order date
+              - generic [ref=f1e489]:
+                - generic [ref=f1e490]: Payable Days
+                - spinbutton [ref=f1e491]: "30"
+                - text: Configurable assumption
+              - generic [ref=f1e492]:
+                - generic [ref=f1e493]: Working Capital (Days)
+                - generic [ref=f1e494]: —
+                - text: Receivable Days − Payable Days
+              - generic [ref=f1e495]:
+                - generic [ref=f1e496]: Working Capital (Amount)
+                - generic [ref=f1e497]: —
+                - text: Working Capital (Days) × COGS/day
+            - generic [ref=f1e498]: 5. Ads Performance
+            - generic [ref=f1e504]:
+              - paragraph [ref=f1e505]: Loading ads performance...
+              - paragraph [ref=f1e506]: "Figures above are lifetime totals (AmazonAdsCampaignRow carries no date column). ACOS: green ≤15%, amber ≤30%, red above. ROAS: green ≥4x, amber ≥2x, red below."
+        - generic [ref=f1e507]:
+          - generic [ref=f1e509]: CFO Assistant • Real-Time AI Strategic Diagnostics
+          - generic [ref=f1e514]:
+            - generic [ref=f1e515]:
+              - textbox "Ask our AI to analyze margins, recommend prices, or find leakages..." [ref=f1e516]: Provide structural CFO advisory to improve contribution margins for Amazon.
+              - button "Consult" [ref=f1e517] [cursor=pointer]
+            - generic [ref=f1e522]: Press "Consult" to request a comprehensive diagnostic powered by Gemini 3.5 Flash.
+  - contentinfo [ref=f1e527]:
+    - generic [ref=f1e528]: © 2026 Centralized Financial Dashboard Core. All rights reserved.
+    - generic [ref=f1e529]:
+      - generic [ref=f1e530]: Supabase synced
+      - generic [ref=f1e531]: •
+      - generic [ref=f1e532]: Enterprise Standard Reconciled
