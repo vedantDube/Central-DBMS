@@ -140,6 +140,9 @@ export default function App() {
   const [amazonFinancials, setAmazonFinancials] = useState<any>(null);
   const [amazonFinancialsComparative, setAmazonFinancialsComparative] = useState<any>(null);
 
+  // Shopify real (non-simulated) financials -- Revenue 3-way split (Gross Revenue / Sale Returns / Net Revenue)
+  const [shopifyFinancials, setShopifyFinancials] = useState<any>(null);
+
   // Amazon real (non-simulated) operational metrics, incl. Return-Tool-sourced Supply Chain metrics
   const [amazonOperationalMetrics, setAmazonOperationalMetrics] = useState<any>(null);
   const [comparativeOperationalMetrics, setComparativeOperationalMetrics] = useState<any>(null);
@@ -327,6 +330,7 @@ export default function App() {
       const res = await fetch(`/api/shopify/financials?${params}`);
       const data = await res.json();
       if (data.success) {
+        setShopifyFinancials(data.data);
         setChannels(prev => prev.map(ch => {
           if (ch.id !== "shopify") return ch;
           const cm2 = data.data.cm2;
@@ -2449,8 +2453,11 @@ export default function App() {
 
                 {/* Sub-Table 1: Financial Rows */}
                 <div className="px-6 py-4 bg-white">
-                  <div className="space-y-1">                    {/* Row 1: Revenue (3-way split for Amazon, single row for other channels) */}
-                    {selectedChannelId === "amazon" && amazonFinancials ? (
+                  <div className="space-y-1">                    {/* Row 1: Revenue (3-way split for Amazon & Shopify, single row for other channels) */}
+                    {(selectedChannelId === "amazon" && amazonFinancials) || (selectedChannelId === "shopify" && shopifyFinancials) ? (() => {
+                      const rowFinancials = selectedChannelId === "amazon" ? amazonFinancials : shopifyFinancials;
+                      const rowFinancialsComparative = selectedChannelId === "amazon" ? amazonFinancialsComparative : null;
+                      return (
                       <>
                         <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
                           <div className="flex flex-col">
@@ -2458,8 +2465,8 @@ export default function App() {
                             <span className="text-[10px] font-sans text-slate-400">Revenue inclusive of returns ({gstMode === "inclusive" ? "GST incl." : "GST excl."})</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            {renderComparisonBadge(amazonFinancials.grossRevenue, amazonFinancialsComparative?.grossRevenue)}
-                            <span className="font-bold text-slate-900">{formatCurrency(amazonFinancials.grossRevenue)}</span>
+                            {renderComparisonBadge(rowFinancials.grossRevenue, rowFinancialsComparative?.grossRevenue)}
+                            <span className="font-bold text-slate-900">{formatCurrency(rowFinancials.grossRevenue)}</span>
                           </div>
                         </div>
 
@@ -2469,8 +2476,8 @@ export default function App() {
                             <span className="text-[10px] font-sans text-slate-400">Total invoice value of returns</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            {renderComparisonBadge(amazonFinancials.saleReturns, amazonFinancialsComparative?.saleReturns, true)}
-                            <span className="text-rose-600 font-semibold">-{formatCurrency(amazonFinancials.saleReturns)}</span>
+                            {renderComparisonBadge(rowFinancials.saleReturns, rowFinancialsComparative?.saleReturns, true)}
+                            <span className="text-rose-600 font-semibold">-{formatCurrency(rowFinancials.saleReturns)}</span>
                           </div>
                         </div>
 
@@ -2480,12 +2487,13 @@ export default function App() {
                             <span className="text-[10px] font-sans text-slate-400">Revenue exclusive of returns</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            {renderComparisonBadge(amazonFinancials.netRevenue, amazonFinancialsComparative?.netRevenue)}
-                            <span className="font-bold text-slate-900">{formatCurrency(amazonFinancials.netRevenue)}</span>
+                            {renderComparisonBadge(rowFinancials.netRevenue, rowFinancialsComparative?.netRevenue)}
+                            <span className="font-bold text-slate-900">{formatCurrency(rowFinancials.netRevenue)}</span>
                           </div>
                         </div>
                       </>
-                    ) : (
+                      );
+                    })() : (
                       <div className="flex items-center justify-between py-2.5 border-b border-slate-100 hover:bg-slate-50 px-2 rounded font-mono text-sm">
                         <div className="flex flex-col">
                           <span className="font-sans font-semibold text-slate-805">Revenue</span>

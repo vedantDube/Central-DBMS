@@ -2869,7 +2869,15 @@ async function startServer() {
         dateFilter = `AND o."createdAt" >= $1::timestamp AND o."createdAt" <= ($2::date + interval '1 day')`;
       }
 
-      const [revenueResult, lineItemsResult] = await Promise.all([
+      // Sale Returns value: SUM of refund line item value (subtotal + tax) for refunds processed in
+      // range, joined via orderId -- same authoritative refund source as the Return Rate calc in
+      // /api/shopify/operational-metrics (ShopifyOrderRefundLineItem is the completed, monetary
+      // source; ShopifyReturn/RMA rows carry no per-unit price so can't contribute a value here).
+      const returnValueDateFilter = startDate && endDate
+        ? `AND ref."createdAt" >= $1::timestamp AND ref."createdAt" <= ($2::date + interval '1 day')`
+        : "";
+
+      const [revenueResult, lineItemsResult, returnsValueResult] = await Promise.all([
         client.query(`
           SELECT
             COALESCE(SUM("totalPrice"), 0) AS revenue,
@@ -2892,6 +2900,12 @@ async function startServer() {
             AND li.sku IS NOT NULL AND li.sku != ''
             ${dateFilter}
         `, params),
+        client.query(`
+          SELECT COALESCE(SUM(rli."subtotal"), 0) + COALESCE(SUM(rli."totalTax"), 0) AS returns_value
+          FROM "ShopifyOrderRefundLineItem" rli
+          JOIN "ShopifyOrderRefund" ref ON ref."id" = rli."refundId"
+          WHERE 1=1 ${returnValueDateFilter}
+        `, params),
       ]);
 
       const skus: string[] = Array.from(new Set(lineItemsResult.rows.map((r) => String(r.sku).trim())));
@@ -2911,8 +2925,10 @@ async function startServer() {
         }
       }
 
-      const revenue = parseFloat(revenueResult.rows[0].revenue);
-      const cm1 = revenue - cogs;
+      const grossRevenue = parseFloat(revenueResult.rows[0].revenue);
+      const saleReturns = parseFloat(returnsValueResult.rows[0].returns_value);
+      const netRevenue = grossRevenue - saleReturns;
+      const cm1 = netRevenue - cogs;
       const indirectExpenses = 0;
       const advertisingSpend = 0;
       const cm2 = cm1 - indirectExpenses - advertisingSpend;
@@ -2920,7 +2936,12 @@ async function startServer() {
       res.json({
         success: true,
         data: {
-          revenue,
+          // Revenue 3-way split
+          grossRevenue,
+          saleReturns,
+          netRevenue,
+          // Backward-compatible alias (previously "revenue" meant gross, pre-returns-split)
+          revenue: grossRevenue,
           cogs,
           cm1,
           indirectExpenses,
