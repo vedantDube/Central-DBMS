@@ -1341,8 +1341,8 @@ export default function App() {
 
   // Dynamic trend chart mapper
   const dailyTrendData = useMemo(() => {
-    const dataMap: { [date: string]: { date: string; Revenue: number; NetProfit: number; EBITDA: number } } = {};
-    
+    const dataMap: { [date: string]: { date: string; Revenue: number; NetProfit: number; EBITDA: number; CM1: number; AdsSpend: number } } = {};
+
     const start = new Date(startDateStr);
     const end = new Date(endDateStr);
     const temp = new Date(start);
@@ -1352,18 +1352,20 @@ export default function App() {
         date: dateStr,
         Revenue: 0,
         NetProfit: 0,
-        EBITDA: 0
+        EBITDA: 0,
+        CM1: 0,
+        AdsSpend: 0
       };
       temp.setDate(temp.getDate() + 1);
     }
-    
+
     rolling60DaysData.forEach(d => {
       if (d.date >= startDateStr && d.date <= endDateStr) {
         if (dataMap[d.date]) {
           const adjustedCogs = d.cogs * simulationParams.landingCostMultiplier;
           const adjustedAds = d.advertisingSpend * simulationParams.adsSpendMultiplier;
           const adjustedIndirect = d.indirectExpAndPeople * simulationParams.indirectExpenseMultiplier;
-          
+
           const marginReduction = adjustedCogs - d.cogs;
           const adjustedCm1 = Math.max(0, d.cm1 - marginReduction);
           const adjustedCm2 = adjustedCm1 - adjustedIndirect - adjustedAds;
@@ -1372,6 +1374,8 @@ export default function App() {
           dataMap[d.date].Revenue += d.revenue;
           dataMap[d.date].EBITDA += adjustedCm2;
           dataMap[d.date].NetProfit += adjustedNetProfit;
+          dataMap[d.date].CM1 += adjustedCm1;
+          dataMap[d.date].AdsSpend += adjustedAds;
         }
       }
     });
@@ -1506,6 +1510,37 @@ export default function App() {
     return (
       <svg width={w} height={h} className="overflow-visible">
         <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    );
+  };
+
+  // Responsive card-floor sparkline (fills the width of whatever container it's placed in, via
+  // viewBox scaling rather than a fixed pixel width) with a soft gradient fill under the line --
+  // the pattern Triple Whale and most profit dashboards use so a KPI card shows trend shape, not
+  // just a single number + delta. `id` must be unique per card (SVG gradients are globally scoped).
+  const renderCardSparkline = (id: string, values: number[], color: string, h = 36) => {
+    if (values.length < 2) return null;
+    const w = 100;
+    const max = Math.max(...values, 0);
+    const min = Math.min(...values, 0);
+    const range = max - min || 1;
+    const pad = 2;
+    const coords = values.map((v, i) => ({
+      x: pad + (i / (values.length - 1)) * (w - pad * 2),
+      y: h - pad - ((v - min) / range) * (h - pad * 2),
+    }));
+    const linePoints = coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" ");
+    const areaPoints = `${pad},${h - pad} ${linePoints} ${w - pad},${h - pad}`;
+    return (
+      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block">
+        <defs>
+          <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPoints} fill={`url(#spark-${id})`} stroke="none" />
+        <polyline points={linePoints} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
     );
   };
@@ -2315,7 +2350,7 @@ export default function App() {
             {/* KPI Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative">
               <LoadingOverlay active={isPageLoading} />
-              <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 p-6 rounded-2xl shadow-sm" id="consolidated-revenue-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 p-6 rounded-2xl shadow-sm overflow-hidden" id="consolidated-revenue-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL REVENUE</span>
                   <ShoppingBag size={14} className="text-slate-400" />
@@ -2327,9 +2362,10 @@ export default function App() {
                   {renderComparisonBadge(consolidatedMetrics.revenue, comparativeMetrics?.revenue)}
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">Combined period aggregate across platforms</div>
+                <div className="mt-3 -mx-6 -mb-1">{renderCardSparkline("revenue", dailyTrendData.map(d => d.Revenue), "#6366f1")}</div>
               </div>
 
-              <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 p-6 rounded-2xl shadow-sm" id="consolidated-cm1-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 p-6 rounded-2xl shadow-sm overflow-hidden" id="consolidated-cm1-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>CONTRIBUTION MARGIN (CM1)</span>
                   <Layers size={14} className="text-slate-400" />
@@ -2344,9 +2380,10 @@ export default function App() {
                   <Percent size={10} />
                   {formatPercent(consolidatedMetrics.cm1Pct)} of Sales
                 </div>
+                <div className="mt-3 -mx-6 -mb-1">{renderCardSparkline("cm1", dailyTrendData.map(d => d.CM1), "#6366f1")}</div>
               </div>
 
-              <div className="bg-white border border-slate-200 border-t-2 border-t-amber-400 p-6 rounded-2xl shadow-sm" id="consolidated-ads-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-amber-400 p-6 rounded-2xl shadow-sm overflow-hidden" id="consolidated-ads-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL PERFORMANCE ADS SPEND</span>
                   <TrendingDown size={14} className="text-slate-400" />
@@ -2360,9 +2397,10 @@ export default function App() {
                 <div className="text-[11px] text-slate-400 mt-1">
                   Equivalent to {formatPercent(consolidatedMetrics.revenue > 0 ? (consolidatedMetrics.advertisingSpend / consolidatedMetrics.revenue) * 100 : 0)} of revenue
                 </div>
+                <div className="mt-3 -mx-6 -mb-1">{renderCardSparkline("ads", dailyTrendData.map(d => d.AdsSpend), "#f59e0b")}</div>
               </div>
 
-              <div className={`bg-white border border-slate-200 border-t-2 p-6 rounded-2xl shadow-sm ${consolidatedMetrics.netProfit >= 0 ? "border-t-emerald-400" : "border-t-rose-400"}`} id="consolidated-profit-kpi">
+              <div className={`bg-white border border-slate-200 border-t-2 p-6 rounded-2xl shadow-sm overflow-hidden ${consolidatedMetrics.netProfit >= 0 ? "border-t-emerald-400" : "border-t-rose-400"}`} id="consolidated-profit-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>NET PROFIT (EBITDA)</span>
                   <DollarSign size={14} className="text-slate-400" />
@@ -2376,6 +2414,9 @@ export default function App() {
                 <span className={`text-[11px] font-semibold mt-1 flex items-center gap-1 ${consolidatedMetrics.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                   {consolidatedMetrics.netProfit >= 0 ? "✓ Net Surplus Margin:" : "⚠️ Net Deficit Margin:"} {formatPercent(consolidatedMetrics.netMarginPct)}
                 </span>
+                <div className="mt-3 -mx-6 -mb-1">
+                  {renderCardSparkline("netprofit", dailyTrendData.map(d => d.NetProfit), consolidatedMetrics.netProfit >= 0 ? "#10b981" : "#f43f5e")}
+                </div>
               </div>
             </div>
 
@@ -2619,26 +2660,26 @@ export default function App() {
                   onToggle={toggleSection}
                 >
                   <LoadingOverlay active={isPageLoading} />
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Total Order Items</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{totalOrders.toLocaleString()}</span>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 rounded-2xl p-5 shadow-sm">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold tracking-wide block">Total Order Items</span>
+                      <span className="font-mono text-2xl font-bold text-slate-900 block mt-1">{totalOrders.toLocaleString()}</span>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Units Ordered</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{unitsSold.toLocaleString()}</span>
+                    <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 rounded-2xl p-5 shadow-sm">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold tracking-wide block">Units Ordered</span>
+                      <span className="font-mono text-2xl font-bold text-slate-900 block mt-1">{unitsSold.toLocaleString()}</span>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Ordered Product Sales</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(grossRevenue)}</span>
+                    <div className="bg-white border border-slate-200 border-t-2 border-t-emerald-400 rounded-2xl p-5 shadow-sm">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold tracking-wide block">Ordered Product Sales</span>
+                      <span className="font-mono text-2xl font-bold text-slate-900 block mt-1">{formatCurrency(grossRevenue)}</span>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Avg Units/Order</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{unitsPerOrder.toFixed(2)}</span>
+                    <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 rounded-2xl p-5 shadow-sm">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold tracking-wide block">Avg Units/Order</span>
+                      <span className="font-mono text-2xl font-bold text-slate-900 block mt-1">{unitsPerOrder.toFixed(2)}</span>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <span className="text-[11px] text-slate-500 uppercase font-medium block">Avg Sales/Order</span>
-                      <span className="font-mono text-lg font-bold text-slate-800">{formatCurrency(aov)}</span>
+                    <div className="bg-white border border-slate-200 border-t-2 border-t-emerald-400 rounded-2xl p-5 shadow-sm">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold tracking-wide block">Avg Sales/Order</span>
+                      <span className="font-mono text-2xl font-bold text-slate-900 block mt-1">{formatCurrency(aov)}</span>
                     </div>
                   </div>
                 </SectionCard>
@@ -2865,6 +2906,11 @@ export default function App() {
                             ? (shopifyFinancials.netRevenue > 0 ? (shopifyFinancials.cm1 / shopifyFinancials.netRevenue) * 100 : 0).toFixed(1)
                             : (activeSimulatedChannel.revenue > 0 ? (activeSimulatedChannel.cm1 / activeSimulatedChannel.revenue) * 100 : 0).toFixed(1)}% of margin
                         </span>
+                        {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
+                          <div className="w-24 mt-1">
+                            {renderCardSparkline("plcm1", (selectedChannelId === "shopify" ? shopifyTrendData : realTrendData).map((d: any) => d.cm1 ?? 0), "#10b981", 20)}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -3133,7 +3179,8 @@ export default function App() {
                         <span className="font-sans font-extrabold text-slate-800">Net Profit</span>
                         <span className="text-[11px] font-sans text-slate-400">Bottom line channel yield after ALL operational costs</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end gap-1">
+                       <div className="flex items-center gap-2">
                         {selectedChannelId === "amazon" && amazonFinancials
                           ? renderComparisonBadge(amazonFinancials.cm2, amazonFinancialsComparative?.cm2)
                           : selectedChannelId === "shopify" && shopifyFinancials
@@ -3142,6 +3189,17 @@ export default function App() {
                         <span className={`font-extrabold text-lg text-right ${(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : activeSimulatedChannel.netProfit) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                           {formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : activeSimulatedChannel.netProfit)}
                         </span>
+                       </div>
+                       {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
+                         <div className="w-24">
+                           {renderCardSparkline(
+                             "plnetprofit",
+                             (selectedChannelId === "shopify" ? shopifyTrendData : realTrendData).map((d: any) => d.cm2 ?? 0),
+                             (selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : 0) >= 0 ? "#10b981" : "#f43f5e",
+                             20
+                           )}
+                         </div>
+                       )}
                       </div>
                     </div>
                   </div>
@@ -3193,7 +3251,7 @@ export default function App() {
                             <Legend wrapperStyle={{ fontSize: "10px" }} />
                             <Area type="monotone" dataKey="netRevenue" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} name="Net Revenue" />
                             <Area type="monotone" dataKey="cm1" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} name="CM1" />
-                            <Area type="monotone" dataKey="cm2" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} name="CM2" />
+                            <Area type="monotone" dataKey="cm2" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} strokeWidth={2} name="CM2" />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
