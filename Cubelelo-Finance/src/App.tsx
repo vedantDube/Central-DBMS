@@ -3050,11 +3050,31 @@ export default function App() {
                 <div className="px-6 py-4 bg-white">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 
-                    <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedChannelId !== "amazon" && selectedChannelId !== "shopify") return;
+                        const next = expandedSupplyChainMetric === "outOfStockDays" ? null : "outOfStockDays";
+                        setExpandedSupplyChainMetric(next);
+                        const isShopify = selectedChannelId === "shopify";
+                        const activeData = isShopify ? shopifySupplyChainTrendData : supplyChainTrendData;
+                        if (next && activeData.length === 0) {
+                          if (isShopify) {
+                            fetchShopifySupplyChainTrend(startDateStr, endDateStr, trendGranularity);
+                          } else {
+                            fetchSupplyChainTrend(startDateStr, endDateStr, trendGranularity, gstMode);
+                          }
+                        }
+                      }}
+                      className={`bg-slate-50 p-4.5 rounded-xl border text-center ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "outOfStockDays" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    >
                       <span className="text-[10px] text-slate-500 font-sans block uppercase font-medium">Out of Stock Days</span>
                       {renderMetricOrPending(selectedChannel.outOfStockDays, (v) => `${v} days`)}
                       <span className="text-[9px] text-slate-405 font-sans mt-0.5">Average monthly lag</span>
-                    </div>
+                      {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
+                        <span className="text-[9px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "outOfStockDays" ? "Hide trend ▲" : "View trend ▼"}</span>
+                      )}
+                    </button>
 
                     {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
                       <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
@@ -3122,6 +3142,24 @@ export default function App() {
                         </div>
                       </div>
 
+                      {/* Velocity breakdown -- Fast/Medium/Slow/Non-Selling counts among critical SKUs, same bands as Ageing SKUs */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        {(["Fast", "Medium", "Slow", "Non-Selling"] as const).map((tag) => {
+                          const list = amazonOperationalMetrics?.criticalSkus ?? [];
+                          const count = list.filter((c: any) => c.velocityTag === tag).length;
+                          const colorClass = tag === "Fast" ? "bg-emerald-100 text-emerald-700" :
+                            tag === "Medium" ? "bg-blue-100 text-blue-700" :
+                            tag === "Slow" ? "bg-amber-100 text-amber-700" :
+                            "bg-rose-100 text-rose-700";
+                          return (
+                            <div key={tag} className="bg-white p-3 rounded-lg border border-slate-200 text-center">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${colorClass}`}>{tag}</span>
+                              <span className="font-mono text-lg font-bold text-slate-800 block mt-1">{count.toLocaleString()}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
                       <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Critical SKUs List</span>
                       {(amazonOperationalMetrics?.criticalSkus ?? []).length === 0 ? (
                         <p className="text-xs text-slate-400 mt-1.5">No SKUs currently flagged as critical for the selected period.</p>
@@ -3131,6 +3169,7 @@ export default function App() {
                             <thead className="bg-white sticky top-0">
                               <tr className="text-left text-slate-500 uppercase text-[10px]">
                                 <th className="px-3 py-2 font-medium">SKU</th>
+                                <th className="px-3 py-2 font-medium">Tag</th>
                                 <th className="px-3 py-2 font-medium text-right">Prev Run-Rate</th>
                                 <th className="px-3 py-2 font-medium text-right">Last Run-Rate</th>
                                 <th className="px-3 py-2 font-medium text-right">Drop %</th>
@@ -3141,6 +3180,14 @@ export default function App() {
                               {(amazonOperationalMetrics?.criticalSkus ?? []).map((c: any) => (
                                 <tr key={c.sku} className="border-t border-slate-100 bg-white">
                                   <td className="px-3 py-2 font-mono text-slate-700">{c.sku}</td>
+                                  <td className="px-3 py-2">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                      c.velocityTag === "Fast" ? "bg-emerald-100 text-emerald-700" :
+                                      c.velocityTag === "Medium" ? "bg-blue-100 text-blue-700" :
+                                      c.velocityTag === "Slow" ? "bg-amber-100 text-amber-700" :
+                                      "bg-rose-100 text-rose-700"
+                                    }`}>{c.velocityTag}</span>
+                                  </td>
                                   <td className="px-3 py-2 font-mono text-right text-slate-600">{c.prevRate}</td>
                                   <td className="px-3 py-2 font-mono text-right text-slate-600">{c.lastRate}</td>
                                   <td className="px-3 py-2 font-mono text-right text-rose-600 font-semibold">{formatPercent(c.dropPct)}</td>
@@ -3308,11 +3355,13 @@ export default function App() {
                     const activeSupplyChainTrendData = isShopify ? shopifySupplyChainTrendData : supplyChainTrendData;
                     const metricOptions = isShopify
                       ? ([
+                          { key: "outOfStockDays", label: "Out of Stock Days" },
                           { key: "stockoutCost", label: "Stockout Cost" },
                           { key: "ageingInventoryPct", label: "Ageing Inventory %" },
                           { key: "deadStockPct", label: "Dead Stock %" },
                         ] as const)
                       : ([
+                          { key: "outOfStockDays", label: "Out of Stock Days" },
                           { key: "returnPct", label: "Return Rate" },
                           { key: "goodReturnPct", label: "Good Return Rate" },
                           { key: "badReturnPct", label: "Bad Return Rate" },
@@ -3356,7 +3405,8 @@ export default function App() {
                         <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                              {expandedSupplyChainMetric === "returnPct" ? "Return Rate"
+                              {expandedSupplyChainMetric === "outOfStockDays" ? "Out of Stock Days"
+                                : expandedSupplyChainMetric === "returnPct" ? "Return Rate"
                                 : expandedSupplyChainMetric === "goodReturnPct" ? "Good Return Rate"
                                 : expandedSupplyChainMetric === "badReturnPct" ? "Bad Return Rate"
                                 : expandedSupplyChainMetric === "claimRatePct" ? "Claim Rate"
@@ -3382,10 +3432,10 @@ export default function App() {
                                 <LineChart data={activeSupplyChainTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                                   <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
-                                  <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(v) : `${v}%`} />
+                                  <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(v) : expandedSupplyChainMetric === "outOfStockDays" ? `${v}d` : `${v}%`} />
                                   <Tooltip
                                     contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
-                                    formatter={(val: number) => [expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(val) : `${val}%`, ""]}
+                                    formatter={(val: number) => [expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(val) : expandedSupplyChainMetric === "outOfStockDays" ? `${val} days` : `${val}%`, ""]}
                                   />
                                   <Line type="monotone" dataKey={expandedSupplyChainMetric} stroke="#3b82f6" strokeWidth={2} dot={false} name={expandedSupplyChainMetric} />
                                 </LineChart>

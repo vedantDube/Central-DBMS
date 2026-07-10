@@ -1407,8 +1407,13 @@ async function startServer() {
           ageingInventoryPct: Math.round(ageingInventoryPct * 100) / 100,
           deadStockPct: Math.round(deadStockPct * 100) / 100,
           criticalSkus: criticalSkus
-            .sort((a, b) => b.dropPct - a.dropPct)
-            .map((c) => ({ ...c, revenueInRange: Math.round((perSkuRevenueInRange.get(c.sku) ?? 0) * 100) / 100 })),
+            .map((c) => ({
+              ...c,
+              revenueInRange: Math.round((perSkuRevenueInRange.get(c.sku) ?? 0) * 100) / 100,
+              // Velocity tag from the pre-drop run-rate (units/day), same bands as ageingSkus below
+              velocityTag: c.prevRate >= 30 ? "Fast" : c.prevRate >= 15 ? "Medium" : c.prevRate >= 4 ? "Slow" : "Non-Selling",
+            }))
+            .sort((a, b) => b.dropPct - a.dropPct),
           ageingSkus: ageingSkus
             .map((a) => ({
               ...a,
