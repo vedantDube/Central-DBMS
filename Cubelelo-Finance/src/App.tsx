@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import SectionCard from "./components/SectionCard";
 import StatusPill from "./components/StatusPill";
+import ColumnPicker, { type ColumnOption } from "./components/ColumnPicker";
 import {
   TrendingUp,
   DollarSign,
@@ -103,7 +104,29 @@ export default function App() {
   const [skuFilter, setSkuFilter] = useState<string>("all"); // "all" | "profitable" | "loss" | "borderline"
   const [skuMoverFilter, setSkuMoverFilter] = useState<string>("all"); // "all" | "new"
   const [skuChannelFilter, setSkuChannelFilter] = useState<string>("amazon");
-  
+
+  // Detailed SKU Margin Spreadsheet is 14 columns wide -- lets a user hide the ones they don't
+  // need instead of always scrolling past all of them. SKU name and Status are never in this
+  // map (always shown); everything else defaults to visible unless explicitly hidden.
+  const SKU_TABLE_COLUMNS: ColumnOption[] = [
+    { key: "category", label: "Category" },
+    { key: "unitsSold", label: "Units Sold" },
+    { key: "trend", label: "Trend" },
+    { key: "glanceViews", label: "Glance Views" },
+    { key: "convRate", label: "Conv. Rate" },
+    { key: "revenue", label: "Revenue" },
+    { key: "landingCogs", label: "Landing COGS" },
+    { key: "mktCommission", label: "Mkt Commission" },
+    { key: "packShip", label: "Pack & Ship" },
+    { key: "returnLoss", label: "Return Loss" },
+    { key: "performanceAds", label: "Performance Ads" },
+    { key: "netProfit", label: "Net Profit" },
+  ];
+  const [skuVisibleColumns, setSkuVisibleColumns] = useState<Record<string, boolean>>({});
+  const toggleSkuColumn = (key: string) =>
+    setSkuVisibleColumns((prev) => ({ ...prev, [key]: prev[key] === false ? true : false }));
+  const isSkuColVisible = (key: string) => skuVisibleColumns[key] !== false;
+
   // Reconciliation Data state
   const [orders, setOrders] = useState<OrderReconciliation[]>(initialOrderReconciliation);
   const [orderSearch, setOrderSearch] = useState<string>("");
@@ -1984,7 +2007,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto bg-slate-100 flex flex-col">
           
           {/* Main layout inner */}
-          <main className="p-6 space-y-6 w-full flex-1">
+          <main className="p-8 space-y-8 w-full flex-1">
 
             {/* Fetch failure banner -- one row per failed data source, dismissible independently.
                 A section clears its own entry automatically the next time it loads successfully. */}
@@ -2010,7 +2033,7 @@ export default function App() {
             )}
 
             {/* Dynamic Date Range Filter & Comparison Cockpit */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200" id="temporal-controls-card">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200" id="temporal-controls-card">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl border border-blue-100">
@@ -2127,7 +2150,7 @@ export default function App() {
             </div>
             
             {/* Sensitivity analysis panel */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Sliders size={16} className="text-slate-500" />
@@ -2221,7 +2244,7 @@ export default function App() {
 
         {/* TAB 1: CONSOLIDATED COCKPIT / EXECUTIVE OVERVIEW */}
         {activeTab === "consolidated" && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-8">
 
             {/* Pulse Strip -- the one-line diagnosis of the business, read before any table. A dark
                 card intentionally breaks from the light paper canvas so it reads as the "so what"
@@ -2285,9 +2308,9 @@ export default function App() {
             </div>
 
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative">
               <LoadingOverlay active={isPageLoading} />
-              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-5 rounded-2xl shadow-sm" id="consolidated-revenue-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-6 rounded-2xl shadow-sm" id="consolidated-revenue-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL REVENUE</span>
                   <ShoppingBag size={14} className="text-slate-400" />
@@ -2301,7 +2324,7 @@ export default function App() {
                 <div className="text-[11px] text-slate-400 mt-1">Combined period aggregate across platforms</div>
               </div>
 
-              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-5 rounded-2xl shadow-sm" id="consolidated-cm1-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-6 rounded-2xl shadow-sm" id="consolidated-cm1-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>CONTRIBUTION MARGIN (CM1)</span>
                   <Layers size={14} className="text-slate-400" />
@@ -2318,7 +2341,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 border-t-2 border-t-amber-400 p-5 rounded-2xl shadow-sm" id="consolidated-ads-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-amber-400 p-6 rounded-2xl shadow-sm" id="consolidated-ads-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL PERFORMANCE ADS SPEND</span>
                   <TrendingDown size={14} className="text-slate-400" />
@@ -2334,7 +2357,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className={`bg-white border border-slate-200 border-t-2 p-5 rounded-2xl shadow-sm ${consolidatedMetrics.netProfit >= 0 ? "border-t-emerald-400" : "border-t-rose-400"}`} id="consolidated-profit-kpi">
+              <div className={`bg-white border border-slate-200 border-t-2 p-6 rounded-2xl shadow-sm ${consolidatedMetrics.netProfit >= 0 ? "border-t-emerald-400" : "border-t-rose-400"}`} id="consolidated-profit-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>NET PROFIT (EBITDA)</span>
                   <DollarSign size={14} className="text-slate-400" />
@@ -2485,7 +2508,7 @@ export default function App() {
             >
               <LoadingOverlay active={isPageLoading} />
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] border-b border-slate-200">
                     <tr>
                       <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Channel</th>
@@ -2548,7 +2571,7 @@ export default function App() {
           <div className="grid grid-cols-1 gap-6">
 
             {/* Complete Detailed Profitability Ledger -- channel switching happens via the sidebar's Active Channels list */}
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
 
               {/* Channel Head info */}
               <div className="bg-white border border-slate-200 p-6 rounded-2xl relative shadow-sm overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -4135,7 +4158,7 @@ export default function App() {
 
         {/* TAB 3: SKU-WISE DRILLDOWN DETAILS */}
         {activeTab === "skus" && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-8">
 
             {/* Deep Dive ASIN Performance -- mirrors Amazon Seller Central's own panel */}
             <SectionCard
@@ -4252,7 +4275,7 @@ export default function App() {
 
             {/* SKU Trend panel -- on-demand, shown when a SKU row is clicked (channels tab has the full-channel trend chart) */}
             {skuTrendSku && (
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">SKU Trend — {skuTrendSku}</h3>
@@ -4318,28 +4341,31 @@ export default function App() {
               id="skus-margin-spreadsheet"
               title="Detailed SKU Margin Spreadsheet"
               subtitle={`${filteredSKUs.length} SKUs matching current filters`}
+              headerExtra={
+                <ColumnPicker columns={SKU_TABLE_COLUMNS} visible={skuVisibleColumns} onToggle={toggleSkuColumn} />
+              }
               collapsed={!!collapsedSections["skus-margin-spreadsheet"]}
               onToggle={toggleSection}
               bodyClassName="p-0"
             >
               <LoadingOverlay active={isPageLoading} />
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] border-b border-slate-200">
                     <tr>
                       <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">SKU / Item Name</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4 text-center">Units Sold</th>
-                      <th className="py-3 px-4 text-center">Trend</th>
-                      <th className="py-3 px-4 text-center">Glance Views</th>
-                      <th className="py-3 px-4 text-center">Conv. Rate (%)</th>
-                      <th className="py-3 px-4 text-right">Revenue (₹)</th>
-                      <th className="py-3 px-4 text-right text-rose-700">Landing COGS (₹)</th>
-                      <th className="py-3 px-4 text-right">Mkt Commission (₹)</th>
-                      <th className="py-3 px-4 text-right">Pack & Ship (₹)</th>
-                      <th className="py-3 px-4 text-right text-amber-700">Return Loss (₹)</th>
-                      <th className="py-3 px-4 text-right">Performance Ads (₹)</th>
-                      <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-500/5">Net Profit (₹)</th>
+                      {isSkuColVisible("category") && <th className="py-3 px-4">Category</th>}
+                      {isSkuColVisible("unitsSold") && <th className="py-3 px-4 text-center">Units Sold</th>}
+                      {isSkuColVisible("trend") && <th className="py-3 px-4 text-center">Trend</th>}
+                      {isSkuColVisible("glanceViews") && <th className="py-3 px-4 text-center">Glance Views</th>}
+                      {isSkuColVisible("convRate") && <th className="py-3 px-4 text-center">Conv. Rate (%)</th>}
+                      {isSkuColVisible("revenue") && <th className="py-3 px-4 text-right">Revenue (₹)</th>}
+                      {isSkuColVisible("landingCogs") && <th className="py-3 px-4 text-right text-rose-700">Landing COGS (₹)</th>}
+                      {isSkuColVisible("mktCommission") && <th className="py-3 px-4 text-right">Mkt Commission (₹)</th>}
+                      {isSkuColVisible("packShip") && <th className="py-3 px-4 text-right">Pack & Ship (₹)</th>}
+                      {isSkuColVisible("returnLoss") && <th className="py-3 px-4 text-right text-amber-700">Return Loss (₹)</th>}
+                      {isSkuColVisible("performanceAds") && <th className="py-3 px-4 text-right">Performance Ads (₹)</th>}
+                      {isSkuColVisible("netProfit") && <th className="py-3 px-4 text-right text-emerald-700 bg-emerald-500/5">Net Profit (₹)</th>}
                       <th className="py-3 px-4 text-center">Status</th>
                     </tr>
                   </thead>
@@ -4362,28 +4388,51 @@ export default function App() {
                             <span className="block font-mono font-semibold text-[11px] text-slate-400">{s.sku}</span>
                             <span className="block text-xs font-semibold mt-0.5 text-slate-800 line-clamp-1">{s.name}</span>
                           </td>
-                          <td className="py-3.5 px-4 font-sans">
-                            <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[11px] text-slate-600 border border-slate-200">{s.category}</span>
-                          </td>
-                          <td className="py-3.5 px-4 text-center text-slate-800 font-bold">{s.unitsSold.toLocaleString()}</td>
-                          <td className="py-3.5 px-4 text-center">{renderSparkline(activeSkuSparklines[s.sku])}</td>
-                          <td className="py-3.5 px-4 text-center text-slate-600">{s.glanceViews !== null && s.glanceViews !== undefined ? s.glanceViews.toLocaleString() : "—"}</td>
-                          <td className="py-3.5 px-4 text-center text-slate-600">{s.conversionRate !== null && s.conversionRate !== undefined ? `${s.conversionRate.toFixed(2)}%` : "—"}</td>
-                          <td className="py-3.5 px-4 text-right text-slate-900">{formatCurrency(s.revenue)}</td>
-                          <td className="py-3.5 px-4 text-right text-rose-600 font-medium">{formatCurrency(s.landingCost)}</td>
-                          <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.marketplaceFees)}</td>
-                          <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.packagingCost + s.shippingCost)}</td>
-                          <td className="py-3.5 px-4 text-right text-amber-600">{formatCurrency(s.returnLoss)}</td>
-                          <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.adsSpend)}</td>
-                          <td className={`py-3.5 px-4 text-right font-black bg-emerald-50/40 ${
-                            s.status === "Profitable" ? "text-emerald-600" : s.status === "Borderline" ? "text-amber-600" : "text-rose-600"
-                          }`}>
-                            {formatCurrency(s.netProfit)}
-                          </td>
+                          {isSkuColVisible("category") && (
+                            <td className="py-3.5 px-4 font-sans">
+                              <span className="bg-slate-50 px-2.5 py-0.5 rounded text-[11px] text-slate-600 border border-slate-200">{s.category}</span>
+                            </td>
+                          )}
+                          {isSkuColVisible("unitsSold") && (
+                            <td className="py-3.5 px-4 text-center text-slate-800 font-bold">{s.unitsSold.toLocaleString()}</td>
+                          )}
+                          {isSkuColVisible("trend") && (
+                            <td className="py-3.5 px-4 text-center">{renderSparkline(activeSkuSparklines[s.sku])}</td>
+                          )}
+                          {isSkuColVisible("glanceViews") && (
+                            <td className="py-3.5 px-4 text-center text-slate-600">{s.glanceViews !== null && s.glanceViews !== undefined ? s.glanceViews.toLocaleString() : "—"}</td>
+                          )}
+                          {isSkuColVisible("convRate") && (
+                            <td className="py-3.5 px-4 text-center text-slate-600">{s.conversionRate !== null && s.conversionRate !== undefined ? `${s.conversionRate.toFixed(2)}%` : "—"}</td>
+                          )}
+                          {isSkuColVisible("revenue") && (
+                            <td className="py-3.5 px-4 text-right text-slate-900">{formatCurrency(s.revenue)}</td>
+                          )}
+                          {isSkuColVisible("landingCogs") && (
+                            <td className="py-3.5 px-4 text-right text-rose-600 font-medium">{formatCurrency(s.landingCost)}</td>
+                          )}
+                          {isSkuColVisible("mktCommission") && (
+                            <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.marketplaceFees)}</td>
+                          )}
+                          {isSkuColVisible("packShip") && (
+                            <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.packagingCost + s.shippingCost)}</td>
+                          )}
+                          {isSkuColVisible("returnLoss") && (
+                            <td className="py-3.5 px-4 text-right text-amber-600">{formatCurrency(s.returnLoss)}</td>
+                          )}
+                          {isSkuColVisible("performanceAds") && (
+                            <td className="py-3.5 px-4 text-right text-slate-500">{formatCurrency(s.adsSpend)}</td>
+                          )}
+                          {isSkuColVisible("netProfit") && (
+                            <td className={`py-3.5 px-4 text-right font-black bg-emerald-50/40 ${
+                              s.status === "Profitable" ? "text-emerald-600" : s.status === "Borderline" ? "text-amber-600" : "text-rose-600"
+                            }`}>
+                              {formatCurrency(s.netProfit)}
+                            </td>
+                          )}
                           <td className="py-3.5 px-4 text-center font-sans">
                             <StatusPill
                               tone={s.status === "Profitable" ? "success" : s.status === "Borderline" ? "warning" : "danger"}
-                              rounded="md"
                             >
                               {s.status}
                             </StatusPill>
@@ -4439,29 +4488,29 @@ export default function App() {
 
         {/* TAB 4: ORDER LEVEL RECONCILIATION AUDIT CONTROL PANEL */}
         {activeTab === "reconciliation" && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-8">
             
             {/* Auditing Cockpit Breakdown Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
                 <span className="text-xs text-slate-500 block uppercase font-semibold">TOTAL RECONCILED ORDERS</span>
                 <span className="text-2xl font-bold text-slate-900 font-mono block mt-2">{orders.length} orders</span>
                 <span className="text-[11px] text-slate-400 mt-1 block">Audited past 7 days</span>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
                 <span className="text-xs text-rose-800 block uppercase font-semibold">OVERCHArged Fee Claims IDENTIFIED</span>
                 <span className="text-2xl font-bold text-rose-600 font-mono block mt-2">{reconciliationSummary.discrepancyCount} cases</span>
                 <p className="text-[11px] text-slate-400 mt-1">Discovered through contract audit logic</p>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
                 <span className="text-xs text-slate-500 block uppercase font-semibold">DISCREPANCY AMOUNT</span>
                 <span className="text-2xl font-bold text-amber-600 font-mono block mt-2">{formatCurrency(reconciliationSummary.totalOvercharged)}</span>
                 <span className="text-[11px] text-rose-600 font-mono mt-1 block font-medium">⚠️ Leaking from bank transfers</span>
               </div>
 
-              <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl shadow-sm">
+              <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-2xl shadow-sm">
                 <span className="text-xs text-emerald-800 block uppercase font-bold">SECURED RECOVERY CLAIMS</span>
                 <span className="text-2xl font-bold text-emerald-600 font-mono block mt-2">{formatCurrency(reconciliationSummary.securedRefunds)}</span>
                 <span className="text-[11px] text-emerald-600 mt-1 block font-medium">✓ Credited back to bank statements</span>
@@ -4529,7 +4578,7 @@ export default function App() {
                 className="lg:col-span-2"
               >
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] border-b border-slate-200 font-sans">
                       <tr>
                         <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Order ID & Date</th>
@@ -4990,7 +5039,7 @@ export default function App() {
             {/* ERROR REPORT IF SYNCHRONIZATION FAILED -- kept as a plain alert panel, not a SectionCard:
                 error banners should stay visually distinct (always-open, red-themed) rather than being collapsible. */}
             {dbError && (
-              <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm text-red-800 font-sans text-xs">
+              <div className="bg-red-50 border border-red-200 p-6 rounded-2xl shadow-sm text-red-800 font-sans text-xs">
                 <h4 className="font-bold text-red-900 mb-1 flex items-center gap-1.5 text-sm">
                   <AlertTriangle size={15} />
                   Supabase Query Pipeline Blocked

@@ -26,7 +26,7 @@ export default function SectionCard({
   collapsed,
   onToggle,
   className = "",
-  bodyClassName = "p-4",
+  bodyClassName = "p-5",
   dark = false,
   children,
 }: SectionCardProps) {
@@ -37,7 +37,7 @@ export default function SectionCard({
       } ${className}`}
     >
       <div
-        className={`flex items-center gap-2 px-5 py-4 cursor-pointer select-none ${
+        className={`flex items-center gap-2.5 px-6 py-5 cursor-pointer select-none ${
           collapsed ? "" : dark ? "border-b border-slate-800" : "border-b border-slate-200/70"
         }`}
         onClick={() => onToggle(id)}
@@ -52,7 +52,7 @@ export default function SectionCard({
         {icon}
         <div className="flex flex-col min-w-0">
           <span className={`text-xs font-bold uppercase tracking-wider truncate ${dark ? "text-slate-400" : "text-slate-800"}`}>{title}</span>
-          {subtitle && <span className={`text-[10px] font-sans font-normal normal-case mt-0.5 ${dark ? "text-slate-500" : "text-slate-400"}`}>{subtitle}</span>}
+          {subtitle && <span className={`text-xs font-sans font-normal normal-case mt-0.5 ${dark ? "text-slate-500" : "text-slate-400"}`}>{subtitle}</span>}
         </div>
         {badge}
         {headerExtra && (
