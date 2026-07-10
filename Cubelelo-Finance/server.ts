@@ -1706,12 +1706,14 @@ async function startServer() {
         ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
         : 30;
 
-      // Receivable Days: settlement report rows split "depositdate" onto a settlement-summary row
-      // (empty orderid) and "orderid" onto separate per-order fee rows within the SAME settlementid
-      // (empty depositdate) -- there is no single row carrying both. So depositdate must be resolved
-      // per settlementid first, then joined back to the order-level rows' orderid to reach a shipment's
-      // order_date. Orders with no resolvable settlement deposit yet are excluded (not paid yet), not
-      // treated as 0 days.
+      // Receivable Days: Amazon_Unified_Transactions carries order_id, transaction_status
+      // (Released/Deferred), and transaction_release_date all on the same "Order" row -- unlike the
+      // settlement reports (Electronics_all_statements / COD_ALL_Settlements), which split orderid and
+      // depositdate onto separate rows within a settlement and require a settlementid join to relate
+      // them. Only 'Released' rows have an actual release date; 'Deferred' orders haven't been paid
+      // yet and are excluded (not treated as 0 days). transaction_release_date is formatted like
+      // "4 Apr 2026 4:44:01 am UTC" -- parsed inline since the codebase's existing safe_posteddate()
+      // helper only handles the two settlement-report date formats, not this one.
       const [cogsResult, receivableResult] = await Promise.all([
         client.query(`
           SELECT COALESCE(SUM(cost_inventory), 0) AS cogs
@@ -1725,35 +1727,19 @@ async function startServer() {
             WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' ${gstDateFilter}
             GROUP BY order_id, order_date
           ),
-          settlement_deposits AS (
-            SELECT settlementid, MIN(safe_posteddate(depositdate)) AS deposit_date
-            FROM (
-              SELECT settlementid, depositdate FROM "Electronics_all_statements" WHERE depositdate IS NOT NULL AND depositdate != ''
-              UNION ALL
-              SELECT settlementid, depositdate FROM "COD_ALL_Settlements" WHERE depositdate IS NOT NULL AND depositdate != ''
-            ) deposit_rows
-            WHERE settlementid IS NOT NULL AND settlementid != ''
-            GROUP BY settlementid
-          ),
-          order_settlements AS (
-            SELECT orderid, settlementid
-            FROM (
-              SELECT orderid, settlementid FROM "Electronics_all_statements" WHERE orderid IS NOT NULL AND orderid != ''
-              UNION ALL
-              SELECT orderid, settlementid FROM "COD_ALL_Settlements" WHERE orderid IS NOT NULL AND orderid != ''
-            ) order_rows
-            GROUP BY orderid, settlementid
-          ),
-          deposits AS (
-            SELECT os.orderid, MIN(sd.deposit_date) AS deposit_date
-            FROM order_settlements os
-            JOIN settlement_deposits sd ON sd.settlementid = os.settlementid
-            GROUP BY os.orderid
+          releases AS (
+            SELECT order_id,
+              MIN(to_timestamp(regexp_replace(transaction_release_date, ' UTC$', ''), 'DD Mon YYYY HH12:MI:SS AM')::date) AS release_date
+            FROM "Amazon_Unified_Transactions"
+            WHERE type = 'Order' AND transaction_status = 'Released'
+              AND order_id IS NOT NULL AND order_id != ''
+              AND transaction_release_date IS NOT NULL AND transaction_release_date != ''
+            GROUP BY order_id
           )
-          SELECT AVG(d.deposit_date - s.order_date) AS avg_receivable_days, COUNT(*) AS matched_orders
+          SELECT AVG(r.release_date - s.order_date) AS avg_receivable_days, COUNT(*) AS matched_orders
           FROM shipments s
-          JOIN deposits d ON d.orderid = s.order_id
-          WHERE d.deposit_date >= s.order_date
+          JOIN releases r ON r.order_id = s.order_id
+          WHERE r.release_date >= s.order_date
         `, params),
       ]);
 

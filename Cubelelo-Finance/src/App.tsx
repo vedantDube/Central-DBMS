@@ -1396,6 +1396,44 @@ export default function App() {
     return `${val.toFixed(1)}%`;
   };
 
+  // Single "what's actually going on" read of the business for the Cockpit's Pulse Strip -- a channel
+  // is "connected" once any real integration has written non-zero financials into it (today that's
+  // Amazon/Shopify via their live fetches); every other seed channel stays at the zeroChannel() baseline
+  // forever, which used to render as a red "Bleeding" badge even though nothing is actually wrong there.
+  const pulseInsight = useMemo(() => {
+    const isConnected = (c: typeof simulatedChannelsObj[number]) =>
+      c.revenue !== 0 || c.cogs !== 0 || c.netProfit !== 0 || c.advertisingSpend !== 0;
+    const connected = simulatedChannelsObj.filter(isConnected);
+    const notConnectedCount = simulatedChannelsObj.length - connected.length;
+    const sortedByProfit = [...connected].sort((a, b) => b.netProfit - a.netProfit);
+    const bestChannel = sortedByProfit[0] ?? null;
+    const worstChannel = sortedByProfit.length > 1 ? sortedByProfit[sortedByProfit.length - 1] : null;
+    const netProfitDeltaPct = comparativeMetrics && comparativeMetrics.netProfit !== 0
+      ? ((consolidatedMetrics.netProfit - comparativeMetrics.netProfit) / Math.abs(comparativeMetrics.netProfit)) * 100
+      : null;
+
+    const sentenceParts: string[] = [];
+    if (netProfitDeltaPct !== null) {
+      sentenceParts.push(`Net profit ${netProfitDeltaPct >= 0 ? "up" : "down"} ${Math.abs(netProfitDeltaPct).toFixed(1)}% vs the previous period`);
+    } else {
+      sentenceParts.push(`Net profit stands at ${formatCurrency(consolidatedMetrics.netProfit)} this period`);
+    }
+    if (bestChannel && bestChannel.netProfit > 0) {
+      sentenceParts.push(`led by ${bestChannel.name}`);
+    }
+    if (worstChannel && worstChannel.netProfit < 0) {
+      sentenceParts.push(`${worstChannel.name} in deficit at ${formatCurrency(worstChannel.netProfit)}`);
+    }
+
+    return {
+      notConnectedCount,
+      bestChannel,
+      worstChannel,
+      netProfitDeltaPct,
+      diagnosis: sentenceParts.join(", ") + ".",
+    };
+  }, [simulatedChannelsObj, consolidatedMetrics, comparativeMetrics]);
+
   // Renders a "Definition Pending" / "Not Available" badge for metrics that are null (not yet formulated or
   // permanently unavailable), instead of calling formatPercent/formatCurrency on null (which would throw).
   const renderMetricOrPending = (val: number | null | undefined, formatter: (v: number) => string, label = "Definition Pending") => {
@@ -1425,6 +1463,26 @@ export default function App() {
     return (
       <svg width={w} height={h} className="inline-block align-middle">
         <polyline points={points} fill="none" stroke={trendingUp ? "#10b981" : "#f43f5e"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    );
+  };
+
+  // Same idea as renderSparkline but over a plain number[] -- used by the Pulse Strip, which trends
+  // a raw metric series (e.g. daily net profit) rather than the { period, unitsSold } SKU shape.
+  const renderTrendline = (values: number[], color: string, w = 160, h = 40) => {
+    if (values.length < 2) return null;
+    const max = Math.max(...values, 0);
+    const min = Math.min(...values, 0);
+    const range = max - min || 1;
+    const pad = 3;
+    const points = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    return (
+      <svg width={w} height={h} className="overflow-visible">
+        <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
     );
   };
@@ -1795,10 +1853,10 @@ export default function App() {
                 <button
                   id="tab-consolidated"
                   onClick={() => setActiveTab("consolidated")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "consolidated"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
                   <Briefcase size={16} />
@@ -1809,10 +1867,10 @@ export default function App() {
                 <button
                   id="tab-channels"
                   onClick={() => setActiveTab("channels")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "channels"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
                   <ShoppingBag size={16} />
@@ -1823,10 +1881,10 @@ export default function App() {
                 <button
                   id="tab-skus"
                   onClick={() => setActiveTab("skus")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "skus"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
                   <Layers size={16} />
@@ -1837,10 +1895,10 @@ export default function App() {
                 <button
                   id="tab-reconciliation"
                   onClick={() => setActiveTab("reconciliation")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "reconciliation"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
                   <FileCheck2 size={16} />
@@ -1851,10 +1909,10 @@ export default function App() {
                 <button
                   id="tab-configurer"
                   onClick={() => setActiveTab("configurer")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "configurer"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
                   <PlusCircle size={16} />
@@ -1865,10 +1923,10 @@ export default function App() {
                 <button
                   id="tab-database"
                   onClick={() => setActiveTab("database")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "database"
-                      ? "bg-emerald-600/10 text-emerald-400 font-semibold"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      ? "bg-emerald-600/10 text-emerald-400 font-semibold border-emerald-500"
+                      : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
                   <Database size={16} />
@@ -1881,6 +1939,7 @@ export default function App() {
             <ul className="space-y-1 text-xs">
               {channels.map(chan => {
                 const isSelectedInPerformance = activeTab === "channels" && selectedChannelId === chan.id;
+                const isConnected = chan.revenue !== 0 || chan.cogs !== 0 || chan.netProfit !== 0 || chan.advertisingSpend !== 0;
                 return (
                   <li key={chan.id}>
                     <button
@@ -1889,15 +1948,18 @@ export default function App() {
                         setActiveTab("channels");
                       }}
                       className={`w-full flex items-center justify-between px-3 py-1.5 rounded text-left transition-colors ${
-                        isSelectedInPerformance 
+                        isSelectedInPerformance
                           ? "text-white font-medium bg-slate-800"
-                          : "text-slate-400 hover:text-white"
+                          : isConnected ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-300"
                       }`}
                     >
                       <span>{chan.name}</span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        chan.netProfit >= 0 ? "bg-emerald-500" : "bg-rose-500"
-                      }`}></span>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          !isConnected ? "bg-slate-600" : chan.netProfit >= 0 ? "bg-emerald-500" : "bg-rose-500"
+                        }`}
+                        title={!isConnected ? "Not connected" : chan.netProfit >= 0 ? "Profitable" : "In deficit"}
+                      ></span>
                     </button>
                   </li>
                 );
@@ -2161,11 +2223,71 @@ export default function App() {
         {activeTab === "consolidated" && (
           <div className="flex flex-col gap-6">
 
+            {/* Pulse Strip -- the one-line diagnosis of the business, read before any table. A dark
+                card intentionally breaks from the light paper canvas so it reads as the "so what"
+                summary line, not just another data card among many. */}
+            <div className="bg-[#0B1220] border border-white/5 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.07] via-transparent to-transparent pointer-events-none" />
+              <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                    Business Pulse — {startDateStr} to {endDateStr}
+                  </span>
+                  <div className="flex items-baseline gap-3 mt-2 flex-wrap">
+                    <span className={`font-mono font-extrabold text-4xl tracking-tight ${consolidatedMetrics.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {formatCurrency(consolidatedMetrics.netProfit)}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">net profit this period</span>
+                    {pulseInsight.netProfitDeltaPct !== null && (
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${pulseInsight.netProfitDeltaPct >= 0 ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
+                        {pulseInsight.netProfitDeltaPct >= 0 ? "▲" : "▼"} {Math.abs(pulseInsight.netProfitDeltaPct).toFixed(1)}% vs previous period
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-300 mt-3 max-w-2xl">{pulseInsight.diagnosis}</p>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {pulseInsight.notConnectedCount > 0 && (
+                      <span className="text-[11px] font-semibold bg-slate-700/40 text-slate-300 px-2.5 py-1 rounded-full border border-slate-600/50">
+                        {pulseInsight.notConnectedCount} channels not yet connected
+                      </span>
+                    )}
+                    {anomalies?.unreconciledOrders?.length > 0 && (
+                      <button
+                        onClick={() => { setActiveTab("channels"); setSelectedChannelId("amazon"); }}
+                        className="text-[11px] font-semibold bg-rose-500/15 text-rose-300 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/25 transition-colors cursor-pointer"
+                      >
+                        {anomalies.unreconciledOrders.length} unreconciled orders
+                      </button>
+                    )}
+                    {anomalies?.highReturnSkus?.length > 0 && (
+                      <button
+                        onClick={() => { setActiveTab("channels"); setSelectedChannelId("amazon"); }}
+                        className="text-[11px] font-semibold bg-amber-500/15 text-amber-300 px-2.5 py-1 rounded-full border border-amber-500/20 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                      >
+                        {anomalies.highReturnSkus.length} high-return SKUs
+                      </button>
+                    )}
+                    {anomalies?.feeOvercharges?.length > 0 && (
+                      <button
+                        onClick={() => { setActiveTab("channels"); setSelectedChannelId("amazon"); }}
+                        className="text-[11px] font-semibold bg-orange-500/15 text-orange-300 px-2.5 py-1 rounded-full border border-orange-500/20 hover:bg-orange-500/25 transition-colors cursor-pointer"
+                      >
+                        {anomalies.feeOvercharges.length} fee overcharges
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="shrink-0 flex flex-col items-end gap-1">
+                  <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Net profit trend</span>
+                  {renderTrendline(dailyTrendData.map(d => d.NetProfit), consolidatedMetrics.netProfit >= 0 ? "#34d399" : "#fb7185")}
+                </div>
+              </div>
+            </div>
+
             {/* KPI Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
               <LoadingOverlay active={isPageLoading} />
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl relative shadow-sm overflow-hidden" id="consolidated-revenue-kpi">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl translate-x-4 -translate-y-4"></div>
+              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-5 rounded-2xl shadow-sm" id="consolidated-revenue-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL REVENUE</span>
                   <ShoppingBag size={14} className="text-slate-400" />
@@ -2179,8 +2301,7 @@ export default function App() {
                 <div className="text-[11px] text-slate-400 mt-1">Combined period aggregate across platforms</div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl relative shadow-sm overflow-hidden" id="consolidated-cm1-kpi">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl translate-x-4 -translate-y-4"></div>
+              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-5 rounded-2xl shadow-sm" id="consolidated-cm1-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>CONTRIBUTION MARGIN (CM1)</span>
                   <Layers size={14} className="text-slate-400" />
@@ -2197,8 +2318,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl relative shadow-sm overflow-hidden" id="consolidated-ads-kpi">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl translate-x-4 -translate-y-4"></div>
+              <div className="bg-white border border-slate-200 border-t-2 border-t-amber-400 p-5 rounded-2xl shadow-sm" id="consolidated-ads-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL PERFORMANCE ADS SPEND</span>
                   <TrendingDown size={14} className="text-slate-400" />
@@ -2214,8 +2334,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl relative shadow-sm overflow-hidden" id="consolidated-profit-kpi">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl translate-x-4 -translate-y-4"></div>
+              <div className={`bg-white border border-slate-200 border-t-2 p-5 rounded-2xl shadow-sm ${consolidatedMetrics.netProfit >= 0 ? "border-t-emerald-400" : "border-t-rose-400"}`} id="consolidated-profit-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>NET PROFIT (EBITDA)</span>
                   <DollarSign size={14} className="text-slate-400" />
@@ -2382,9 +2501,14 @@ export default function App() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
                     {simulatedChannelsObj.map(c => {
+                      const isConnected = c.revenue !== 0 || c.cogs !== 0 || c.netProfit !== 0 || c.advertisingSpend !== 0;
                       const netMargin = c.revenue > 0 ? (c.netProfit / c.revenue) * 100 : 0;
                       return (
-                        <tr key={c.id} className="hover:bg-slate-50 transition-all cursor-pointer group" onClick={() => { setSelectedChannelId(c.id); setActiveTab("channels"); }}>
+                        <tr
+                          key={c.id}
+                          className={`hover:bg-slate-50 transition-all cursor-pointer group ${!isConnected ? "opacity-50" : ""}`}
+                          onClick={() => { setSelectedChannelId(c.id); setActiveTab("channels"); }}
+                        >
                           <td className="py-3 px-4 font-sans font-semibold text-slate-800 sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                             <span>{c.name}</span>
                           </td>
@@ -2400,9 +2524,13 @@ export default function App() {
                             {formatCurrency(c.netProfit)}
                           </td>
                           <td className="py-3 px-4 text-center font-sans">
-                            <StatusPill tone={netMargin > 15 ? "success" : netMargin > 0 ? "warning" : "danger"}>
-                              {netMargin > 15 ? "High Yield" : netMargin > 0 ? "Viable" : "Bleeding"}
-                            </StatusPill>
+                            {!isConnected ? (
+                              <StatusPill tone="neutral">Not Connected</StatusPill>
+                            ) : (
+                              <StatusPill tone={netMargin > 15 ? "success" : netMargin > 0 ? "warning" : "danger"}>
+                                {netMargin > 15 ? "High Yield" : netMargin > 0 ? "Viable" : "Bleeding"}
+                              </StatusPill>
+                            )}
                           </td>
                         </tr>
                       );

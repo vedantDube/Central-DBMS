@@ -11,6 +11,13 @@
     @apply bg-slate-100 text-slate-900 antialiased selection:bg-blue-500/10 selection:text-blue-900 font-sans;
   }
 
+  /* Every monetary/numeric figure in the app is rendered in font-mono -- tabular figures so
+     columns of numbers align on their digits instead of drifting per-row width (proportional
+     mono fonts still vary slightly by character without this). One rule, whole-app effect. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
   /* Custom subtle scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
