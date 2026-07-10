@@ -1680,6 +1680,116 @@ async function startServer() {
     }
   });
 
+  // Amazon Working Capital Endpoint
+  // Working Capital (Days) = Receivable Days - Payable Days
+  // Receivable Days = avg(Payment/Deposit Date - Order Date) across shipments settled in range
+  // Payable Days = configurable via ?payableDays= (default 30)
+  // Working Capital (Amount) = Working Capital (Days) x (COGS / day)
+  app.get("/api/amazon/working-capital", async (req, res) => {
+    let client;
+    try {
+      const pool = getDbPool();
+      client = await pool.connect();
+
+      const startDate = (req.query.startDate as string) || null;
+      const endDate = (req.query.endDate as string) || null;
+      const payableDays = Number(req.query.payableDays) || 30;
+
+      let gstDateFilter = "";
+      const params: string[] = [];
+      if (startDate && endDate) {
+        params.push(startDate, endDate);
+        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+      }
+
+      const dayCount = startDate && endDate
+        ? Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        : 30;
+
+      // Receivable Days: settlement report rows split "depositdate" onto a settlement-summary row
+      // (empty orderid) and "orderid" onto separate per-order fee rows within the SAME settlementid
+      // (empty depositdate) -- there is no single row carrying both. So depositdate must be resolved
+      // per settlementid first, then joined back to the order-level rows' orderid to reach a shipment's
+      // order_date. Orders with no resolvable settlement deposit yet are excluded (not paid yet), not
+      // treated as 0 days.
+      const [cogsResult, receivableResult] = await Promise.all([
+        client.query(`
+          SELECT COALESCE(SUM(cost_inventory), 0) AS cogs
+          FROM "Amazon_GST_Master"
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' ${gstDateFilter}
+        `, params),
+        client.query(`
+          WITH shipments AS (
+            SELECT order_id, NULLIF(order_date, '')::date AS order_date
+            FROM "Amazon_GST_Master"
+            WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' ${gstDateFilter}
+            GROUP BY order_id, order_date
+          ),
+          settlement_deposits AS (
+            SELECT settlementid, MIN(safe_posteddate(depositdate)) AS deposit_date
+            FROM (
+              SELECT settlementid, depositdate FROM "Electronics_all_statements" WHERE depositdate IS NOT NULL AND depositdate != ''
+              UNION ALL
+              SELECT settlementid, depositdate FROM "COD_ALL_Settlements" WHERE depositdate IS NOT NULL AND depositdate != ''
+            ) deposit_rows
+            WHERE settlementid IS NOT NULL AND settlementid != ''
+            GROUP BY settlementid
+          ),
+          order_settlements AS (
+            SELECT orderid, settlementid
+            FROM (
+              SELECT orderid, settlementid FROM "Electronics_all_statements" WHERE orderid IS NOT NULL AND orderid != ''
+              UNION ALL
+              SELECT orderid, settlementid FROM "COD_ALL_Settlements" WHERE orderid IS NOT NULL AND orderid != ''
+            ) order_rows
+            GROUP BY orderid, settlementid
+          ),
+          deposits AS (
+            SELECT os.orderid, MIN(sd.deposit_date) AS deposit_date
+            FROM order_settlements os
+            JOIN settlement_deposits sd ON sd.settlementid = os.settlementid
+            GROUP BY os.orderid
+          )
+          SELECT AVG(d.deposit_date - s.order_date) AS avg_receivable_days, COUNT(*) AS matched_orders
+          FROM shipments s
+          JOIN deposits d ON d.orderid = s.order_id
+          WHERE d.deposit_date >= s.order_date
+        `, params),
+      ]);
+
+      const cogs = parseFloat(cogsResult.rows[0].cogs);
+      const cogsPerDay = cogs / dayCount;
+      const matchedOrders = parseInt(receivableResult.rows[0].matched_orders, 10) || 0;
+      const receivableDays = matchedOrders > 0 ? parseFloat(receivableResult.rows[0].avg_receivable_days) : null;
+
+      const workingCapitalDays = receivableDays !== null ? receivableDays - payableDays : null;
+      const workingCapitalAmount = workingCapitalDays !== null ? workingCapitalDays * cogsPerDay : null;
+
+      res.json({
+        success: true,
+        data: {
+          receivableDays,
+          payableDays,
+          workingCapitalDays,
+          cogs,
+          cogsPerDay,
+          workingCapitalAmount,
+          matchedOrders,
+        },
+      });
+    } catch (err: any) {
+      console.error("Amazon working-capital query failed:", err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  });
+
   // Amazon Expense Breakdown Endpoint
   app.get("/api/amazon/expense-breakdown", async (req, res) => {
     let client;
