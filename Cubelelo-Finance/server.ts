@@ -1693,7 +1693,8 @@ async function startServer() {
 
       const startDate = (req.query.startDate as string) || null;
       const endDate = (req.query.endDate as string) || null;
-      const payableDays = Number(req.query.payableDays) || 30;
+      const payableDaysRaw = Number(req.query.payableDays);
+      const payableDays = Number.isFinite(payableDaysRaw) && payableDaysRaw >= 0 ? payableDaysRaw : 30;
 
       let gstDateFilter = "";
       const params: string[] = [];

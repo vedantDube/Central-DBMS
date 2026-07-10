@@ -3753,21 +3753,36 @@ export default function App() {
                           <span className="text-[11px] text-slate-400 font-sans mt-0.5">Configurable assumption</span>
                         </div>
 
-                        <div className={`p-4.5 rounded-xl border text-center ${(amazonWorkingCapital?.workingCapitalDays ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-                          <span className={`text-[11px] font-sans block uppercase font-medium ${(amazonWorkingCapital?.workingCapitalDays ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Days)</span>
-                          <span className={`font-mono text-lg font-extrabold block mt-1 ${(amazonWorkingCapital?.workingCapitalDays ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                            {amazonWorkingCapital?.workingCapitalDays != null ? `${amazonWorkingCapital.workingCapitalDays.toFixed(1)}d` : "—"}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Receivable Days − Payable Days</span>
-                        </div>
+                        {(() => {
+                          // Computed client-side from the live Payable Days input rather than trusting the
+                          // server's workingCapitalDays/Amount directly -- those reflect whatever payableDays
+                          // was in flight when the request was SENT, so right after typing a new value (before
+                          // the refetch resolves) the server figures would still be one keystroke stale and
+                          // visibly disagree with the Payable Days box on screen.
+                          const receivableDays = amazonWorkingCapital?.receivableDays;
+                          const cogsPerDay = amazonWorkingCapital?.cogsPerDay;
+                          const wcDays = receivableDays != null ? receivableDays - payableDays : null;
+                          const wcAmount = wcDays != null && cogsPerDay != null ? wcDays * cogsPerDay : null;
+                          return (
+                            <>
+                              <div className={`p-4.5 rounded-xl border text-center ${(wcDays ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                                <span className={`text-[11px] font-sans block uppercase font-medium ${(wcDays ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Days)</span>
+                                <span className={`font-mono text-lg font-extrabold block mt-1 ${(wcDays ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                                  {wcDays != null ? `${wcDays.toFixed(1)}d` : "—"}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-sans mt-0.5">Receivable Days − Payable Days</span>
+                              </div>
 
-                        <div className={`p-4.5 rounded-xl border text-center ${(amazonWorkingCapital?.workingCapitalAmount ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-                          <span className={`text-[11px] font-sans block uppercase font-medium ${(amazonWorkingCapital?.workingCapitalAmount ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Amount)</span>
-                          <span className={`font-mono text-lg font-extrabold block mt-1 ${(amazonWorkingCapital?.workingCapitalAmount ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                            {amazonWorkingCapital?.workingCapitalAmount != null ? formatCurrency(amazonWorkingCapital.workingCapitalAmount) : "—"}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Working Capital (Days) × COGS/day</span>
-                        </div>
+                              <div className={`p-4.5 rounded-xl border text-center ${(wcAmount ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                                <span className={`text-[11px] font-sans block uppercase font-medium ${(wcAmount ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Amount)</span>
+                                <span className={`font-mono text-lg font-extrabold block mt-1 ${(wcAmount ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                                  {wcAmount != null ? formatCurrency(wcAmount) : "—"}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-sans mt-0.5">Working Capital (Days) × COGS/day</span>
+                              </div>
+                            </>
+                          );
+                        })()}
 
                       </div>
                       {amazonWorkingCapital?.matchedOrders === 0 && (
