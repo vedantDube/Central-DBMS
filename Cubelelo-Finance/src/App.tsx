@@ -68,7 +68,7 @@ function LoadingOverlay({ active }: { active: boolean }) {
   if (!active) return null;
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-[1px] rounded-2xl">
-      <RefreshCw size={18} className="text-blue-600 animate-spin" />
+      <RefreshCw size={18} className="text-indigo-600 animate-spin" />
     </div>
   );
 }
@@ -1795,12 +1795,17 @@ export default function App() {
 
   // Chart data formatting
   const channelChartData = useMemo(() => {
-    return simulatedChannelsObj.map(c => ({
-      name: c.name,
-      Revenue: c.revenue,
-      EBITDA: c.cm2,
-      NetProfit: c.netProfit
-    })).sort((a, b) => b.Revenue - a.Revenue);
+    // Only chart channels with an actual integration -- charting all 17 seed channels (15 of which
+    // are permanently zero pending connection) produced a bar chart with overlapping x-axis labels
+    // and no real signal, the same "Not Connected" noise the ledger table used to show.
+    return simulatedChannelsObj
+      .filter(c => c.revenue !== 0 || c.cogs !== 0 || c.netProfit !== 0 || c.advertisingSpend !== 0)
+      .map(c => ({
+        name: c.name,
+        Revenue: c.revenue,
+        EBITDA: c.cm2,
+        NetProfit: c.netProfit
+      })).sort((a, b) => b.Revenue - a.Revenue);
   }, [simulatedChannelsObj]);
 
   const categoryBreakdownData = useMemo(() => {
@@ -1814,7 +1819,7 @@ export default function App() {
     }));
   }, [simulatedChannelsObj]);
 
-  const CATEGORY_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"];
+  const CATEGORY_COLORS = ["#10b981", "#6366f1", "#f59e0b", "#ec4899", "#8b5cf6"];
 
   return (
     <div className={`h-screen flex flex-col font-sans ${darkMode ? "dark-theme" : "bg-slate-100 text-slate-900"}`}>
@@ -1823,8 +1828,8 @@ export default function App() {
           (financials, operational metrics, trend, sku profitability, anomalies, etc). This gives visible
           feedback that a refresh is in flight without blocking interaction or covering content. */}
       {isPageLoading && (
-        <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-blue-100 overflow-hidden">
-          <div className="h-full w-1/3 bg-blue-600 animate-loading-bar" />
+        <div className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-indigo-100 overflow-hidden">
+          <div className="h-full w-1/3 bg-indigo-600 animate-loading-bar" />
         </div>
       )}
 
@@ -1845,8 +1850,8 @@ export default function App() {
           >
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
-          <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">F</div>
-          <h1 className="text-sm font-semibold tracking-tight text-slate-800 uppercase">FinPulse <span className="text-blue-600">Central</span></h1>
+          <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold">F</div>
+          <h1 className="text-sm font-semibold tracking-tight text-slate-800 uppercase">FinPulse <span className="text-indigo-600">Central</span></h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center bg-slate-50 rounded-md px-3 py-1.5 border border-slate-200">
@@ -1878,7 +1883,7 @@ export default function App() {
                   onClick={() => setActiveTab("consolidated")}
                   className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "consolidated"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      ? "bg-indigo-600/10 text-indigo-400 font-semibold border-indigo-500"
                       : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
@@ -1892,7 +1897,7 @@ export default function App() {
                   onClick={() => setActiveTab("channels")}
                   className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "channels"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      ? "bg-indigo-600/10 text-indigo-400 font-semibold border-indigo-500"
                       : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
@@ -1906,7 +1911,7 @@ export default function App() {
                   onClick={() => setActiveTab("skus")}
                   className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "skus"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      ? "bg-indigo-600/10 text-indigo-400 font-semibold border-indigo-500"
                       : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
@@ -1920,7 +1925,7 @@ export default function App() {
                   onClick={() => setActiveTab("reconciliation")}
                   className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "reconciliation"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      ? "bg-indigo-600/10 text-indigo-400 font-semibold border-indigo-500"
                       : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
@@ -1934,7 +1939,7 @@ export default function App() {
                   onClick={() => setActiveTab("configurer")}
                   className={`w-full flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-md text-sm font-medium transition-colors border-l-2 ${
                     activeTab === "configurer"
-                      ? "bg-blue-600/10 text-blue-400 font-semibold border-blue-500"
+                      ? "bg-indigo-600/10 text-indigo-400 font-semibold border-indigo-500"
                       : "text-slate-400 border-transparent hover:bg-slate-800 hover:text-slate-200"
                   }`}
                 >
@@ -2033,10 +2038,10 @@ export default function App() {
             )}
 
             {/* Dynamic Date Range Filter & Comparison Cockpit */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200" id="temporal-controls-card">
+            <div className="bg-slate-50/60 p-6 rounded-2xl border border-slate-200/70" id="temporal-controls-card">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl border border-blue-100">
+                  <div className="bg-indigo-50 text-indigo-600 p-2.5 rounded-xl border border-indigo-100">
                     <Sliders size={18} />
                   </div>
                   <div>
@@ -2053,7 +2058,7 @@ export default function App() {
                       id="period-preset-select"
                       value={dateRangePreset}
                       onChange={(e) => setDateRangePreset(e.target.value)}
-                      className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-sans cursor-pointer hover:bg-slate-100 transition-colors"
+                      className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 font-sans cursor-pointer hover:bg-slate-100 transition-colors"
                     >
                       <option value="last_7_days">Last 7 Days (WoW standard)</option>
                       <option value="last_14_days">Last 14 Days</option>
@@ -2075,7 +2080,7 @@ export default function App() {
                           type="date"
                           value={startDateStr}
                           onChange={(e) => handleStartDateChange(e.target.value)}
-                          className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors animate-fade-in"
+                          className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-indigo-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors animate-fade-in"
                         />
                       </div>
 
@@ -2087,7 +2092,7 @@ export default function App() {
                           type="date"
                           value={endDateStr}
                           onChange={(e) => handleEndDateChange(e.target.value)}
-                          className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-blue-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1 outline-none focus:border-indigo-500 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
                         />
                       </div>
                     </>
@@ -2100,7 +2105,7 @@ export default function App() {
                       id="compare-period-select"
                       value={comparisonType}
                       onChange={(e) => setComparisonType(e.target.value)}
-                      className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-blue-500 font-sans cursor-pointer hover:bg-slate-100 transition-colors"
+                      className="bg-slate-50 text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 font-sans cursor-pointer hover:bg-slate-100 transition-colors"
                     >
                       <option value="previous_period">vs Previous Period (matching duration)</option>
                       <option value="wow">vs Previous Week(s) (equal week count prior)</option>
@@ -2137,7 +2142,7 @@ export default function App() {
               
               <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-[11px] text-slate-400">
                 <div id="target-duration-display" className="flex items-center gap-1.5 mb-1 sm:mb-0">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block animate-pulse"></span>
                   <span>Active Analyzed Range: <strong className="text-slate-600 font-mono">{startDateStr}</strong> to <strong className="text-slate-600 font-mono">{endDateStr}</strong> ({getDiffDays(startDateStr, endDateStr)} days parsed)</span>
                 </div>
                 {compStartStr && compEndStr && (
@@ -2150,7 +2155,7 @@ export default function App() {
             </div>
             
             {/* Sensitivity analysis panel */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="bg-slate-50/60 p-6 rounded-2xl border border-slate-200/70">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Sliders size={16} className="text-slate-500" />
@@ -2165,7 +2170,7 @@ export default function App() {
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Landing Cost (COGS)</span>
-                      <span className="text-blue-600 font-bold">x{simulationParams.landingCostMultiplier.toFixed(2)}</span>
+                      <span className="text-indigo-600 font-bold">x{simulationParams.landingCostMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -2174,7 +2179,7 @@ export default function App() {
                       step="0.05"
                       value={simulationParams.landingCostMultiplier}
                       onChange={(e) => setSimulationParams({ ...simulationParams, landingCostMultiplier: parseFloat(e.target.value) })}
-                      className="w-full accent-blue-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
 
@@ -2182,7 +2187,7 @@ export default function App() {
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Advertising bids</span>
-                      <span className="text-blue-600 font-bold">x{simulationParams.adsSpendMultiplier.toFixed(2)}</span>
+                      <span className="text-indigo-600 font-bold">x{simulationParams.adsSpendMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -2191,7 +2196,7 @@ export default function App() {
                       step="0.10"
                       value={simulationParams.adsSpendMultiplier}
                       onChange={(e) => setSimulationParams({ ...simulationParams, adsSpendMultiplier: parseFloat(e.target.value) })}
-                      className="w-full accent-blue-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
 
@@ -2199,7 +2204,7 @@ export default function App() {
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Overhead / People</span>
-                      <span className="text-blue-600 font-bold">x{simulationParams.indirectExpenseMultiplier.toFixed(2)}</span>
+                      <span className="text-indigo-600 font-bold">x{simulationParams.indirectExpenseMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -2208,7 +2213,7 @@ export default function App() {
                       step="0.05"
                       value={simulationParams.indirectExpenseMultiplier}
                       onChange={(e) => setSimulationParams({ ...simulationParams, indirectExpenseMultiplier: parseFloat(e.target.value) })}
-                      className="w-full accent-blue-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
 
@@ -2216,7 +2221,7 @@ export default function App() {
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-between text-[11px] font-mono text-slate-500">
                       <span>Shipment charge</span>
-                      <span className="text-blue-600 font-bold">x{simulationParams.shippingCostMultiplier.toFixed(2)}</span>
+                      <span className="text-indigo-600 font-bold">x{simulationParams.shippingCostMultiplier.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
@@ -2225,7 +2230,7 @@ export default function App() {
                       step="0.05"
                       value={simulationParams.shippingCostMultiplier}
                       onChange={(e) => setSimulationParams({ ...simulationParams, shippingCostMultiplier: parseFloat(e.target.value) })}
-                      className="w-full accent-blue-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
                 </div>
@@ -2250,7 +2255,7 @@ export default function App() {
                 card intentionally breaks from the light paper canvas so it reads as the "so what"
                 summary line, not just another data card among many. */}
             <div className="bg-[#0B1220] border border-white/5 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.07] via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.07] via-transparent to-transparent pointer-events-none" />
               <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="flex-1 min-w-0">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
@@ -2310,7 +2315,7 @@ export default function App() {
             {/* KPI Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative">
               <LoadingOverlay active={isPageLoading} />
-              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-6 rounded-2xl shadow-sm" id="consolidated-revenue-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 p-6 rounded-2xl shadow-sm" id="consolidated-revenue-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>TOTAL REVENUE</span>
                   <ShoppingBag size={14} className="text-slate-400" />
@@ -2324,7 +2329,7 @@ export default function App() {
                 <div className="text-[11px] text-slate-400 mt-1">Combined period aggregate across platforms</div>
               </div>
 
-              <div className="bg-white border border-slate-200 border-t-2 border-t-blue-400 p-6 rounded-2xl shadow-sm" id="consolidated-cm1-kpi">
+              <div className="bg-white border border-slate-200 border-t-2 border-t-indigo-400 p-6 rounded-2xl shadow-sm" id="consolidated-cm1-kpi">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider">
                   <span>CONTRIBUTION MARGIN (CM1)</span>
                   <Layers size={14} className="text-slate-400" />
@@ -2391,15 +2396,15 @@ export default function App() {
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={channelChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="name" stroke="#64748b" fontSize={9} interval={0} tickFormatter={(v) => v.split(" ")[0]} />
-                      <YAxis stroke="#64748b" fontSize={9} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} interval={0} tickFormatter={(v) => v.split(" ")[0]} />
+                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                        contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                         formatter={(val: number) => [formatCurrency(val), ""]}
                       />
                       <Legend wrapperStyle={{ fontSize: "10px" }} />
-                      <Bar dataKey="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} opacity={0.85} name="Revenue" />
+                      <Bar dataKey="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} opacity={0.85} name="Revenue" />
                       <Bar dataKey="NetProfit" fill="#10b981" radius={[4, 4, 0, 0]} name="Net Profit" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -2461,7 +2466,7 @@ export default function App() {
               subtitle={`Day-by-day telemetry for the selected range (${startDateStr} to ${endDateStr})`}
               headerExtra={
                 <div className="flex items-center gap-4 text-xs font-semibold">
-                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-blue-500 rounded-full inline-block"></span> Daily Revenue</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-indigo-500 rounded-full inline-block"></span> Daily Revenue</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> Daily Net Profit</span>
                 </div>
               }
@@ -2474,25 +2479,25 @@ export default function App() {
                   <AreaChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="date" stroke="#64748b" fontSize={9} tickFormatter={(v) => {
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => {
                       const parts = v.split("-");
                       return parts[2] ? `${parts[2]}/${parts[1]}` : v;
                     }} />
-                    <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v)} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                       formatter={(val: number) => [formatCurrency(val), ""]}
                     />
-                    <Area type="monotone" dataKey="Revenue" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" name="Daily Revenue" />
+                    <Area type="monotone" dataKey="Revenue" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" name="Daily Revenue" />
                     <Area type="monotone" dataKey="NetProfit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" name="Daily Profit" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -2577,8 +2582,8 @@ export default function App() {
               <div className="bg-white border border-slate-200 p-6 rounded-2xl relative shadow-sm overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <LoadingOverlay active={isPageLoading} />
                 <div className="flex items-center gap-3">
-                  <div className="bg-blue-600/10 p-3 rounded-xl border border-blue-500/15">
-                    <Building className="text-blue-600" size={24} />
+                  <div className="bg-indigo-600/10 p-3 rounded-xl border border-indigo-500/15">
+                    <Building className="text-indigo-600" size={24} />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -2676,15 +2681,15 @@ export default function App() {
                     <div className="h-56">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={activeCompareSalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                          <XAxis dataKey="label" stroke="#64748b" fontSize={9} />
-                          <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                          <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v)} />
                           <Tooltip
-                            contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                            contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                             formatter={(val: number, name: string) => [name === "revenue" ? formatCurrency(val) : val, name]}
                           />
                           <Legend wrapperStyle={{ fontSize: "10px" }} />
-                          <Bar dataKey="revenue" fill="#3b82f6" name="Ordered Product Sales" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="revenue" fill="#6366f1" name="Ordered Product Sales" radius={[6, 6, 0, 0]} />
                           <Bar dataKey="unitsSold" fill="#10b981" name="Units Ordered" radius={[6, 6, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -2761,7 +2766,7 @@ export default function App() {
 
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <DollarSign size={16} className="text-blue-600" />
+                    <DollarSign size={16} className="text-indigo-600" />
                     <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">1. Profit & Loss Structure (Lakhs)</span>
                   </div>
                   <span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest font-bold">Calculated Rows</span>
@@ -2910,9 +2915,9 @@ export default function App() {
                                         <span className="text-slate-800 font-semibold">{formatCurrency(item.amount)}</span>
                                       </div>
                                     ))}
-                                    <div className="flex items-center justify-between py-2 px-3 bg-blue-50/80 font-semibold text-xs font-mono border-t border-slate-200">
-                                      <span className="text-blue-800 font-sans">Total Amazon Charges</span>
-                                      <span className="text-blue-900">{formatCurrency(indirectTotal)}</span>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-indigo-50/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                      <span className="text-indigo-800 font-sans">Total Amazon Charges</span>
+                                      <span className="text-indigo-900">{formatCurrency(indirectTotal)}</span>
                                     </div>
                                   </div>
 
@@ -3006,9 +3011,9 @@ export default function App() {
                                         <span className="text-slate-800 font-semibold">{formatCurrency(item.amount)}</span>
                                       </div>
                                     ))}
-                                    <div className="flex items-center justify-between py-2 px-3 bg-blue-50/80 font-semibold text-xs font-mono border-t border-slate-200">
-                                      <span className="text-blue-800 font-sans">Total Advertisement Cost</span>
-                                      <span className="text-blue-900">{formatCurrency(advertisementL2Total)}</span>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-indigo-50/80 font-semibold text-xs font-mono border-t border-slate-200">
+                                      <span className="text-indigo-800 font-sans">Total Advertisement Cost</span>
+                                      <span className="text-indigo-900">{formatCurrency(advertisementL2Total)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -3090,10 +3095,10 @@ export default function App() {
                     )}
 
                     {/* Row 5: CM2 */}
-                    <div className="flex items-center justify-between py-3 border-b border-slate-100 bg-blue-500/5 hover:bg-blue-500/10 px-2 rounded font-mono text-sm border-l-4 border-l-blue-500">
+                    <div className="flex items-center justify-between py-3 border-b border-slate-100 bg-indigo-500/5 hover:bg-indigo-500/10 px-2 rounded font-mono text-sm border-l-4 border-l-indigo-500">
                       <div className="flex flex-col">
-                        <span className="font-sans font-semibold text-blue-900">CM2 (EBITDA Core Profit)</span>
-                        <span className="text-[11px] font-sans text-blue-600">EBITDA earnings before tax, interest allocations</span>
+                        <span className="font-sans font-semibold text-indigo-900">CM2 (EBITDA Core Profit)</span>
+                        <span className="text-[11px] font-sans text-indigo-600">EBITDA earnings before tax, interest allocations</span>
                       </div>
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
@@ -3102,7 +3107,7 @@ export default function App() {
                             : selectedChannelId === "shopify" && shopifyFinancials
                             ? renderComparisonBadge(shopifyFinancials.cm2, null)
                             : renderComparisonBadge(activeSimulatedChannel.cm2, activeChannelComparativeMetrics?.cm2)}
-                          <span className="font-bold text-blue-800">{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : activeSimulatedChannel.cm2)}</span>
+                          <span className="font-bold text-indigo-800">{formatCurrency(selectedChannelId === "amazon" && amazonFinancials ? amazonFinancials.cm2 : selectedChannelId === "shopify" && shopifyFinancials ? shopifyFinancials.cm2 : activeSimulatedChannel.cm2)}</span>
                         </div>
                         <span className="text-[11px] text-slate-500">ROAS conversion efficiency active</span>
                       </div>
@@ -3178,15 +3183,15 @@ export default function App() {
                       <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
-                            <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                            <XAxis dataKey="period" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v)} />
                             <Tooltip
-                              contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                              contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                               formatter={(val: number) => [formatCurrency(val), ""]}
                             />
                             <Legend wrapperStyle={{ fontSize: "10px" }} />
-                            <Area type="monotone" dataKey="netRevenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2} name="Net Revenue" />
+                            <Area type="monotone" dataKey="netRevenue" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} name="Net Revenue" />
                             <Area type="monotone" dataKey="cm1" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} name="CM1" />
                             <Area type="monotone" dataKey="cm2" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} name="CM2" />
                           </AreaChart>
@@ -3212,7 +3217,7 @@ export default function App() {
 
                 <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "aov" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40" : ""} ${expandedVolumeMetric === "aov" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                     onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "aov" ? null : "aov")}
                   >
                     <div>
@@ -3226,7 +3231,7 @@ export default function App() {
                   </div>
 
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "ordersPerDay" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40" : ""} ${expandedVolumeMetric === "ordersPerDay" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                     onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "ordersPerDay" ? null : "ordersPerDay")}
                   >
                     <div>
@@ -3240,7 +3245,7 @@ export default function App() {
                   </div>
 
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "unitsPerOrder" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${selectedChannelId === "amazon" ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40" : ""} ${expandedVolumeMetric === "unitsPerOrder" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                     onClick={() => selectedChannelId === "amazon" && setExpandedVolumeMetric(v => v === "unitsPerOrder" ? null : "unitsPerOrder")}
                   >
                     <div>
@@ -3276,7 +3281,7 @@ export default function App() {
                   </div>
 
                   <div
-                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/40" : ""} ${expandedVolumeMetric === "revenuePerSku" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                    className={`bg-slate-50 border p-4 rounded-xl flex items-center justify-between ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40" : ""} ${expandedVolumeMetric === "revenuePerSku" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                     onClick={() => (selectedChannelId === "amazon" || selectedChannelId === "shopify") && setExpandedVolumeMetric(v => v === "revenuePerSku" ? null : "revenuePerSku")}
                   >
                     <div>
@@ -3323,15 +3328,15 @@ export default function App() {
                       <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={listingVolumeTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
-                            <YAxis stroke="#64748b" fontSize={9} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                            <XAxis dataKey="period" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                             <Tooltip
-                              contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                              contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                             />
                             <Legend wrapperStyle={{ fontSize: "10px" }} />
                             {expandedVolumeMetric === "aov" && (
-                              <Line type="monotone" dataKey="aov" stroke="#3b82f6" strokeWidth={2} dot={false} name="AOV (₹)" />
+                              <Line type="monotone" dataKey="aov" stroke="#6366f1" strokeWidth={2} dot={false} name="AOV (₹)" />
                             )}
                             {expandedVolumeMetric === "ordersPerDay" && (
                               <Line type="monotone" dataKey="ordersPerDay" stroke="#f59e0b" strokeWidth={2} dot={false} name="Orders" />
@@ -3363,13 +3368,13 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => toggleSupplyChainMetric("outOfStockDays")}
-                      className={`bg-slate-50 p-4.5 rounded-xl border text-center ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "outOfStockDays" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                      className={`bg-slate-50 p-4.5 rounded-xl border text-center ${(selectedChannelId === "amazon" || selectedChannelId === "shopify") ? "cursor-pointer hover:bg-slate-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "outOfStockDays" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                     >
                       <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Out of Stock Days</span>
                       {renderMetricOrPending(selectedChannel.outOfStockDays, (v) => `${v} days`)}
                       <span className="text-[11px] text-slate-400 font-sans mt-0.5">Average monthly lag</span>
                       {(selectedChannelId === "amazon" || selectedChannelId === "shopify") && (
-                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "outOfStockDays" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "outOfStockDays" ? "Hide trend ▲" : "View trend ▼"}</span>
                       )}
                     </button>
 
@@ -3377,12 +3382,12 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => toggleSupplyChainMetric("stockoutCost")}
-                        className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "stockoutCost" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                        className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "stockoutCost" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                       >
                         <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Stockout Cost</span>
                         {renderMetricOrPending(selectedChannel.stockoutCost ?? null, formatCurrency)}
                         <span className="text-[11px] text-slate-400 font-sans mt-0.5">Opportunity lost to out-of-stock inventory</span>
-                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "stockoutCost" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "stockoutCost" ? "Hide trend ▲" : "View trend ▼"}</span>
                       </button>
                     )}
 
@@ -3395,7 +3400,7 @@ export default function App() {
                       {renderMetricOrPending(selectedChannel.ageingInventoryPct, formatPercent)}
                       <span className="text-[11px] text-slate-400 font-sans mt-0.5">Overstocked catalog weight</span>
                       {selectedChannelId === "amazon" && (
-                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{ageingSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
+                        <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{ageingSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
                       )}
                     </button>
 
@@ -3408,7 +3413,7 @@ export default function App() {
                       {renderMetricOrPending(selectedChannel.deadStockPct, formatPercent)}
                       <span className="text-[11px] text-slate-400 font-sans mt-0.5">Zero daily transaction share</span>
                       {selectedChannelId === "amazon" && (
-                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{criticalSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
+                        <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{criticalSkusExpanded ? "Hide list ▲" : "View list ▼"}</span>
                       )}
                     </button>
 
@@ -3450,7 +3455,7 @@ export default function App() {
                           const list = amazonOperationalMetrics?.criticalSkus ?? [];
                           const count = list.filter((c: any) => c.velocityTag === tag).length;
                           const colorClass = tag === "Fast" ? "bg-emerald-100 text-emerald-700" :
-                            tag === "Medium" ? "bg-blue-100 text-blue-700" :
+                            tag === "Medium" ? "bg-indigo-100 text-indigo-700" :
                             tag === "Slow" ? "bg-amber-100 text-amber-700" :
                             "bg-rose-100 text-rose-700";
                           return (
@@ -3485,7 +3490,7 @@ export default function App() {
                                   <td className="px-3 py-2">
                                     <span className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${
                                       c.velocityTag === "Fast" ? "bg-emerald-100 text-emerald-700" :
-                                      c.velocityTag === "Medium" ? "bg-blue-100 text-blue-700" :
+                                      c.velocityTag === "Medium" ? "bg-indigo-100 text-indigo-700" :
                                       c.velocityTag === "Slow" ? "bg-amber-100 text-amber-700" :
                                       "bg-rose-100 text-rose-700"
                                     }`}>{c.velocityTag}</span>
@@ -3558,7 +3563,7 @@ export default function App() {
                                   <td className="px-3 py-2">
                                     <span className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${
                                       a.velocityTag === "Fast" ? "bg-emerald-100 text-emerald-700" :
-                                      a.velocityTag === "Medium" ? "bg-blue-100 text-blue-700" :
+                                      a.velocityTag === "Medium" ? "bg-indigo-100 text-indigo-700" :
                                       a.velocityTag === "Slow" ? "bg-amber-100 text-amber-700" :
                                       "bg-rose-100 text-rose-700"
                                     }`}>{a.velocityTag}</span>
@@ -3591,12 +3596,12 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => toggleSupplyChainMetric("returnPct")}
-                      className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "returnPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-rose-100"}`}
+                      className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "returnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-rose-100"}`}
                     >
                       <span className="text-[11px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
                       <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
                       <span className="text-[11px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
-                      <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                      <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                     </button>
 
                     {selectedChannelId === "amazon" && (
@@ -3604,23 +3609,23 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("goodReturnPct")}
-                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "goodReturnPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-emerald-100"}`}
+                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "goodReturnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-emerald-100"}`}
                         >
                           <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
                           <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.goodReturnPct ?? 0)}</span>
                           <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
-                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "goodReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                          <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "goodReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("badReturnPct")}
-                          className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "badReturnPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-rose-100"}`}
+                          className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "badReturnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-rose-100"}`}
                         >
                           <span className="text-[11px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
                           <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(amazonOperationalMetrics?.badReturnPct ?? 0)}</span>
                           <span className="text-[11px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
-                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "badReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                          <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "badReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
                       </>
                     )}
@@ -3628,7 +3633,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => selectedChannelId === "amazon" && toggleSupplyChainMetric("claimRatePct")}
-                      className={`bg-emerald-50 border p-4.5 rounded-xl text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-emerald-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "claimRatePct" ? "border-blue-400 ring-1 ring-blue-200" : "border-emerald-100"}`}
+                      className={`bg-emerald-50 border p-4.5 rounded-xl text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-emerald-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "claimRatePct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-emerald-100"}`}
                     >
                       <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
                       <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
@@ -3636,7 +3641,7 @@ export default function App() {
                       </span>
                       <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
                       {selectedChannelId === "amazon" && (
-                        <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claimRatePct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                        <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claimRatePct" ? "Hide trend ▲" : "View trend ▼"}</span>
                       )}
                     </button>
 
@@ -3651,34 +3656,34 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("claim24hPct")}
-                          className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "claim24hPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-200"}`}
+                          className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "claim24hPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
                         >
                           <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
                           <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claim24hPct ?? 0)}</span>
                           <span className="text-[11px] text-slate-400 font-sans mt-0.5">Claims filed within 24h / bad-returned units</span>
-                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claim24hPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                          <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claim24hPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("reimbursementPct")}
-                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "reimbursementPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-emerald-100"}`}
+                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "reimbursementPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-emerald-100"}`}
                         >
                           <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
                           <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.reimbursementPct ?? 0)}</span>
                           <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
-                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "reimbursementPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                          <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "reimbursementPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("returnLossPct")}
-                          className={`bg-amber-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-amber-100 transition-colors ${expandedSupplyChainMetric === "returnLossPct" ? "border-blue-400 ring-1 ring-blue-200" : "border-amber-100"}`}
+                          className={`bg-amber-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-amber-100 transition-colors ${expandedSupplyChainMetric === "returnLossPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-amber-100"}`}
                         >
                           <span className="text-[11px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
                           <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{formatPercent(amazonFinancials?.returnLossPct ?? 0)}</span>
                           <span className="text-[11px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
-                          <span className="text-[11px] text-blue-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnLossPct" ? "Hide trend ▲" : "View trend ▼"}</span>
+                          <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnLossPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
                       </>
                     )}
@@ -3723,14 +3728,14 @@ export default function App() {
                             <div className="h-48">
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={activeSupplyChainTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                  <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
-                                  <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(v) : expandedSupplyChainMetric === "outOfStockDays" ? `${v}d` : `${v}%`} />
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                  <XAxis dataKey="period" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(v) : expandedSupplyChainMetric === "outOfStockDays" ? `${v}d` : `${v}%`} />
                                   <Tooltip
-                                    contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                                    contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                                     formatter={(val: number) => [expandedSupplyChainMetric === "stockoutCost" ? formatCurrency(val) : expandedSupplyChainMetric === "outOfStockDays" ? `${val} days` : `${val}%`, ""]}
                                   />
-                                  <Line type="monotone" dataKey={expandedSupplyChainMetric} stroke="#3b82f6" strokeWidth={2} dot={false} name={expandedSupplyChainMetric} />
+                                  <Line type="monotone" dataKey={expandedSupplyChainMetric} stroke="#6366f1" strokeWidth={2} dot={false} name={expandedSupplyChainMetric} />
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>
@@ -3875,16 +3880,16 @@ export default function App() {
                               <div className="h-52 mt-1">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={adsPerformanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis dataKey="description" stroke="#64748b" fontSize={9} />
-                                    <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                    <XAxis dataKey="description" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v)} />
                                     <Tooltip
-                                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                                       formatter={(val: number) => [formatCurrency(val), ""]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: "10px" }} />
                                     <Bar dataKey="amount" fill="#f59e0b" name="Spend" radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="sales" fill="#3b82f6" name="Sales" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="sales" fill="#6366f1" name="Sales" radius={[4, 4, 0, 0]} />
                                   </BarChart>
                                 </ResponsiveContainer>
                               </div>
@@ -3894,12 +3899,12 @@ export default function App() {
                               <div className="h-52 mt-1">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={adsPerformanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis dataKey="description" stroke="#64748b" fontSize={9} />
-                                    <YAxis yAxisId="acos" stroke="#64748b" fontSize={9} tickFormatter={(v) => `${v}%`} />
-                                    <YAxis yAxisId="roas" orientation="right" stroke="#64748b" fontSize={9} tickFormatter={(v) => `${v}x`} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                    <XAxis dataKey="description" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis yAxisId="acos" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                                    <YAxis yAxisId="roas" orientation="right" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}x`} />
                                     <Tooltip
-                                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                                      contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                                       formatter={(val: number, name: string) => [name === "ACOS" ? `${val.toFixed(1)}%` : `${val.toFixed(2)}x`, name]}
                                     />
                                     <Legend wrapperStyle={{ fontSize: "10px" }} />
@@ -4179,11 +4184,11 @@ export default function App() {
                         <button
                           key={s.sku}
                           onClick={() => { setSkuTrendSku(s.sku); fetchSkuTrend(s.sku, startDateStr, endDateStr, trendGranularity, gstMode); }}
-                          className="flex-shrink-0 w-40 text-left bg-slate-50 hover:bg-slate-100 border border-blue-100 rounded-xl p-3 transition-colors"
+                          className="flex-shrink-0 w-40 text-left bg-slate-50 hover:bg-slate-100 border border-indigo-100 rounded-xl p-3 transition-colors"
                         >
                           <span className="block text-[11px] font-mono text-slate-400">{s.sku}</span>
                           <span className="block text-[11px] font-semibold text-slate-800 line-clamp-2 mt-0.5 h-7">{s.name}</span>
-                          <span className="block text-xs font-mono font-bold text-blue-600 mt-1">{formatCurrency(s.revenue)}</span>
+                          <span className="block text-xs font-mono font-bold text-indigo-600 mt-1">{formatCurrency(s.revenue)}</span>
                         </button>
                       ))}
                     </div>
@@ -4203,7 +4208,7 @@ export default function App() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="text"
-                    className="bg-white text-xs text-slate-800 rounded-xl pl-10 pr-4 py-2 border border-slate-200 focus:border-blue-500 outline-none w-full md:w-64 font-sans"
+                    className="bg-white text-xs text-slate-800 rounded-xl pl-10 pr-4 py-2 border border-slate-200 focus:border-indigo-500 outline-none w-full md:w-64 font-sans"
                     placeholder="Search SKU code or item name..."
                     value={skuSearch}
                     onChange={(e) => setSkuSearch(e.target.value)}
@@ -4216,7 +4221,7 @@ export default function App() {
                   <select
                     value={skuChannelFilter}
                     onChange={(e) => setSkuChannelFilter(e.target.value)}
-                    className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium outline-none focus:border-blue-500 cursor-pointer"
+                    className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     {channels.map(ch => (
                       <option key={ch.id} value={ch.id}>{ch.name}</option>
@@ -4316,15 +4321,15 @@ export default function App() {
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={skuTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="period" stroke="#64748b" fontSize={9} />
-                        <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => formatCurrency(v)} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="period" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v)} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "12px", fontSize: "12px", color: "#0f172a" }}
+                          contentStyle={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0", borderRadius: "10px", fontSize: "12px", color: "#0f172a", boxShadow: "0 4px 16px -4px rgba(15,23,42,0.12)" }}
                           formatter={(val: number) => [formatCurrency(val), ""]}
                         />
                         <Legend wrapperStyle={{ fontSize: "10px" }} />
-                        <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={2} name="Revenue" />
+                        <Area type="monotone" dataKey="revenue" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} name="Revenue" />
                         <Area type="monotone" dataKey="cogs" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.08} strokeWidth={1.5} name="COGS" />
                         <Area type="monotone" dataKey="marketplaceFees" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.08} strokeWidth={1.5} name="Marketplace Fees" />
                         <Area type="monotone" dataKey="returnLoss" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.08} strokeWidth={1.5} name="Return Loss" />
@@ -4449,7 +4454,7 @@ export default function App() {
             <SectionCard
               id="skus-management-guidance"
               title="Management Guidance Portfolio • SKU Optimization Actions"
-              icon={<Sliders size={16} className="text-blue-600" />}
+              icon={<Sliders size={16} className="text-indigo-600" />}
               collapsed={!!collapsedSections["skus-management-guidance"]}
               onToggle={toggleSection}
             >
@@ -4524,7 +4529,7 @@ export default function App() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="text"
-                    className="bg-white text-xs text-slate-800 rounded-xl pl-10 pr-4 py-2 border border-slate-200 focus:border-blue-500 outline-none w-full md:w-64 font-sans"
+                    className="bg-white text-xs text-slate-800 rounded-xl pl-10 pr-4 py-2 border border-slate-200 focus:border-indigo-500 outline-none w-full md:w-64 font-sans"
                     placeholder="Search Order ID or SKU..."
                     value={orderSearch}
                     onChange={(e) => setOrderSearch(e.target.value)}
@@ -4545,7 +4550,7 @@ export default function App() {
                   <select 
                     value={reconStatusFilter} 
                     onChange={(e) => setReconStatusFilter(e.target.value)}
-                    className="bg-white text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs font-sans focus:border-blue-500"
+                    className="bg-white text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs font-sans focus:border-indigo-500"
                   >
                     <option value="all">All Audit Statuses</option>
                     <option value="Overcharged">Fee Overcharged</option>
@@ -4599,16 +4604,16 @@ export default function App() {
                             key={o.orderId}
                             onClick={() => setSelectedOrder(o)}
                             className={`hover:bg-slate-50 transition-all cursor-pointer group ${
-                              isSelected ? "bg-blue-50/70 border-l-2 border-l-blue-600 text-slate-900 font-medium" : ""
+                              isSelected ? "bg-indigo-50/70 border-l-2 border-l-indigo-600 text-slate-900 font-medium" : ""
                             }`}
                           >
-                            <td className={`py-3 px-4 font-sans sticky left-0 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] group-hover:bg-slate-50 ${isSelected ? "bg-blue-50/70" : "bg-white"}`}>
+                            <td className={`py-3 px-4 font-sans sticky left-0 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] group-hover:bg-slate-50 ${isSelected ? "bg-indigo-50/70" : "bg-white"}`}>
                               <span className="block font-mono font-semibold text-slate-800">{o.orderId}</span>
                               <span className="text-[11px] text-slate-400 mt-0.5 block">{o.dateTime}</span>
                             </td>
                             <td className="py-3 px-4 font-sans">
                               <span className={`text-[11px] px-2 py-0.5 rounded font-bold ${
-                                o.platform === "Amazon" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-blue-100 text-blue-800 border border-blue-200"
+                                o.platform === "Amazon" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-indigo-100 text-indigo-800 border border-indigo-200"
                               }`}>
                                 {o.platform}
                               </span>
@@ -4636,7 +4641,7 @@ export default function App() {
                 title={selectedOrder ? `Currently Auditing: ${selectedOrder.orderId}` : "Order Detail Auditor"}
                 badge={selectedOrder && (
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
-                    selectedOrder.platform === "Amazon" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
+                    selectedOrder.platform === "Amazon" ? "bg-amber-100 text-amber-800" : "bg-indigo-100 text-indigo-800"
                   }`}>
                     {selectedOrder.platform}
                   </span>
@@ -4773,7 +4778,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Platform Channel Name:</label>
                     <input
                       type="text"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none"
                       placeholder="e.g. Tata Neu, Reliance Digital, Nykaa"
                       value={newChannelName}
                       onChange={(e) => setNewChannelName(e.target.value)}
@@ -4784,7 +4789,7 @@ export default function App() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Category Classification:</label>
                     <select
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-500"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500"
                       value={newChannelCategory}
                       onChange={(e) => setNewChannelCategory(e.target.value)}
                     >
@@ -4801,7 +4806,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Baseline Projected Monthly GMV (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none font-mono"
                       value={newChannelRevenue}
                       onChange={(e) => setNewChannelRevenue(e.target.value)}
                     />
@@ -4811,7 +4816,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Target COGS Ratio (%):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none font-mono"
                       value={newChannelCogsPct}
                       onChange={(e) => setNewChannelCogsPct(e.target.value)}
                     />
@@ -4821,7 +4826,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Target CM1 Margin (%):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none font-mono"
                       value={newChannelCm1Pct}
                       onChange={(e) => setNewChannelCm1Pct(e.target.value)}
                     />
@@ -4833,7 +4838,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase font-mono">Attributed Fixed Overhead (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none font-mono"
                       value={newChannelStaffCost}
                       onChange={(e) => setNewChannelStaffCost(e.target.value)}
                     />
@@ -4843,7 +4848,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Target CPC Ad Budget (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none font-mono"
                       value={newChannelAdsSpend}
                       onChange={(e) => setNewChannelAdsSpend(e.target.value)}
                     />
@@ -4853,7 +4858,7 @@ export default function App() {
                     <label className="text-[11px] text-slate-500 font-sans font-medium uppercase">Average Basket Order Value (₹):</label>
                     <input
                       type="number"
-                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-blue-500 outline-none font-mono"
+                      className="bg-white text-xs text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 focus:border-indigo-500 outline-none font-mono"
                       value={newChannelAov}
                       onChange={(e) => setNewChannelAov(e.target.value)}
                     />
@@ -4862,7 +4867,7 @@ export default function App() {
 
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-sans text-xs font-bold px-6 py-3 rounded-xl border border-blue-500/10 active:scale-95 transition-all w-full flex items-center justify-center gap-2 mt-4 cursor-pointer"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-sans text-xs font-bold px-6 py-3 rounded-xl border border-indigo-500/10 active:scale-95 transition-all w-full flex items-center justify-center gap-2 mt-4 cursor-pointer"
                 >
                   <PlusCircle size={15} />
                   Provision Platform Expansion Profile
@@ -4886,7 +4891,7 @@ export default function App() {
 
                 <div className="space-y-3 mt-4 text-xs font-sans">
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <span className="font-bold text-blue-700 block mb-1">Volumetric Calculation Tier</span>
+                    <span className="font-bold text-indigo-700 block mb-1">Volumetric Calculation Tier</span>
                     Ensure dynamic referral rates set for category codes. Volumetric tier scan is auto-generated in standard 30 days based on AOV constraints.
                   </div>
 
@@ -5091,7 +5096,7 @@ export default function App() {
                   <div className="mt-5 border-t border-slate-100 pt-4 font-sans text-xs text-slate-500">
                     <div className="flex items-center justify-between text-slate-700 font-semibold mb-2">
                       <span>Total Table Size:</span>
-                      <span className="bg-blue-50 text-blue-700 font-mono px-2 py-0.5 rounded-lg border border-blue-100">
+                      <span className="bg-indigo-50 text-indigo-700 font-mono px-2 py-0.5 rounded-lg border border-indigo-100">
                         {b2cSchemaData.rowCount?.toLocaleString()} rows
                       </span>
                     </div>
