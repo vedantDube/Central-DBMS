@@ -315,6 +315,30 @@ model ShopifyReturnLineItem {
   @@index([returnId])
 }
 
+// Physical disposition of a returned unit (RESTOCKED / NOT_RESTOCKED / MISSING / PROCESSING_REQUIRED),
+// as graded by the fulfillment location -- this is the authoritative sellable/unsellable signal Shopify
+// exposes, reached via Return.reverseFulfillmentOrders.lineItems.dispositions. Unlike
+// ShopifyOrderRefundLineItem.restockType (a merchant choice at refund time), this reflects actual
+// physical inspection, so it's the right source for a return-loss (damaged/written-off COGS) calc.
+model ShopifyReturnDisposition {
+  id             String    @id // GraphQL ID of the ReverseFulfillmentOrderDisposition (gid://shopify/...)
+  returnId       String?   // FK to ShopifyReturn.id, when resolvable
+  reverseFulfillmentOrderId String?
+  lineItemId     String?   // ReverseFulfillmentOrderLineItem GraphQL ID
+  fulfillmentLineItemId     String?
+  sku            String?
+  quantity       Int?
+  type           String?   // RESTOCKED | NOT_RESTOCKED | MISSING | PROCESSING_REQUIRED
+  locationId     String?
+  createdAt      DateTime?
+  dbCreatedAt    DateTime  @default(now())
+  dbUpdatedAt    DateTime  @updatedAt
+
+  @@index([returnId])
+  @@index([sku])
+  @@index([type])
+}
+
 model ShopifyOrderRefund {
   id               String                       @id // Refund id as string (e.g. "1295805448481")
   orderId          String // FK to ShopifyOrder.id (gid://shopify/Order/xxx)

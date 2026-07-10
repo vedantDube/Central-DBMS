@@ -17,7 +17,7 @@ const headers = {
 
 const query = `
   query GetOrderReturns($cursor: String, $query: String) {
-    orders(first: 250, after: $cursor, query: $query) {
+    orders(first: 10, after: $cursor, query: $query) {
       pageInfo {
         hasNextPage
         endCursor
@@ -52,10 +52,33 @@ const query = `
                 returnShippingFees {
                   id
                 }
-                reverseFulfillmentOrders(first: 5) {
+                reverseFulfillmentOrders(first: 3) {
                   edges {
                     node {
                       id
+                      lineItems(first: 20) {
+                        edges {
+                          node {
+                            id
+                            totalQuantity
+                            fulfillmentLineItem {
+                              id
+                              lineItem {
+                                sku
+                              }
+                            }
+                            dispositions {
+                              id
+                              type
+                              quantity
+                              createdAt
+                              location {
+                                id
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -202,6 +225,35 @@ async function main() {
                   update: lineItemData,
                   create: lineItemData,
                 });
+              }
+            }
+
+            const reverseFulfillmentOrders = ret.reverseFulfillmentOrders?.edges?.map((e: any) => e.node) || [];
+            for (const rfo of reverseFulfillmentOrders) {
+              const rfoLineItems = rfo.lineItems?.edges?.map((e: any) => e.node) || [];
+              for (const rfoLineItem of rfoLineItems) {
+                const sku = rfoLineItem.fulfillmentLineItem?.lineItem?.sku ?? null;
+                const dispositions = rfoLineItem.dispositions || [];
+                for (const disposition of dispositions) {
+                  const dispositionData = {
+                    id: disposition.id,
+                    returnId: returnData.id,
+                    reverseFulfillmentOrderId: rfo.id,
+                    lineItemId: rfoLineItem.id,
+                    fulfillmentLineItemId: rfoLineItem.fulfillmentLineItem?.id ?? null,
+                    sku,
+                    quantity: disposition.quantity != null ? Number(disposition.quantity) : null,
+                    type: disposition.type ?? null,
+                    locationId: disposition.location?.id ?? null,
+                    createdAt: disposition.createdAt ? new Date(disposition.createdAt) : null,
+                  };
+
+                  await tx.shopifyReturnDisposition.upsert({
+                    where: { id: dispositionData.id },
+                    update: dispositionData,
+                    create: dispositionData,
+                  });
+                }
               }
             }
           }, { timeout: 60000 });
