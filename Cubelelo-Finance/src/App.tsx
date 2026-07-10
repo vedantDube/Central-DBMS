@@ -80,7 +80,18 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem("darkMode") === "true";
   });
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  // Channel Performance's sub-cards default to collapsed except Sales Snapshot and P&L Structure --
+  // those two are the "read this first" cards; the rest (Compare Sales, Volume Indices, Stock Health,
+  // Returns & Claims, Working Capital, Ads Performance) start closed so the page opens scannable
+  // instead of a full-length scroll of every sub-section at once.
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    "channels-compare-sales": true,
+    "channels-volume-indices": true,
+    "channels-stock-health": true,
+    "channels-returns-claims": true,
+    "channels-working-capital": true,
+    "channels-ads-performance": true,
+  });
   const toggleSection = (id: string) =>
     setCollapsedSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -2793,25 +2804,21 @@ export default function App() {
                 );
               })()}
 
-              {/* THREE SPREADSHEET TABLE CARD MODULES */}
-              <SectionCard
-                id="channels-profitability-breakdown"
-                title="Channel Profitability Breakdown"
-                subtitle="P&L structure, listing performance, inventory health, returns, and ads — in one audit ledger"
-                collapsed={!!collapsedSections["channels-profitability-breakdown"]}
-                onToggle={toggleSection}
-                bodyClassName="p-0"
-                className="overflow-hidden"
-              >
+              {/* Channel Profitability Breakdown -- was one 1,200-line SectionCard covering P&L structure
+                  through Ads Performance; split into independently collapsible cards so collapsing one
+                  doesn't hide everything else, matching the rest of this page's card granularity. */}
+              <div className="flex flex-col gap-6 relative">
                 <LoadingOverlay active={isPageLoading} />
 
-                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <DollarSign size={16} className="text-indigo-600" />
-                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">1. Profit & Loss Structure (Lakhs)</span>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest font-bold">Calculated Rows</span>
-                </div>
+                <SectionCard
+                  id="channels-pl-structure"
+                  title="1. Profit & Loss Structure (Lakhs)"
+                  icon={<DollarSign size={16} className="text-indigo-600" />}
+                  headerExtra={<span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest font-bold">Calculated Rows</span>}
+                  collapsed={!!collapsedSections["channels-pl-structure"]}
+                  onToggle={toggleSection}
+                  bodyClassName="p-0"
+                >
 
                 {/* Sub-Table 1: Financial Rows */}
                 <div className="px-6 py-4 bg-white">
@@ -3265,13 +3272,17 @@ export default function App() {
                   );
                 })()}
 
+                </SectionCard>
+
                 {/* Sub-Table 2: Efficiency & Listing Metrics */}
-                <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp size={16} className="text-slate-700" />
-                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">2. Listing & Volume Performance Indices</span>
-                  </div>
-                </div>
+                <SectionCard
+                  id="channels-volume-indices"
+                  title="2. Listing & Volume Performance Indices"
+                  icon={<TrendingUp size={16} className="text-slate-700" />}
+                  collapsed={!!collapsedSections["channels-volume-indices"]}
+                  onToggle={toggleSection}
+                  bodyClassName="p-0"
+                >
 
                 <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
                   <div
@@ -3412,13 +3423,17 @@ export default function App() {
                   </div>
                 )}
 
+                </SectionCard>
+
                 {/* Sub-Table 3: Stock & Inventory Health */}
-                <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-slate-700" />
-                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">3. Stock & Inventory Health</span>
-                  </div>
-                </div>
+                <SectionCard
+                  id="channels-stock-health"
+                  title="3. Stock & Inventory Health"
+                  icon={<AlertTriangle size={16} className="text-slate-700" />}
+                  collapsed={!!collapsedSections["channels-stock-health"]}
+                  onToggle={toggleSection}
+                  bodyClassName="p-0"
+                >
 
                 <div className="px-6 py-4 bg-white">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -3640,13 +3655,17 @@ export default function App() {
                   )}
                 </div>
 
+                </SectionCard>
+
                 {/* Sub-Table 4: Returns & Claims */}
-                <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-slate-700" />
-                    <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">4. Returns & Claims</span>
-                  </div>
-                </div>
+                <SectionCard
+                  id="channels-returns-claims"
+                  title="4. Returns & Claims"
+                  icon={<AlertTriangle size={16} className="text-slate-700" />}
+                  collapsed={!!collapsedSections["channels-returns-claims"]}
+                  onToggle={toggleSection}
+                  bodyClassName="p-0"
+                >
 
                 <div className="px-6 py-4 bg-white">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -3654,11 +3673,11 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => toggleSupplyChainMetric("returnPct")}
-                      className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "returnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-rose-100"}`}
+                      className={`bg-white border border-slate-200 border-t-2 p-4.5 rounded-xl text-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm ${expandedSupplyChainMetric === "returnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-rose-400"}`}
                     >
-                      <span className="text-[11px] text-rose-800 font-sans block uppercase font-bold">Return Rate</span>
+                      <span className="text-[11px] text-slate-500 font-sans block uppercase font-bold">Return Rate</span>
                       <span className="font-mono text-xl font-black text-rose-600 block mt-1">{formatPercent(selectedChannel.returnPct)}</span>
-                      <span className="text-[11px] text-rose-500 font-sans mt-0.5">Total units returned / total units sold</span>
+                      <span className="text-[11px] text-slate-400 font-sans mt-0.5">Total units returned / total units sold</span>
                       <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                     </button>
 
@@ -3667,22 +3686,22 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("goodReturnPct")}
-                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "goodReturnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-emerald-100"}`}
+                          className={`bg-white border border-slate-200 border-t-2 p-4.5 rounded-xl text-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm ${expandedSupplyChainMetric === "goodReturnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-emerald-400"}`}
                         >
-                          <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Good Return Rate</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Good Return Rate</span>
                           <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.goodReturnPct ?? 0)}</span>
-                          <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Returned units reinventorisable / units sold</span>
                           <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "goodReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("badReturnPct")}
-                          className={`bg-rose-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-rose-100 transition-colors ${expandedSupplyChainMetric === "badReturnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-rose-100"}`}
+                          className={`bg-white border border-slate-200 border-t-2 p-4.5 rounded-xl text-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm ${expandedSupplyChainMetric === "badReturnPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-rose-400"}`}
                         >
-                          <span className="text-[11px] text-rose-800 font-sans block uppercase font-medium">Bad Return Rate</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Bad Return Rate</span>
                           <span className="font-mono text-lg font-extrabold text-rose-600 block mt-1">{formatPercent(amazonOperationalMetrics?.badReturnPct ?? 0)}</span>
-                          <span className="text-[11px] text-rose-500 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Returned units not reinventorisable / units sold</span>
                           <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "badReturnPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
                       </>
@@ -3691,13 +3710,13 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => selectedChannelId === "amazon" && toggleSupplyChainMetric("claimRatePct")}
-                      className={`bg-emerald-50 border p-4.5 rounded-xl text-center ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-emerald-100 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "claimRatePct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-emerald-100"}`}
+                      className={`bg-white border border-slate-200 border-t-2 p-4.5 rounded-xl text-center shadow-sm ${selectedChannelId === "amazon" ? "cursor-pointer hover:bg-slate-50 transition-colors" : "cursor-default"} ${expandedSupplyChainMetric === "claimRatePct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-emerald-400"}`}
                     >
-                      <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Claim Rate</span>
+                      <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Claim Rate</span>
                       <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">
                         {selectedChannelId === "amazon" ? formatPercent(amazonOperationalMetrics?.claimRatePct ?? 0) : formatPercent(selectedChannel.claimPct)}
                       </span>
-                      <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
+                      <span className="text-[11px] text-slate-400 font-sans mt-0.5">Bad-returned units matched to a claim / total bad-returned units</span>
                       {selectedChannelId === "amazon" && (
                         <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "claimRatePct" ? "Hide trend ▲" : "View trend ▼"}</span>
                       )}
@@ -3705,7 +3724,7 @@ export default function App() {
 
                     {selectedChannelId === "amazon" && (
                       <>
-                        <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 text-center">
+                        <div className="bg-white p-4.5 rounded-xl border border-slate-200 border-t-2 border-t-slate-300 text-center shadow-sm">
                           <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Claim Success %</span>
                           <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claimSuccessPct ?? 0)}</span>
                           <span className="text-[11px] text-slate-400 font-sans mt-0.5">Reimbursed claims / total claims — rejected/denied claims aren't tracked in ingested data, so this reads ~100% by construction</span>
@@ -3714,7 +3733,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("claim24hPct")}
-                          className={`bg-slate-50 p-4.5 rounded-xl border text-center cursor-pointer hover:bg-slate-100 transition-colors ${expandedSupplyChainMetric === "claim24hPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"}`}
+                          className={`bg-white p-4.5 rounded-xl border border-slate-200 border-t-2 text-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm ${expandedSupplyChainMetric === "claim24hPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-slate-300"}`}
                         >
                           <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Claim (&lt;24h) Rate</span>
                           <span className="font-mono text-lg font-extrabold text-slate-700 block mt-1">{formatPercent(amazonOperationalMetrics?.claim24hPct ?? 0)}</span>
@@ -3725,22 +3744,22 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("reimbursementPct")}
-                          className={`bg-emerald-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-emerald-100 transition-colors ${expandedSupplyChainMetric === "reimbursementPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-emerald-100"}`}
+                          className={`bg-white border border-slate-200 border-t-2 p-4.5 rounded-xl text-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm ${expandedSupplyChainMetric === "reimbursementPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-emerald-400"}`}
                         >
-                          <span className="text-[11px] text-emerald-800 font-sans block uppercase font-medium">Reimbursement Rate</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Reimbursement Rate</span>
                           <span className="font-mono text-lg font-extrabold text-emerald-600 block mt-1">{formatPercent(amazonOperationalMetrics?.reimbursementPct ?? 0)}</span>
-                          <span className="text-[11px] text-emerald-600 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">Amount reimbursed / COGS of claimed units</span>
                           <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "reimbursementPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => toggleSupplyChainMetric("returnLossPct")}
-                          className={`bg-amber-50 border p-4.5 rounded-xl text-center cursor-pointer hover:bg-amber-100 transition-colors ${expandedSupplyChainMetric === "returnLossPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-amber-100"}`}
+                          className={`bg-white border border-slate-200 border-t-2 p-4.5 rounded-xl text-center cursor-pointer hover:bg-slate-50 transition-colors shadow-sm ${expandedSupplyChainMetric === "returnLossPct" ? "border-indigo-400 ring-1 ring-indigo-200" : "border-t-amber-400"}`}
                         >
-                          <span className="text-[11px] text-amber-800 font-sans block uppercase font-medium">Return Loss Rate</span>
+                          <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Return Loss Rate</span>
                           <span className="font-mono text-lg font-extrabold text-amber-600 block mt-1">{formatPercent(amazonFinancials?.returnLossPct ?? 0)}</span>
-                          <span className="text-[11px] text-amber-600 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
+                          <span className="text-[11px] text-slate-400 font-sans mt-0.5">(COGS of bad returns − reimbursed) / COGS of bad returns</span>
                           <span className="text-[11px] text-indigo-500 font-sans mt-1 block font-medium">{expandedSupplyChainMetric === "returnLossPct" ? "Hide trend ▲" : "View trend ▼"}</span>
                         </button>
                       </>
@@ -3805,17 +3824,20 @@ export default function App() {
                   })()}
                 </div>
 
+                </SectionCard>
+
                 {/* Sub-Table: Working Capital -- Receivable Days from real Amazon settlement deposit
                     data vs. a user-configurable Payable Days assumption. Amazon-only: Shopify has no
                     payout/settlement table ingested yet, so there's no real receivable-days source for it. */}
                 {selectedChannelId === "amazon" && (
-                  <>
-                    <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle size={16} className="text-slate-700" />
-                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">Working Capital</span>
-                      </div>
-                    </div>
+                  <SectionCard
+                    id="channels-working-capital"
+                    title="Working Capital"
+                    icon={<AlertTriangle size={16} className="text-slate-700" />}
+                    collapsed={!!collapsedSections["channels-working-capital"]}
+                    onToggle={toggleSection}
+                    bodyClassName="p-0"
+                  >
                     <div className="px-6 py-4 bg-white">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
@@ -3851,16 +3873,16 @@ export default function App() {
                           const wcAmount = wcDays != null && cogsPerDay != null ? wcDays * cogsPerDay : null;
                           return (
                             <>
-                              <div className={`p-4.5 rounded-xl border text-center ${(wcDays ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-                                <span className={`text-[11px] font-sans block uppercase font-medium ${(wcDays ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Days)</span>
+                              <div className={`bg-white p-4.5 rounded-xl border border-slate-200 border-t-2 text-center shadow-sm ${(wcDays ?? 0) >= 0 ? "border-t-amber-400" : "border-t-emerald-400"}`}>
+                                <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Working Capital (Days)</span>
                                 <span className={`font-mono text-lg font-extrabold block mt-1 ${(wcDays ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
                                   {wcDays != null ? `${wcDays.toFixed(1)}d` : "—"}
                                 </span>
                                 <span className="text-[11px] text-slate-400 font-sans mt-0.5">Receivable Days − Payable Days</span>
                               </div>
 
-                              <div className={`p-4.5 rounded-xl border text-center ${(wcAmount ?? 0) >= 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-                                <span className={`text-[11px] font-sans block uppercase font-medium ${(wcAmount ?? 0) >= 0 ? "text-amber-800" : "text-emerald-800"}`}>Working Capital (Amount)</span>
+                              <div className={`bg-white p-4.5 rounded-xl border border-slate-200 border-t-2 text-center shadow-sm ${(wcAmount ?? 0) >= 0 ? "border-t-amber-400" : "border-t-emerald-400"}`}>
+                                <span className="text-[11px] text-slate-500 font-sans block uppercase font-medium">Working Capital (Amount)</span>
                                 <span className={`font-mono text-lg font-extrabold block mt-1 ${(wcAmount ?? 0) >= 0 ? "text-amber-600" : "text-emerald-600"}`}>
                                   {wcAmount != null ? formatCurrency(wcAmount) : "—"}
                                 </span>
@@ -3875,18 +3897,19 @@ export default function App() {
                         <p className="text-[11px] text-slate-400 mt-3">No settled orders in this range yet — Receivable Days needs a matching deposit date from Amazon's settlement reports.</p>
                       )}
                     </div>
-                  </>
+                  </SectionCard>
                 )}
 
                 {/* Sub-Table 5: Ads Performance -- replaces the retired Catalogue Benchmark Standard section */}
                 {selectedChannelId === "amazon" && (
-                  <>
-                    <div className="bg-slate-50 px-6 py-4.5 border-y border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckSquare size={16} className="text-slate-700" />
-                        <span className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">5. Ads Performance</span>
-                      </div>
-                    </div>
+                  <SectionCard
+                    id="channels-ads-performance"
+                    title="5. Ads Performance"
+                    icon={<CheckSquare size={16} className="text-slate-700" />}
+                    collapsed={!!collapsedSections["channels-ads-performance"]}
+                    onToggle={toggleSection}
+                    bodyClassName="p-0"
+                  >
                     <div className="px-6 py-4 bg-white">
                       {isLoadingAdsPerformance ? (
                         <p className="text-xs text-slate-400 font-sans">Loading ads performance...</p>
@@ -4053,10 +4076,10 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  </>
+                  </SectionCard>
                 )}
 
-              </SectionCard>
+              </div>
 
               {/* Anomaly Detection Cards */}
               {selectedChannelId === "amazon" && anomalies && (
