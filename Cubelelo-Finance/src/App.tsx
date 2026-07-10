@@ -88,7 +88,13 @@ export default function App() {
   
   // Channels Data state
   const [channels, setChannels] = useState<ChannelFinancials[]>(initialChannelsData);
-  const [selectedChannelId, setSelectedChannelId] = useState<string>("amazon");
+  const [selectedChannelId, setSelectedChannelId] = useState<string>(() => {
+    return localStorage.getItem("selectedChannelId") || "amazon";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("selectedChannelId", selectedChannelId);
+  }, [selectedChannelId]);
   
   // SKU Data state
   const [skus, setSkus] = useState<SKUProfitability[]>(initialSKUProfitability);
@@ -1588,7 +1594,7 @@ export default function App() {
   const CATEGORY_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"];
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans ${darkMode ? "dark-theme" : "bg-slate-100 text-slate-900"}`}>
+    <div className={`h-screen flex flex-col font-sans ${darkMode ? "dark-theme" : "bg-slate-100 text-slate-900"}`}>
 
       {/* Thin top progress bar -- the date range / GST mode change triggers ~9 independent fetches
           (financials, operational metrics, trend, sku profitability, anomalies, etc). This gives visible
