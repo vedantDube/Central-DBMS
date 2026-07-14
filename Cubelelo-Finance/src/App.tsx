@@ -91,6 +91,9 @@ export default function App() {
     "channels-returns-claims": true,
     "channels-working-capital": true,
     "channels-ads-performance": true,
+    "recon-unreconciled": true,
+    "recon-high-returns": true,
+    "recon-fee-overcharges": true,
   });
   const toggleSection = (id: string) =>
     setCollapsedSections((prev) => ({ ...prev, [id]: !prev[id] }));

@@ -640,7 +640,7 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -853,7 +853,7 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -983,7 +983,7 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
         utDateFilter = `AND TO_DATE(datetime, 'DD Mon YYYY') >= $1::date AND TO_DATE(datetime, 'DD Mon YYYY') <= $2::date`;
       }
 
@@ -1095,7 +1095,7 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
       }
 
       const [ordersResult, listingsResult, activeSkusResult, returnsResult, claimsResult] = await Promise.all([
@@ -1340,15 +1340,15 @@ async function startServer() {
       const supplyChain = await withTtlCache(supplyChainCacheKey, 60 * 60 * 1000, async () => {
         const [dailyUnitsResult, dailyStockResult] = await Promise.all([
           client!.query(`
-            SELECT sku, TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+            SELECT sku, TO_CHAR((NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD') AS d,
               COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
               COALESCE(SUM(${revenueCol}), 0) AS revenue
             FROM "Amazon_GST_Master"
             WHERE transaction_type = 'Shipment'
               AND channel IN ('Amazon B2B', 'Amazon B2C')
               AND order_date IS NOT NULL AND order_date != ''
-              AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
-            GROUP BY sku, NULLIF(order_date, '')::date
+              AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date
+            GROUP BY sku, (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date
           `, [lookbackStartStr, referenceDateStr]),
           client!.query(`
             SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
@@ -1461,7 +1461,7 @@ async function startServer() {
 
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
         settlementDateFilter = `AND safe_posteddate(posteddate) >= $1::date AND safe_posteddate(posteddate) <= $2::date`;
       }
 
@@ -1700,7 +1700,7 @@ async function startServer() {
       const params: string[] = [];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
       }
 
       const dayCount = startDate && endDate
@@ -1723,7 +1723,7 @@ async function startServer() {
         `, params),
         client.query(`
           WITH shipments AS (
-            SELECT order_id, NULLIF(order_date, '')::date AS order_date
+            SELECT order_id, (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date AS order_date
             FROM "Amazon_GST_Master"
             WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' ${gstDateFilter}
             GROUP BY order_id, order_date
@@ -1964,7 +1964,7 @@ async function startServer() {
       const params: string[] = [];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
       }
 
       // order_date is stored as a full timestamp string (not a bare date), so date_trunc requires a cast to date first.
@@ -1972,10 +1972,10 @@ async function startServer() {
       // it through a JS Date object -- pg parses SQL `date` in the server's local timezone, and calling
       // toISOString() on that (UTC) shifts the date backwards by the timezone offset (e.g. IST: -1 day).
       const periodExpr = granularity === "daily"
-        ? `TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD')`
+        ? `TO_CHAR((NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD')`
         : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`;
+        ? `TO_CHAR(date_trunc('week', (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date), 'YYYY-MM-DD')`;
 
       const gstTrendResult = await client.query(`
         SELECT
@@ -2255,10 +2255,10 @@ async function startServer() {
       // to a single range-wide total. ---
       const [shipmentsResult, returnsResult, claimsResult] = await Promise.all([
         client.query(`
-          SELECT TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+          SELECT TO_CHAR((NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD') AS d,
             COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS shipped_qty
           FROM "Amazon_GST_Master"
-          WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
+          WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date
           GROUP BY d
         `, [startDate, endDate]),
         client.query(`
@@ -2501,15 +2501,15 @@ async function startServer() {
 
       const [dailyUnitsResult, dailyStockResult] = await Promise.all([
         client.query(`
-          SELECT sku, TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+          SELECT sku, TO_CHAR((NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD') AS d,
             COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units,
             COALESCE(SUM(${revenueCol}), 0) AS revenue
           FROM "Amazon_GST_Master"
           WHERE transaction_type = 'Shipment'
             AND channel IN ('Amazon B2B', 'Amazon B2C')
             AND order_date IS NOT NULL AND order_date != ''
-            AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date
-          GROUP BY sku, NULLIF(order_date, '')::date
+            AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date
+          GROUP BY sku, (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date
         `, [widestLookbackStart, endDate]),
         client.query(`
           SELECT sku, TO_CHAR(date::date, 'YYYY-MM-DD') AS d, quantity
@@ -2676,13 +2676,13 @@ async function startServer() {
       const dates = periods.map((p) => p.date);
 
       const result = await client.query(`
-        SELECT TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD') AS d,
+        SELECT TO_CHAR((NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD') AS d,
           COUNT(DISTINCT CASE WHEN transaction_type = 'Shipment' THEN order_id END) AS total_orders,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric) ELSE 0 END), 0) AS units_sold,
           COALESCE(SUM(CASE WHEN transaction_type = 'Shipment' THEN ${revenueCol} ELSE 0 END), 0) AS revenue
         FROM "Amazon_GST_Master"
-        WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND order_date IS NOT NULL AND order_date != '' AND NULLIF(order_date, '')::date = ANY($1::date[])
-        GROUP BY NULLIF(order_date, '')::date
+        WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND order_date IS NOT NULL AND order_date != '' AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date = ANY($1::date[])
+        GROUP BY (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date
       `, [dates]);
 
       const byDate: Record<string, { totalOrders: number; unitsSold: number; revenue: number }> = {};
@@ -2742,16 +2742,16 @@ async function startServer() {
 
       // Formatted to text via TO_CHAR so pg never round-trips through a JS Date (see comment in /api/amazon/trend).
       const periodExpr = granularity === "daily"
-        ? `TO_CHAR(NULLIF(order_date, '')::date, 'YYYY-MM-DD')`
+        ? `TO_CHAR((NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD')`
         : granularity === "weekly"
-        ? `TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`
-        : `TO_CHAR(date_trunc('month', NULLIF(order_date, '')::date), 'YYYY-MM-DD')`;
+        ? `TO_CHAR(date_trunc('week', (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date), 'YYYY-MM-DD')`
+        : `TO_CHAR(date_trunc('month', (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date), 'YYYY-MM-DD')`;
 
       let gstDateFilter = "";
       const params: string[] = [sku];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $2::date AND NULLIF(order_date, '')::date <= $3::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $2::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $3::date`;
       }
 
       // Marketplace fees and returns bucketed to the same granularity, each on their own date column
@@ -2925,12 +2925,12 @@ async function startServer() {
       const params: string[] = [];
       if (startDate && endDate) {
         params.push(startDate, endDate);
-        gstDateFilter = `AND NULLIF(order_date, '')::date >= $1::date AND NULLIF(order_date, '')::date <= $2::date`;
+        gstDateFilter = `AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= $1::date AND (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date <= $2::date`;
       }
 
       const result = await client.query(`
         SELECT sku,
-          TO_CHAR(date_trunc('week', NULLIF(order_date, '')::date), 'YYYY-MM-DD') AS period,
+          TO_CHAR(date_trunc('week', (NULLIF(order_date, '')::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date), 'YYYY-MM-DD') AS period,
           COALESCE(SUM(CAST(NULLIF(REPLACE(quantity, ',', ''), '') AS numeric)), 0) AS units_sold
         FROM "Amazon_GST_Master"
         WHERE channel IN ('Amazon B2B', 'Amazon B2C') AND transaction_type = 'Shipment' AND order_date IS NOT NULL AND order_date != '' ${gstDateFilter}
